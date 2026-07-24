@@ -15,6 +15,10 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { getInitials } = useInitials();
 
+// The account name identifies "who" is logged in for this workspace; fall back to the user's
+// own name when there's no account yet (e.g. legacy/dev data).
+const displayName = computed(() => props.user.account?.name ?? props.user.name);
+
 // Compute whether we should show the avatar image
 const showAvatar = computed(
     () => props.user.avatar && props.user.avatar !== '',
@@ -23,14 +27,14 @@ const showAvatar = computed(
 
 <template>
     <Avatar class="h-8 w-8 overflow-hidden rounded-lg">
-        <AvatarImage v-if="showAvatar" :src="user.avatar!" :alt="user.name" />
+        <AvatarImage v-if="showAvatar" :src="user.avatar!" :alt="displayName" />
         <AvatarFallback class="rounded-lg text-black dark:text-white">
-            {{ getInitials(user.name) }}
+            {{ getInitials(displayName) }}
         </AvatarFallback>
     </Avatar>
 
     <div class="grid flex-1 text-left text-sm leading-tight">
-        <span class="truncate font-medium">{{ user.name }}</span>
+        <span class="truncate font-medium">{{ displayName }}</span>
         <span v-if="showEmail" class="truncate text-xs text-muted-foreground">{{
             user.email
         }}</span>

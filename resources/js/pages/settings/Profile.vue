@@ -11,6 +11,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
+import type { Account } from '@/types';
+
+defineProps<{
+    account?: Account | null;
+    owner?: { phone: string | null; cpf_cnpj: string | null } | null;
+}>();
 
 defineOptions({
     layout: {
@@ -36,7 +42,7 @@ const user = computed(() => page.props.auth.user);
         <Heading
             variant="small"
             title="Perfil"
-            description="Atualize seu nome e endereço de e-mail"
+            description="Atualize suas informações pessoais e da sua conta"
         />
 
         <Form
@@ -71,6 +77,41 @@ const user = computed(() => page.props.auth.user);
                     placeholder="E-mail"
                 />
                 <InputError class="mt-2" :message="errors.email" />
+            </div>
+
+            <div v-if="account" class="grid gap-2">
+                <Label for="account_name">Nome da conta</Label>
+                <Input
+                    id="account_name"
+                    class="mt-1 block w-full"
+                    name="account_name"
+                    :default-value="account.name"
+                    required
+                    placeholder="Nome da conta"
+                />
+                <InputError class="mt-2" :message="errors.account_name" />
+            </div>
+
+            <div v-if="owner" class="grid gap-2">
+                <Label for="owner_phone">Telefone</Label>
+                <Input
+                    id="owner_phone"
+                    class="mt-1 block w-full"
+                    name="owner_phone"
+                    :default-value="owner.phone ?? ''"
+                    placeholder="(00) 00000-0000"
+                />
+                <InputError class="mt-2" :message="errors.owner_phone" />
+            </div>
+
+            <div v-if="owner" class="grid gap-2">
+                <Label for="owner_cpf_cnpj">CPF/CNPJ</Label>
+                <Input
+                    id="owner_cpf_cnpj"
+                    class="mt-1 block w-full"
+                    :default-value="owner.cpf_cnpj ?? ''"
+                    disabled
+                />
             </div>
 
             <div v-if="page.props.mustVerifyEmail && !user.email_verified_at">

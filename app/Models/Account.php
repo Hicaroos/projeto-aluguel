@@ -4,8 +4,10 @@ namespace App\Models;
 
 use App\Enums\AccountStatus;
 use App\Enums\AccountType;
+use Database\Factories\AccountFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
@@ -25,6 +27,9 @@ use Illuminate\Support\Carbon;
 #[Fillable(['name', 'type', 'plan', 'status'])]
 class Account extends Model
 {
+    /** @use HasFactory<AccountFactory> */
+    use HasFactory;
+
     /**
      * @var array<string, string>
      */
