@@ -1,3 +1,5 @@
+import type { Paginator } from './pagination';
+
 export type PropertyType = 'house' | 'apartment' | 'commercial' | 'land';
 
 export type PropertyStatus =
@@ -26,9 +28,4 @@ export type Property = {
     updated_at: string;
 };
 
-export type PropertyPaginator = {
-    data: Property[];
-    links: { url: string | null; label: string; active: boolean }[];
-    current_page: number;
-    last_page: number;
-};
+export type PropertyPaginator = Paginator<Property>;

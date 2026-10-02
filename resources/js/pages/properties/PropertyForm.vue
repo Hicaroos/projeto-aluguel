@@ -4,6 +4,7 @@ import { computed } from 'vue';
 import PropertyController from '@/actions/App/Http/Controllers/PropertyController';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -15,10 +16,17 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import {
+    propertyStatusDotClasses,
     propertyStatusLabels,
+    propertyTypeIcons,
     propertyTypeLabels,
 } from '@/lib/property-labels';
-import type { Property, PropertyOwnerOption } from '@/types';
+import type {
+    Property,
+    PropertyOwnerOption,
+    PropertyStatus,
+    PropertyType,
+} from '@/types';
 
 const props = defineProps<{
     property?: Property | null;
@@ -41,160 +49,225 @@ const formAction = computed(() =>
     <Form
         v-bind="formAction"
         v-slot="{ errors, processing }"
-        class="flex flex-col gap-6"
+        class="flex flex-col gap-8"
         @success="emit('success')"
     >
-        <div class="grid gap-2">
-            <Label for="type">Tipo</Label>
-            <Select name="type" :default-value="property?.type ?? 'house'">
-                <SelectTrigger id="type" class="w-full">
-                    <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem
-                        v-for="(label, key) in propertyTypeLabels"
-                        :key="key"
-                        :value="key"
-                    >
-                        {{ label }}
-                    </SelectItem>
-                </SelectContent>
-            </Select>
-            <InputError :message="errors.type" />
-        </div>
-
-        <div v-if="accountType === 'agency'" class="grid gap-2">
-            <Label for="owner_id">Proprietário</Label>
-            <Select
-                name="owner_id"
-                :default-value="
-                    property ? String(property.owner_id) : undefined
-                "
+        <section class="grid gap-4">
+            <h3
+                class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
             >
-                <SelectTrigger id="owner_id" class="w-full">
-                    <SelectValue placeholder="Selecione o proprietário" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem
-                        v-for="owner in owners"
-                        :key="owner.id"
-                        :value="String(owner.id)"
+                Informações gerais
+            </h3>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid gap-2">
+                    <Label for="type">Tipo</Label>
+                    <Select
+                        name="type"
+                        :default-value="property?.type ?? 'house'"
                     >
-                        {{ owner.name }}
-                    </SelectItem>
-                </SelectContent>
-            </Select>
-            <InputError :message="errors.owner_id" />
-        </div>
+                        <SelectTrigger id="type" class="w-full">
+                            <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem
+                                v-for="(label, key) in propertyTypeLabels"
+                                :key="key"
+                                :value="key"
+                            >
+                                <component
+                                    :is="propertyTypeIcons[key as PropertyType]"
+                                    class="size-4 text-muted-foreground"
+                                />
+                                {{ label }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <InputError :message="errors.type" />
+                </div>
 
-        <div class="grid gap-2">
-            <Label for="zip_code">CEP</Label>
-            <Input
-                id="zip_code"
-                name="zip_code"
-                placeholder="00000-000"
-                :default-value="property?.zip_code"
-            />
-            <InputError :message="errors.zip_code" />
-        </div>
-
-        <div class="grid grid-cols-3 gap-4">
-            <div class="col-span-2 grid gap-2">
-                <Label for="street">Rua</Label>
-                <Input
-                    id="street"
-                    name="street"
-                    :default-value="property?.street"
-                />
-                <InputError :message="errors.street" />
+                <div class="grid gap-2">
+                    <Label for="status">Situação</Label>
+                    <Select
+                        name="status"
+                        :default-value="property?.status ?? 'available'"
+                    >
+                        <SelectTrigger id="status" class="w-full">
+                            <SelectValue placeholder="Selecione a situação" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem
+                                v-for="(label, key) in propertyStatusLabels"
+                                :key="key"
+                                :value="key"
+                            >
+                                <span
+                                    class="size-2 rounded-full"
+                                    :class="
+                                        propertyStatusDotClasses[
+                                            key as PropertyStatus
+                                        ]
+                                    "
+                                />
+                                {{ label }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <InputError :message="errors.status" />
+                </div>
             </div>
-            <div class="grid gap-2">
-                <Label for="number">Número</Label>
-                <Input
-                    id="number"
-                    name="number"
-                    :default-value="property?.number"
-                />
-                <InputError :message="errors.number" />
+
+            <div v-if="accountType === 'agency'" class="grid gap-2">
+                <Label for="owner_id">Proprietário</Label>
+                <Select
+                    name="owner_id"
+                    :default-value="
+                        property ? String(property.owner_id) : undefined
+                    "
+                >
+                    <SelectTrigger id="owner_id" class="w-full">
+                        <SelectValue placeholder="Selecione o proprietário" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem
+                            v-for="owner in owners"
+                            :key="owner.id"
+                            :value="String(owner.id)"
+                        >
+                            {{ owner.name }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+                <InputError :message="errors.owner_id" />
             </div>
-        </div>
+        </section>
 
-        <div class="grid gap-2">
-            <Label for="complement">Complemento (opcional)</Label>
-            <Input
-                id="complement"
-                name="complement"
-                :default-value="property?.complement ?? ''"
-            />
-            <InputError :message="errors.complement" />
-        </div>
-
-        <div class="grid gap-2">
-            <Label for="neighborhood">Bairro</Label>
-            <Input
-                id="neighborhood"
-                name="neighborhood"
-                :default-value="property?.neighborhood"
-            />
-            <InputError :message="errors.neighborhood" />
-        </div>
-
-        <div class="grid grid-cols-3 gap-4">
-            <div class="col-span-2 grid gap-2">
-                <Label for="city">Cidade</Label>
-                <Input id="city" name="city" :default-value="property?.city" />
-                <InputError :message="errors.city" />
-            </div>
-            <div class="grid gap-2">
-                <Label for="state">UF</Label>
-                <Input
-                    id="state"
-                    name="state"
-                    maxlength="2"
-                    :default-value="property?.state"
-                />
-                <InputError :message="errors.state" />
-            </div>
-        </div>
-
-        <div class="grid gap-2">
-            <Label for="rent_amount">Valor do aluguel</Label>
-            <Input
-                id="rent_amount"
-                name="rent_amount"
-                type="number"
-                step="0.01"
-                min="0"
-                :default-value="property?.rent_amount"
-            />
-            <InputError :message="errors.rent_amount" />
-        </div>
-
-        <div class="grid gap-2">
-            <Label for="status">Situação</Label>
-            <Select
-                name="status"
-                :default-value="property?.status ?? 'available'"
+        <section class="grid gap-4">
+            <h3
+                class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
             >
-                <SelectTrigger id="status" class="w-full">
-                    <SelectValue placeholder="Selecione a situação" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem
-                        v-for="(label, key) in propertyStatusLabels"
-                        :key="key"
-                        :value="key"
-                    >
-                        {{ label }}
-                    </SelectItem>
-                </SelectContent>
-            </Select>
-            <InputError :message="errors.status" />
-        </div>
+                Endereço
+            </h3>
 
-        <Button type="submit" class="w-full" :disabled="processing">
-            <Spinner v-if="processing" />
-            {{ property ? 'Salvar alterações' : 'Cadastrar imóvel' }}
-        </Button>
+            <div class="grid gap-4 sm:grid-cols-6">
+                <div class="grid gap-2 sm:col-span-2">
+                    <Label for="zip_code">CEP</Label>
+                    <Input
+                        id="zip_code"
+                        name="zip_code"
+                        placeholder="00000-000"
+                        :default-value="property?.zip_code"
+                    />
+                    <InputError :message="errors.zip_code" />
+                </div>
+
+                <div class="grid gap-2 sm:col-span-4">
+                    <Label for="street">Rua</Label>
+                    <Input
+                        id="street"
+                        name="street"
+                        :default-value="property?.street"
+                    />
+                    <InputError :message="errors.street" />
+                </div>
+
+                <div class="grid gap-2 sm:col-span-2">
+                    <Label for="number">Número</Label>
+                    <Input
+                        id="number"
+                        name="number"
+                        :default-value="property?.number"
+                    />
+                    <InputError :message="errors.number" />
+                </div>
+
+                <div class="grid gap-2 sm:col-span-4">
+                    <Label for="complement">
+                        Complemento
+                        <span class="font-normal text-muted-foreground"
+                            >(opcional)</span
+                        >
+                    </Label>
+                    <Input
+                        id="complement"
+                        name="complement"
+                        placeholder="Apto, bloco, sala…"
+                        :default-value="property?.complement ?? ''"
+                    />
+                    <InputError :message="errors.complement" />
+                </div>
+
+                <div class="grid gap-2 sm:col-span-3">
+                    <Label for="neighborhood">Bairro</Label>
+                    <Input
+                        id="neighborhood"
+                        name="neighborhood"
+                        :default-value="property?.neighborhood"
+                    />
+                    <InputError :message="errors.neighborhood" />
+                </div>
+
+                <div class="grid gap-2 sm:col-span-2">
+                    <Label for="city">Cidade</Label>
+                    <Input
+                        id="city"
+                        name="city"
+                        :default-value="property?.city"
+                    />
+                    <InputError :message="errors.city" />
+                </div>
+
+                <div class="grid gap-2 sm:col-span-1">
+                    <Label for="state">UF</Label>
+                    <Input
+                        id="state"
+                        name="state"
+                        maxlength="2"
+                        placeholder="SP"
+                        :default-value="property?.state"
+                    />
+                    <InputError :message="errors.state" />
+                </div>
+            </div>
+        </section>
+
+        <section class="grid gap-4">
+            <h3
+                class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+            >
+                Valores
+            </h3>
+
+            <div class="grid gap-2 sm:max-w-xs">
+                <Label for="rent_amount">Valor do aluguel</Label>
+                <div class="relative">
+                    <span
+                        class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground"
+                        >R$</span
+                    >
+                    <Input
+                        id="rent_amount"
+                        name="rent_amount"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0,00"
+                        class="pl-10 tabular-nums"
+                        :default-value="property?.rent_amount"
+                    />
+                </div>
+                <InputError :message="errors.rent_amount" />
+            </div>
+        </section>
+
+        <DialogFooter class="border-t pt-6">
+            <DialogClose as-child>
+                <Button type="button" variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button type="submit" :disabled="processing">
+                <Spinner v-if="processing" />
+                {{ property ? 'Salvar alterações' : 'Cadastrar imóvel' }}
+            </Button>
+        </DialogFooter>
     </Form>
 </template>

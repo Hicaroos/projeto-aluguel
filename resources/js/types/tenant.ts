@@ -1,3 +1,5 @@
+import type { Paginator } from './pagination';
+
 export type Tenant = {
     id: number;
     account_id: number;
@@ -9,9 +11,4 @@ export type Tenant = {
     updated_at: string;
 };
 
-export type TenantPaginator = {
-    data: Tenant[];
-    links: { url: string | null; label: string; active: boolean }[];
-    current_page: number;
-    last_page: number;
-};
+export type TenantPaginator = Paginator<Tenant>;
