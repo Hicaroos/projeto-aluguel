@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { House, LayoutGrid, Users } from '@lucide/vue';
+import { FileText, House, LayoutGrid, Users } from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -15,6 +15,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index as leases } from '@/routes/leases';
 import { index as properties } from '@/routes/properties';
 import { index as tenants } from '@/routes/tenants';
 import type { NavItem } from '@/types';
@@ -34,6 +35,11 @@ const mainNavItems: NavItem[] = [
         title: 'Inquilinos',
         href: tenants(),
         icon: Users,
+    },
+    {
+        title: 'Contratos',
+        href: leases(),
+        icon: FileText,
     },
 ];
 

@@ -2,9 +2,13 @@
 
 namespace App\Models;
 
+use App\Enums\GuaranteeType;
 use App\Enums\LeaseStatus;
+use Database\Factories\LeaseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -20,7 +24,10 @@ use Illuminate\Support\Carbon;
  * @property Carbon $end_date
  * @property string $amount
  * @property int $due_day
+ * @property GuaranteeType $guarantee_type
+ * @property string|null $deposit_amount
  * @property LeaseStatus $status
+ * @property string|null $notes
  * @property Carbon|null $deleted_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -37,17 +44,22 @@ use Illuminate\Support\Carbon;
     'end_date',
     'amount',
     'due_day',
+    'guarantee_type',
+    'deposit_amount',
     'status',
+    'notes',
 ])]
 class Lease extends Model
 {
-    use SoftDeletes;
+    /** @use HasFactory<LeaseFactory> */
+    use HasFactory, SoftDeletes;
 
     /**
      * @var array<string, string>
      */
     protected $attributes = [
         'status' => 'active',
+        'guarantee_type' => 'none',
     ];
 
     /**
@@ -63,7 +75,7 @@ class Lease extends Model
      */
     public function property(): BelongsTo
     {
-        return $this->belongsTo(Property::class);
+        return $this->belongsTo(Property::class)->withTrashed();
     }
 
     /**
@@ -71,7 +83,7 @@ class Lease extends Model
      */
     public function tenant(): BelongsTo
     {
-        return $this->belongsTo(Tenant::class);
+        return $this->belongsTo(Tenant::class)->withTrashed();
     }
 
     /**
@@ -83,6 +95,24 @@ class Lease extends Model
     }
 
     /**
+     * Scope the query to active leases only.
+     *
+     * @param  Builder<Lease>  $query
+     */
+    public function scopeActive(Builder $query): void
+    {
+        $query->where('status', LeaseStatus::Active);
+    }
+
+    /**
+     * Determine whether the lease is currently active.
+     */
+    public function isActive(): bool
+    {
+        return $this->status === LeaseStatus::Active;
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -90,9 +120,11 @@ class Lease extends Model
     protected function casts(): array
     {
         return [
-            'start_date' => 'date',
-            'end_date' => 'date',
+            'start_date' => 'date:Y-m-d',
+            'end_date' => 'date:Y-m-d',
             'amount' => 'decimal:2',
+            'deposit_amount' => 'decimal:2',
+            'guarantee_type' => GuaranteeType::class,
             'status' => LeaseStatus::class,
         ];
     }

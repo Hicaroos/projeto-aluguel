@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\AccountType;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
+use App\Models\Property;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -19,6 +20,10 @@ class PropertyRequest extends FormRequest
     public function rules(): array
     {
         $isAgency = $this->user()->account?->type === AccountType::Agency;
+
+        /** @var Property|null $property */
+        $property = $this->route('property');
+        $isRented = $property?->status === PropertyStatus::Rented;
 
         return [
             'type' => ['required', Rule::enum(PropertyType::class)],
@@ -36,7 +41,9 @@ class PropertyRequest extends FormRequest
             'city' => ['required', 'string', 'max:255'],
             'state' => ['required', 'string', 'size:2'],
             'rent_amount' => ['required', 'numeric', 'min:0'],
-            'status' => ['required', Rule::enum(PropertyStatus::class)],
+            'status' => $isRented
+                ? ['exclude']
+                : ['required', Rule::enum(PropertyStatus::class)->except([PropertyStatus::Rented])],
         ];
     }
 }

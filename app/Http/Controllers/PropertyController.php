@@ -93,6 +93,12 @@ class PropertyController extends Controller
     {
         $this->ensureSameAccount($property, $request);
 
+        if ($property->leases()->active()->exists()) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('Este imóvel possui um contrato ativo e não pode ser removido.')]);
+
+            return back();
+        }
+
         $property->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Imóvel removido com sucesso.')]);

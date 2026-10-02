@@ -71,6 +71,12 @@ class TenantController extends Controller
     {
         $this->ensureSameAccount($tenant, $request);
 
+        if ($tenant->leases()->active()->exists()) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('Este inquilino possui um contrato ativo e não pode ser removido.')]);
+
+            return back();
+        }
+
         $tenant->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Inquilino removido com sucesso.')]);

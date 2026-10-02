@@ -49,6 +49,48 @@ export function formatZipCode(value: string): string {
         : value;
 }
 
+function parseDate(value: string): Date {
+    const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+
+    if (dateOnly) {
+        return new Date(
+            Number(dateOnly[1]),
+            Number(dateOnly[2]) - 1,
+            Number(dateOnly[3]),
+        );
+    }
+
+    return new Date(value);
+}
+
 export function formatDate(value: string): string {
-    return new Intl.DateTimeFormat('pt-BR').format(new Date(value));
+    return new Intl.DateTimeFormat('pt-BR').format(parseDate(value));
+}
+
+export function daysUntil(value: string): number {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return Math.round(
+        (parseDate(value).getTime() - today.getTime()) / 86_400_000,
+    );
+}
+
+export function monthsBetween(start: string, end: string): number {
+    const startDate = parseDate(start);
+    const endDate = parseDate(end);
+
+    return (
+        (endDate.getFullYear() - startDate.getFullYear()) * 12 +
+        endDate.getMonth() -
+        startDate.getMonth()
+    );
+}
+
+export function todayIsoDate(): string {
+    const today = new Date();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+
+    return `${today.getFullYear()}-${month}-${day}`;
 }

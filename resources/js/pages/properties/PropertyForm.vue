@@ -43,6 +43,10 @@ const formAction = computed(() =>
         ? PropertyController.update.form(props.property)
         : PropertyController.store.form(),
 );
+
+const selectableStatusLabels = Object.fromEntries(
+    Object.entries(propertyStatusLabels).filter(([key]) => key !== 'rented'),
+) as Record<Exclude<PropertyStatus, 'rented'>, string>;
 </script>
 
 <template>
@@ -86,7 +90,23 @@ const formAction = computed(() =>
                     <InputError :message="errors.type" />
                 </div>
 
-                <div class="grid gap-2">
+                <div v-if="property?.status === 'rented'" class="grid gap-2">
+                    <Label>Situação</Label>
+                    <div
+                        class="flex h-9 items-center gap-2 rounded-md border bg-muted/40 px-3 text-sm"
+                    >
+                        <span
+                            class="size-2 rounded-full"
+                            :class="propertyStatusDotClasses.rented"
+                        />
+                        {{ propertyStatusLabels.rented }}
+                    </div>
+                    <p class="text-xs text-muted-foreground">
+                        Controlada pelo contrato ativo deste imóvel.
+                    </p>
+                </div>
+
+                <div v-else class="grid gap-2">
                     <Label for="status">Situação</Label>
                     <Select
                         name="status"
@@ -97,7 +117,7 @@ const formAction = computed(() =>
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem
-                                v-for="(label, key) in propertyStatusLabels"
+                                v-for="(label, key) in selectableStatusLabels"
                                 :key="key"
                                 :value="key"
                             >

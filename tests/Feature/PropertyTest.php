@@ -157,3 +157,26 @@ test('index paginates properties', function () {
             ->where('properties.last_page', 2)
         );
 });
+
+test('the rented status cannot be set manually', function () {
+    $account = Account::factory()->create();
+    Owner::factory()->for($account, 'account')->create();
+    $user = User::factory()->for($account, 'account')->create();
+
+    $this->actingAs($user)
+        ->post(route('properties.store'), validPropertyPayload(['status' => PropertyStatus::Rented->value]))
+        ->assertSessionHasErrors('status');
+});
+
+test('updating a rented property keeps its rented status', function () {
+    $account = Account::factory()->create();
+    $owner = Owner::factory()->for($account, 'account')->create();
+    $user = User::factory()->for($account, 'account')->create();
+    $property = Property::factory()->for($account, 'account')->for($owner, 'owner')->create(['status' => PropertyStatus::Rented]);
+
+    $this->actingAs($user)
+        ->put(route('properties.update', $property), validPropertyPayload(['status' => PropertyStatus::Available->value]))
+        ->assertSessionHasNoErrors();
+
+    expect($property->fresh()->status)->toBe(PropertyStatus::Rented);
+});
