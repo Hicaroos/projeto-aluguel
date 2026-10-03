@@ -240,6 +240,7 @@ function confirmDelete() {
             </Table>
 
             <TablePagination v-if="properties.data.length > 0" :paginator="properties" item-label="imóveis"
+                item-label-singular="imóvel"
                 class="border-t" />
         </div>
     </div>

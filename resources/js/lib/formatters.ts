@@ -94,3 +94,15 @@ export function todayIsoDate(): string {
 
     return `${today.getFullYear()}-${month}-${day}`;
 }
+
+export function formatMonthYear(
+    value: string,
+    style: 'long' | 'short' = 'long',
+): string {
+    const formatted = new Intl.DateTimeFormat('pt-BR', {
+        month: style,
+        year: 'numeric',
+    }).format(parseDate(value));
+
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+}

@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
 import {
     CalendarDays,
     FileCheck,
     FileText,
     NotebookPen,
     Pencil,
+    ReceiptText,
     ShieldCheck,
     Wallet,
 } from '@lucide/vue';
@@ -28,6 +30,7 @@ import {
     leaseStatusDotClasses,
     leaseStatusLabels,
 } from '@/lib/lease-labels';
+import { index as paymentsIndex } from '@/routes/payments';
 import type { Lease } from '@/types';
 
 defineProps<{
@@ -170,6 +173,12 @@ const emit = defineEmits<{
             </div>
 
             <DialogFooter class="border-t pt-6">
+                <Button variant="ghost" class="sm:mr-auto" as-child>
+                    <Link :href="paymentsIndex({ query: { lease: lease.id } })">
+                        <ReceiptText class="size-4" />
+                        Ver cobranças
+                    </Link>
+                </Button>
                 <template v-if="lease.status === 'active'">
                     <Button variant="outline" @click="emit('finish', lease)">
                         <FileCheck class="size-4" />

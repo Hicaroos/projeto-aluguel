@@ -8,6 +8,7 @@ import type { Paginator } from '@/types';
 const props = defineProps<{
     paginator: Paginator<unknown>;
     itemLabel: string;
+    itemLabelSingular: string;
 }>();
 
 const pageLinks = computed(() => props.paginator.links.slice(1, -1));
@@ -19,17 +20,14 @@ const pageLinks = computed(() => props.paginator.links.slice(1, -1));
         class="flex flex-col items-center justify-between gap-3 px-4 py-3 sm:flex-row"
     >
         <p class="text-sm text-muted-foreground">
-            Mostrando
-            <span class="font-medium text-foreground">{{
-                paginator.from
-            }}</span>
-            a
-            <span class="font-medium text-foreground">{{ paginator.to }}</span>
-            de
             <span class="font-medium text-foreground">{{
                 paginator.total
             }}</span>
-            {{ itemLabel }}
+            {{ paginator.total === 1 ? itemLabelSingular : itemLabel }}
+            <template v-if="paginator.last_page > 1">
+                · Página {{ paginator.current_page }} de
+                {{ paginator.last_page }}
+            </template>
         </p>
 
         <nav

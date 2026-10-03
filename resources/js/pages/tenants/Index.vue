@@ -256,6 +256,7 @@ function confirmDelete() {
                 v-if="tenants.data.length > 0"
                 :paginator="tenants"
                 item-label="inquilinos"
+                item-label-singular="inquilino"
                 class="border-t"
             />
         </div>

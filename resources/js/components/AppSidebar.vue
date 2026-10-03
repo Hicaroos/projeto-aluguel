@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { FileText, House, LayoutGrid, Users } from '@lucide/vue';
+import { FileText, House, LayoutGrid, ReceiptText, Users } from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { index as leases } from '@/routes/leases';
+import { index as payments } from '@/routes/payments';
 import { index as properties } from '@/routes/properties';
 import { index as tenants } from '@/routes/tenants';
 import type { NavItem } from '@/types';
@@ -40,6 +41,11 @@ const mainNavItems: NavItem[] = [
         title: 'Contratos',
         href: leases(),
         icon: FileText,
+    },
+    {
+        title: 'Cobranças',
+        href: payments(),
+        icon: ReceiptText,
     },
 ];
 

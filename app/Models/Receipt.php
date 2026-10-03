@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Enums\PaymentMethod;
+use Database\Factories\ReceiptFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -24,6 +26,9 @@ use Illuminate\Support\Carbon;
 #[Fillable(['account_id', 'payment_id', 'amount', 'date', 'payment_method', 'notes'])]
 class Receipt extends Model
 {
+    /** @use HasFactory<ReceiptFactory> */
+    use HasFactory;
+
     /**
      * @return BelongsTo<Account, $this>
      */
@@ -49,7 +54,7 @@ class Receipt extends Model
     {
         return [
             'amount' => 'decimal:2',
-            'date' => 'date',
+            'date' => 'date:Y-m-d',
             'payment_method' => PaymentMethod::class,
         ];
     }

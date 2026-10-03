@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Leases\SyncLeasePayments;
 use App\Enums\LeaseStatus;
 use App\Enums\PropertyStatus;
 use App\Http\Requests\LeaseRequest;
@@ -17,6 +18,8 @@ use Inertia\Response;
 
 class LeaseController extends Controller
 {
+    public function __construct(private SyncLeasePayments $syncLeasePayments) {}
+
     /**
      * Display the authenticated account's leases.
      */
@@ -70,6 +73,8 @@ class LeaseController extends Controller
             ]);
 
             $lease->property->update(['status' => PropertyStatus::Rented]);
+
+            $this->syncLeasePayments->handle($lease);
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Contrato cadastrado com sucesso.')]);
@@ -98,6 +103,8 @@ class LeaseController extends Controller
                 $previousProperty->update(['status' => PropertyStatus::Available]);
                 $lease->load('property')->property->update(['status' => PropertyStatus::Rented]);
             }
+
+            $this->syncLeasePayments->handle($lease);
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Contrato atualizado com sucesso.')]);
@@ -121,6 +128,7 @@ class LeaseController extends Controller
         DB::transaction(function () use ($lease, $validated): void {
             $lease->update(['status' => $validated['status']]);
             $lease->property->update(['status' => PropertyStatus::Available]);
+            $this->syncLeasePayments->cancelUpcoming($lease);
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Contrato finalizado com sucesso.')]);
@@ -138,6 +146,7 @@ class LeaseController extends Controller
         DB::transaction(function () use ($lease): void {
             if ($lease->isActive()) {
                 $lease->property->update(['status' => PropertyStatus::Available]);
+                $this->syncLeasePayments->cancelUpcoming($lease);
             }
 
             $lease->delete();

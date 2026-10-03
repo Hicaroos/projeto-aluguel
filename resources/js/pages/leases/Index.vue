@@ -343,6 +343,7 @@ function confirmDelete() {
                 v-if="leases.data.length > 0"
                 :paginator="leases"
                 item-label="contratos"
+                item-label-singular="contrato"
                 class="border-t"
             />
         </div>
