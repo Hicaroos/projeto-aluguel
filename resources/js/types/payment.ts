@@ -55,6 +55,7 @@ export type PaymentSummary = {
     received: number;
     open: number;
     overdue: number;
+    overdue_count: number;
 };
 
 export type PaymentLeaseFilter = {

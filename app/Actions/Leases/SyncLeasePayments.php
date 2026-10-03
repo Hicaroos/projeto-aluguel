@@ -67,6 +67,23 @@ class SyncLeasePayments
     }
 
     /**
+     * Generate the upcoming payments of the account's active leases that are still missing them.
+     *
+     * Works as a safety net for when the scheduled generation did not run.
+     */
+    public function handleMissingForAccount(int $accountId): void
+    {
+        $nextMonth = today()->addMonthNoOverflow()->startOfMonth();
+
+        Lease::where('account_id', $accountId)
+            ->active()
+            ->whereDate('end_date', '>=', $nextMonth)
+            ->whereDoesntHave('payments', fn ($query) => $query->whereDate('reference_month', $nextMonth))
+            ->get()
+            ->each(fn (Lease $lease) => $this->handle($lease));
+    }
+
+    /**
      * Cancel the pending payments of the lease that are not due yet.
      */
     public function cancelUpcoming(Lease $lease): void

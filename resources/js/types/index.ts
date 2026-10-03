@@ -1,4 +1,5 @@
 export * from './auth';
+export * from './dashboard';
 export * from './lease';
 export * from './navigation';
 export * from './pagination';

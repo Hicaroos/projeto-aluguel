@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Leases\SyncLeasePayments;
+use App\Actions\Payments\SummarizePayments;
 use App\Enums\PaymentStatus;
 use App\Models\Lease;
 use App\Models\Payment;
@@ -17,11 +18,11 @@ class PaymentController extends Controller
     /**
      * Display the authenticated account's payments for a month or for a single lease.
      */
-    public function index(Request $request, SyncLeasePayments $syncLeasePayments): Response
+    public function index(Request $request, SyncLeasePayments $syncLeasePayments, SummarizePayments $summarizePayments): Response
     {
         $accountId = $request->user()->account_id;
 
-        $this->generateMissingPayments($accountId, $syncLeasePayments);
+        $syncLeasePayments->handleMissingForAccount($accountId);
 
         $month = $this->resolveMonth($request->string('month')->toString());
         $search = $request->string('search')->trim()->toString();
@@ -64,7 +65,7 @@ class PaymentController extends Controller
 
         return Inertia::render('payments/Index', [
             'payments' => $payments,
-            'summary' => $this->summary($scopedQuery()),
+            'summary' => $summarizePayments->handle($scopedQuery()),
             'filters' => [
                 'month' => $month->format('Y-m'),
                 'search' => $search,
@@ -73,23 +74,6 @@ class PaymentController extends Controller
             ],
             'lease' => $lease,
         ]);
-    }
-
-    /**
-     * Generate the upcoming payments of active leases that are still missing them.
-     *
-     * Works as a safety net for when the scheduled generation did not run.
-     */
-    private function generateMissingPayments(int $accountId, SyncLeasePayments $syncLeasePayments): void
-    {
-        $nextMonth = today()->addMonthNoOverflow()->startOfMonth();
-
-        Lease::where('account_id', $accountId)
-            ->active()
-            ->whereDate('end_date', '>=', $nextMonth)
-            ->whereDoesntHave('payments', fn (Builder $query) => $query->whereDate('reference_month', $nextMonth))
-            ->get()
-            ->each(fn (Lease $lease) => $syncLeasePayments->handle($lease));
     }
 
     /**
@@ -102,30 +86,5 @@ class PaymentController extends Controller
         }
 
         return CarbonImmutable::today()->startOfMonth();
-    }
-
-    /**
-     * Summarize the expected, received, open and overdue amounts of the given payments.
-     *
-     * @param  Builder<Payment>  $query
-     * @return array{expected: float, received: float, open: float, overdue: float}
-     */
-    private function summary(Builder $query): array
-    {
-        $payments = $query
-            ->where('status', '!=', PaymentStatus::Canceled)
-            ->withSum('receipts as received_amount', 'amount')
-            ->get(['id', 'amount', 'status', 'due_date']);
-
-        $outstanding = fn (Payment $payment): float => max(0, (float) $payment->amount - (float) $payment->received_amount);
-
-        return [
-            'expected' => round($payments->sum(fn (Payment $payment) => (float) $payment->amount), 2),
-            'received' => round($payments->sum(fn (Payment $payment) => (float) $payment->received_amount), 2),
-            'open' => round($payments->sum($outstanding), 2),
-            'overdue' => round($payments
-                ->filter(fn (Payment $payment) => $payment->status !== PaymentStatus::Paid && $payment->due_date->lt(today()))
-                ->sum($outstanding), 2),
-        ];
     }
 }
