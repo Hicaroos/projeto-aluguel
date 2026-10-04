@@ -113,6 +113,33 @@ class Lease extends Model
     }
 
     /**
+     * Scope the query to leases whose tenant name or property address matches the given term.
+     *
+     * @param  Builder<Lease>  $query
+     */
+    public function scopeSearch(Builder $query, string $term): void
+    {
+        $query->when($term !== '', fn (Builder $query) => $query->where(function (Builder $query) use ($term) {
+            $query->whereHas('tenant', fn (Builder $query) => $query->where('name', 'like', "%{$term}%"))
+                ->orWhereHas('property', fn (Builder $query) => $query->where(function (Builder $query) use ($term) {
+                    $query->where('street', 'like', "%{$term}%")
+                        ->orWhere('neighborhood', 'like', "%{$term}%")
+                        ->orWhere('city', 'like', "%{$term}%");
+                }));
+        }));
+    }
+
+    /**
+     * Scope the query to active leases ending within the given number of days, or already past their end date.
+     *
+     * @param  Builder<Lease>  $query
+     */
+    public function scopeEndingWithin(Builder $query, int $days): void
+    {
+        $query->active()->whereDate('end_date', '<=', today()->addDays($days));
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

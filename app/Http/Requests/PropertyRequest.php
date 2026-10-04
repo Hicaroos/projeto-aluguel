@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\AccountType;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Models\Property;
@@ -19,11 +18,8 @@ class PropertyRequest extends FormRequest
      */
     public function rules(): array
     {
-        $isAgency = $this->user()->account?->type === AccountType::Agency;
-
-        /** @var Property|null $property */
-        $property = $this->route('property');
-        $isRented = $property?->status === PropertyStatus::Rented;
+        $isAgency = $this->user()->account?->isAgency() ?? false;
+        $isRented = $this->property()?->status === PropertyStatus::Rented;
 
         return [
             'type' => ['required', Rule::enum(PropertyType::class)],
@@ -45,5 +41,31 @@ class PropertyRequest extends FormRequest
                 ? ['exclude']
                 : ['required', Rule::enum(PropertyStatus::class)->except([PropertyStatus::Rented])],
         ];
+    }
+
+    /**
+     * Get the owner the property belongs to.
+     *
+     * Agencies choose the owner in the form; single owner accounts always use their own owner.
+     */
+    public function ownerId(): ?int
+    {
+        $account = $this->user()->account;
+
+        if ($account?->isAgency()) {
+            return (int) $this->validated('owner_id');
+        }
+
+        return $this->property()->owner_id ?? $account?->primaryOwner()?->id;
+    }
+
+    /**
+     * Get the property being updated, if any.
+     */
+    private function property(): ?Property
+    {
+        $property = $this->route('property');
+
+        return $property instanceof Property ? $property : null;
     }
 }

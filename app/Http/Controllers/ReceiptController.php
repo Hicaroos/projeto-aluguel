@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\PaymentStatus;
+use App\Actions\Payments\DeleteReceipt;
+use App\Actions\Payments\RegisterReceipt;
 use App\Http\Requests\ReceiptRequest;
 use App\Models\Payment;
 use App\Models\Receipt;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -17,9 +17,9 @@ class ReceiptController extends Controller
     /**
      * Display the printable rent receipt of the given received amount.
      */
-    public function show(Request $request, Receipt $receipt): Response
+    public function show(Receipt $receipt): Response
     {
-        abort_unless($receipt->account_id === $request->user()->account_id, 404);
+        Gate::authorize('view', $receipt);
 
         $receipt->load([
             'payment:id,lease_id,reference_month,due_date,amount,status',
@@ -38,20 +38,11 @@ class ReceiptController extends Controller
     /**
      * Register a received amount for the given open payment.
      */
-    public function store(ReceiptRequest $request, Payment $payment): RedirectResponse
+    public function store(ReceiptRequest $request, Payment $payment, RegisterReceipt $registerReceipt): RedirectResponse
     {
-        abort_unless($payment->account_id === $request->user()->account_id, 404);
+        Gate::authorize('registerReceipt', $payment);
 
-        abort_unless(in_array($payment->status, [PaymentStatus::Pending, PaymentStatus::Partial], true), 403);
-
-        DB::transaction(function () use ($request, $payment): void {
-            $payment->receipts()->create([
-                ...$request->validated(),
-                'account_id' => $payment->account_id,
-            ]);
-
-            $payment->refreshStatus();
-        });
+        $registerReceipt->handle($payment, $request->validated());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Pagamento registrado com sucesso.')]);
 
@@ -59,17 +50,13 @@ class ReceiptController extends Controller
     }
 
     /**
-     * Remove the given receipt and recalculate its payment status.
+     * Remove the given receipt.
      */
-    public function destroy(Request $request, Receipt $receipt): RedirectResponse
+    public function destroy(Receipt $receipt, DeleteReceipt $deleteReceipt): RedirectResponse
     {
-        abort_unless($receipt->account_id === $request->user()->account_id, 404);
+        Gate::authorize('delete', $receipt);
 
-        DB::transaction(function () use ($receipt): void {
-            $receipt->delete();
-
-            $receipt->payment->refreshStatus();
-        });
+        $deleteReceipt->handle($receipt);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Pagamento removido com sucesso.')]);
 

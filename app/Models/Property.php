@@ -6,6 +6,7 @@ use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use Database\Factories\PropertyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -101,6 +102,29 @@ class Property extends Model
     public function expenses(): HasMany
     {
         return $this->hasMany(Expense::class);
+    }
+
+    /**
+     * Scope the query to properties whose address matches the given term.
+     *
+     * @param  Builder<Property>  $query
+     */
+    public function scopeSearch(Builder $query, string $term): void
+    {
+        $query->when($term !== '', fn (Builder $query) => $query->where(function (Builder $query) use ($term) {
+            $query->where('street', 'like', "%{$term}%")
+                ->orWhere('neighborhood', 'like', "%{$term}%")
+                ->orWhere('city', 'like', "%{$term}%")
+                ->orWhere('zip_code', 'like', "%{$term}%");
+        }));
+    }
+
+    /**
+     * Determine whether the property is under an active lease.
+     */
+    public function hasActiveLease(): bool
+    {
+        return $this->leases()->active()->exists();
     }
 
     /**

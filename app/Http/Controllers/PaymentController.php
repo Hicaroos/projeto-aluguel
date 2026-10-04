@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Actions\Leases\SyncLeasePayments;
 use App\Actions\Payments\SummarizePayments;
-use App\Enums\PaymentStatus;
 use App\Models\Lease;
 use App\Models\Payment;
 use Carbon\CarbonImmutable;
@@ -38,33 +37,18 @@ class PaymentController extends Controller
             ->when(
                 $lease !== null,
                 fn (Builder $query) => $query->where('lease_id', $lease->id),
-                fn (Builder $query) => $query->whereBetween('due_date', [$month->toDateString(), $month->endOfMonth()->toDateString()]),
+                fn (Builder $query) => $query->dueInMonth($month),
             );
 
-        $payments = $scopedQuery()
-            ->with([
-                'lease:id,property_id,tenant_id,due_day,status',
-                'lease.tenant:id,name,deleted_at',
-                'lease.property:id,type,street,number,complement,neighborhood,city,state,deleted_at',
-                'receipts' => fn ($query) => $query->orderBy('date')->orderBy('id'),
-            ])
-            ->withSum('receipts as received_amount', 'amount')
-            ->when($status === 'overdue', fn (Builder $query) => $query->overdue())
-            ->when(PaymentStatus::tryFrom($status) !== null, fn (Builder $query) => $query->where('status', $status))
-            ->when($search !== '', fn (Builder $query) => $query->whereHas('lease', fn (Builder $query) => $query->where(function (Builder $query) use ($search) {
-                $query->whereHas('tenant', fn (Builder $query) => $query->where('name', 'like', "%{$search}%"))
-                    ->orWhereHas('property', fn (Builder $query) => $query->where(function (Builder $query) use ($search) {
-                        $query->where('street', 'like', "%{$search}%")
-                            ->orWhere('neighborhood', 'like', "%{$search}%");
-                    }));
-            })))
-            ->orderBy('due_date')
-            ->orderBy('id')
-            ->paginate(15)
-            ->withQueryString();
-
         return Inertia::render('payments/Index', [
-            'payments' => $payments,
+            'payments' => $scopedQuery()
+                ->withListDetails()
+                ->filterByStatus($status)
+                ->search($search)
+                ->orderBy('due_date')
+                ->orderBy('id')
+                ->paginate(15)
+                ->withQueryString(),
             'summary' => $summarizePayments->handle($scopedQuery()),
             'filters' => [
                 'month' => $month->format('Y-m'),

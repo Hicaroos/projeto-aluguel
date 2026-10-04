@@ -6,6 +6,7 @@ use App\Http\Requests\TenantRequest;
 use App\Models\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -18,19 +19,12 @@ class TenantController extends Controller
     {
         $search = $request->string('search')->trim()->toString();
 
-        $tenants = Tenant::where('account_id', $request->user()->account_id)
-            ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
-                $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('cpf_cnpj', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
-            }))
-            ->orderBy('name')
-            ->paginate(10)
-            ->withQueryString();
-
         return Inertia::render('tenants/Index', [
-            'tenants' => $tenants,
+            'tenants' => Tenant::where('account_id', $request->user()->account_id)
+                ->search($search)
+                ->orderBy('name')
+                ->paginate(10)
+                ->withQueryString(),
             'filters' => ['search' => $search],
         ]);
     }
@@ -55,7 +49,7 @@ class TenantController extends Controller
      */
     public function update(TenantRequest $request, Tenant $tenant): RedirectResponse
     {
-        $this->ensureSameAccount($tenant, $request);
+        Gate::authorize('update', $tenant);
 
         $tenant->update($request->validated());
 
@@ -65,13 +59,13 @@ class TenantController extends Controller
     }
 
     /**
-     * Remove the given tenant.
+     * Remove the given tenant, unless they have an active lease.
      */
-    public function destroy(Request $request, Tenant $tenant): RedirectResponse
+    public function destroy(Tenant $tenant): RedirectResponse
     {
-        $this->ensureSameAccount($tenant, $request);
+        Gate::authorize('delete', $tenant);
 
-        if ($tenant->leases()->active()->exists()) {
+        if ($tenant->hasActiveLease()) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __('Este inquilino possui um contrato ativo e não pode ser removido.')]);
 
             return back();
@@ -82,13 +76,5 @@ class TenantController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Inquilino removido com sucesso.')]);
 
         return to_route('tenants.index');
-    }
-
-    /**
-     * Ensure the given tenant belongs to the authenticated user's account.
-     */
-    private function ensureSameAccount(Tenant $tenant, Request $request): void
-    {
-        abort_unless($tenant->account_id === $request->user()->account_id, 404);
     }
 }

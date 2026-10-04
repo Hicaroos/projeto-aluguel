@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\AccountType;
 use App\Http\Requests\PropertyRequest;
 use App\Models\Property;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -18,22 +18,17 @@ class PropertyController extends Controller
     public function index(Request $request): Response
     {
         $search = $request->string('search')->trim()->toString();
-
-        $properties = Property::where('account_id', $request->user()->account_id)
-            ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
-                $query->where('street', 'like', "%{$search}%")
-                    ->orWhere('neighborhood', 'like', "%{$search}%")
-                    ->orWhere('city', 'like', "%{$search}%")
-                    ->orWhere('zip_code', 'like', "%{$search}%");
-            }))
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
+        $account = $request->user()->account;
 
         return Inertia::render('properties/Index', [
-            'properties' => $properties,
+            'properties' => Property::where('account_id', $request->user()->account_id)
+                ->search($search)
+                ->latest()
+                ->paginate(10)
+                ->withQueryString(),
             'filters' => ['search' => $search],
-            ...$this->formProps($request),
+            'accountType' => $account?->type->value,
+            'owners' => $account?->isAgency() ? $account->owners()->get(['id', 'name']) : [],
         ]);
     }
 
@@ -42,18 +37,13 @@ class PropertyController extends Controller
      */
     public function store(PropertyRequest $request): RedirectResponse
     {
-        $user = $request->user();
-        $validated = $request->validated();
-
-        $ownerId = $user->account->type === AccountType::Agency
-            ? $validated['owner_id']
-            : $user->account->owners()->first()?->id;
+        $ownerId = $request->ownerId();
 
         abort_if($ownerId === null, 422, 'Nenhum proprietário encontrado para esta conta.');
 
         Property::create([
-            ...$validated,
-            'account_id' => $user->account_id,
+            ...$request->validated(),
+            'account_id' => $request->user()->account_id,
             'owner_id' => $ownerId,
         ]);
 
@@ -67,18 +57,11 @@ class PropertyController extends Controller
      */
     public function update(PropertyRequest $request, Property $property): RedirectResponse
     {
-        $this->ensureSameAccount($property, $request);
-
-        $user = $request->user();
-        $validated = $request->validated();
-
-        $ownerId = $user->account->type === AccountType::Agency
-            ? $validated['owner_id']
-            : $property->owner_id;
+        Gate::authorize('update', $property);
 
         $property->update([
-            ...$validated,
-            'owner_id' => $ownerId,
+            ...$request->validated(),
+            'owner_id' => $request->ownerId(),
         ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Imóvel atualizado com sucesso.')]);
@@ -87,13 +70,13 @@ class PropertyController extends Controller
     }
 
     /**
-     * Remove the given property.
+     * Remove the given property, unless it is under an active lease.
      */
-    public function destroy(Request $request, Property $property): RedirectResponse
+    public function destroy(Property $property): RedirectResponse
     {
-        $this->ensureSameAccount($property, $request);
+        Gate::authorize('delete', $property);
 
-        if ($property->leases()->active()->exists()) {
+        if ($property->hasActiveLease()) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __('Este imóvel possui um contrato ativo e não pode ser removido.')]);
 
             return back();
@@ -104,30 +87,5 @@ class PropertyController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Imóvel removido com sucesso.')]);
 
         return to_route('properties.index');
-    }
-
-    /**
-     * Get the shared props for the property form modal.
-     *
-     * @return array<string, mixed>
-     */
-    private function formProps(Request $request): array
-    {
-        $account = $request->user()->account;
-
-        return [
-            'accountType' => $account?->type->value,
-            'owners' => $account?->type === AccountType::Agency
-                ? $account->owners()->get(['id', 'name'])
-                : [],
-        ];
-    }
-
-    /**
-     * Ensure the given property belongs to the authenticated user's account.
-     */
-    private function ensureSameAccount(Property $property, Request $request): void
-    {
-        abort_unless($property->account_id === $request->user()->account_id, 404);
     }
 }

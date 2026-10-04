@@ -62,6 +62,22 @@ class Account extends Model
     }
 
     /**
+     * Determine whether the account is a real estate agency managing many owners.
+     */
+    public function isAgency(): bool
+    {
+        return $this->type === AccountType::Agency;
+    }
+
+    /**
+     * Get the owner that represents a single owner account.
+     */
+    public function primaryOwner(): ?Owner
+    {
+        return $this->owners()->oldest('id')->first();
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

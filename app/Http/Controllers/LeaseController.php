@@ -2,26 +2,26 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\Leases\SyncLeasePayments;
+use App\Actions\Leases\CreateLease;
+use App\Actions\Leases\DeleteLease;
+use App\Actions\Leases\FinishLease;
+use App\Actions\Leases\UpdateLease;
 use App\Enums\LeaseStatus;
-use App\Enums\PropertyStatus;
 use App\Http\Requests\LeaseRequest;
 use App\Models\Lease;
 use App\Models\Property;
 use App\Models\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class LeaseController extends Controller
 {
-    public function __construct(private SyncLeasePayments $syncLeasePayments) {}
-
     /**
-     * Display the authenticated account's leases.
+     * Display the authenticated account's leases, active ones first.
      */
     public function index(Request $request): Response
     {
@@ -29,27 +29,18 @@ class LeaseController extends Controller
         $search = $request->string('search')->trim()->toString();
         $status = $request->enum('status', LeaseStatus::class);
 
-        $leases = Lease::where('account_id', $accountId)
-            ->with([
-                'property:id,type,street,number,complement,neighborhood,city,state,rent_amount,status,deleted_at',
-                'tenant:id,name,email,phone,deleted_at',
-            ])
-            ->when($status !== null, fn ($query) => $query->where('status', $status))
-            ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
-                $query->whereHas('tenant', fn ($query) => $query->withTrashed()->where('name', 'like', "%{$search}%"))
-                    ->orWhereHas('property', fn ($query) => $query->withTrashed()->where(function ($query) use ($search) {
-                        $query->where('street', 'like', "%{$search}%")
-                            ->orWhere('neighborhood', 'like', "%{$search}%")
-                            ->orWhere('city', 'like', "%{$search}%");
-                    }));
-            }))
-            ->orderByRaw('status = ? desc', [LeaseStatus::Active->value])
-            ->latest('start_date')
-            ->paginate(10)
-            ->withQueryString();
-
         return Inertia::render('leases/Index', [
-            'leases' => $leases,
+            'leases' => Lease::where('account_id', $accountId)
+                ->with([
+                    'property:id,type,street,number,complement,neighborhood,city,state,rent_amount,status,deleted_at',
+                    'tenant:id,name,email,phone,deleted_at',
+                ])
+                ->when($status !== null, fn ($query) => $query->where('status', $status))
+                ->search($search)
+                ->orderByRaw('status = ? desc', [LeaseStatus::Active->value])
+                ->latest('start_date')
+                ->paginate(10)
+                ->withQueryString(),
             'filters' => ['search' => $search, 'status' => $status?->value],
             'properties' => Property::where('account_id', $accountId)
                 ->orderBy('street')
@@ -61,21 +52,11 @@ class LeaseController extends Controller
     }
 
     /**
-     * Store a newly created lease and mark its property as rented.
+     * Store a newly created lease.
      */
-    public function store(LeaseRequest $request): RedirectResponse
+    public function store(LeaseRequest $request, CreateLease $createLease): RedirectResponse
     {
-        DB::transaction(function () use ($request): void {
-            $lease = Lease::create([
-                ...$request->validated(),
-                'account_id' => $request->user()->account_id,
-                'status' => LeaseStatus::Active,
-            ]);
-
-            $lease->property->update(['status' => PropertyStatus::Rented]);
-
-            $this->syncLeasePayments->handle($lease);
-        });
+        $createLease->handle($request->user()->account_id, $request->validated());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Contrato cadastrado com sucesso.')]);
 
@@ -83,29 +64,13 @@ class LeaseController extends Controller
     }
 
     /**
-     * Update the given active lease, moving the rented status if the property changed.
+     * Update the given active lease.
      */
-    public function update(LeaseRequest $request, Lease $lease): RedirectResponse
+    public function update(LeaseRequest $request, Lease $lease, UpdateLease $updateLease): RedirectResponse
     {
-        $this->ensureSameAccount($lease, $request);
+        Gate::authorize('update', $lease);
 
-        abort_unless($lease->isActive(), 403);
-
-        DB::transaction(function () use ($request, $lease): void {
-            $previousProperty = $lease->property;
-
-            $lease->update([
-                ...$request->validated(),
-                'deposit_amount' => $request->validated('deposit_amount'),
-            ]);
-
-            if ($previousProperty->id !== $lease->property_id) {
-                $previousProperty->update(['status' => PropertyStatus::Available]);
-                $lease->load('property')->property->update(['status' => PropertyStatus::Rented]);
-            }
-
-            $this->syncLeasePayments->handle($lease);
-        });
+        $updateLease->handle($lease, $request->validated());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Contrato atualizado com sucesso.')]);
 
@@ -113,23 +78,17 @@ class LeaseController extends Controller
     }
 
     /**
-     * End or terminate the given active lease and free its property.
+     * End or terminate the given active lease.
      */
-    public function finish(Request $request, Lease $lease): RedirectResponse
+    public function finish(Request $request, Lease $lease, FinishLease $finishLease): RedirectResponse
     {
-        $this->ensureSameAccount($lease, $request);
-
-        abort_unless($lease->isActive(), 403);
+        Gate::authorize('finish', $lease);
 
         $validated = $request->validate([
             'status' => ['required', Rule::enum(LeaseStatus::class)->except([LeaseStatus::Active])],
         ]);
 
-        DB::transaction(function () use ($lease, $validated): void {
-            $lease->update(['status' => $validated['status']]);
-            $lease->property->update(['status' => PropertyStatus::Available]);
-            $this->syncLeasePayments->cancelUpcoming($lease);
-        });
+        $finishLease->handle($lease, LeaseStatus::from($validated['status']));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Contrato finalizado com sucesso.')]);
 
@@ -137,31 +96,16 @@ class LeaseController extends Controller
     }
 
     /**
-     * Remove the given lease, freeing its property when it was active.
+     * Remove the given lease.
      */
-    public function destroy(Request $request, Lease $lease): RedirectResponse
+    public function destroy(Lease $lease, DeleteLease $deleteLease): RedirectResponse
     {
-        $this->ensureSameAccount($lease, $request);
+        Gate::authorize('delete', $lease);
 
-        DB::transaction(function () use ($lease): void {
-            if ($lease->isActive()) {
-                $lease->property->update(['status' => PropertyStatus::Available]);
-                $this->syncLeasePayments->cancelUpcoming($lease);
-            }
-
-            $lease->delete();
-        });
+        $deleteLease->handle($lease);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Contrato removido com sucesso.')]);
 
         return to_route('leases.index');
-    }
-
-    /**
-     * Ensure the given lease belongs to the authenticated user's account.
-     */
-    private function ensureSameAccount(Lease $lease, Request $request): void
-    {
-        abort_unless($lease->account_id === $request->user()->account_id, 404);
     }
 }

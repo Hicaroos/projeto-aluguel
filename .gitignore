@@ -34,3 +34,5 @@ yarn-error.log
 
 
 .claude/settings.local.json
+
+/storage/framework/lsp-*.php

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\PaymentStatus;
+use Carbon\CarbonInterface;
 use Database\Factories\PaymentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,6 +22,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $due_date
  * @property string $amount
  * @property PaymentStatus $status
+ * @property-read string|null $received_amount Sum of the receipts, when loaded with withSum().
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Account $account
@@ -89,6 +91,72 @@ class Payment extends Model
     public function scopeOverdue(Builder $query): void
     {
         $query->open()->whereDate('due_date', '<', today());
+    }
+
+    /**
+     * Scope the query to payments due within the given month.
+     *
+     * @param  Builder<Payment>  $query
+     */
+    public function scopeDueInMonth(Builder $query, CarbonInterface $month): void
+    {
+        $query->whereBetween('due_date', [
+            $month->copy()->startOfMonth()->toDateString(),
+            $month->copy()->endOfMonth()->toDateString(),
+        ]);
+    }
+
+    /**
+     * Scope the query by a display status: any stored status, or "overdue".
+     *
+     * @param  Builder<Payment>  $query
+     */
+    public function scopeFilterByStatus(Builder $query, string $status): void
+    {
+        $query
+            ->when($status === 'overdue', fn (Builder $query) => $query->overdue())
+            ->when(PaymentStatus::tryFrom($status) !== null, fn (Builder $query) => $query->where('status', $status));
+    }
+
+    /**
+     * Scope the query to payments whose tenant name or property address matches the given term.
+     *
+     * @param  Builder<Payment>  $query
+     */
+    public function scopeSearch(Builder $query, string $term): void
+    {
+        $query->when($term !== '', fn (Builder $query) => $query->whereHas('lease', fn (Builder $query) => $query->where(function (Builder $query) use ($term) {
+            $query->whereHas('tenant', fn (Builder $query) => $query->where('name', 'like', "%{$term}%"))
+                ->orWhereHas('property', fn (Builder $query) => $query->where(function (Builder $query) use ($term) {
+                    $query->where('street', 'like', "%{$term}%")
+                        ->orWhere('neighborhood', 'like', "%{$term}%");
+                }));
+        })));
+    }
+
+    /**
+     * Eager load what payment lists display: tenant, property, receipts and the received total.
+     *
+     * @param  Builder<Payment>  $query
+     */
+    public function scopeWithListDetails(Builder $query): void
+    {
+        $query
+            ->with([
+                'lease:id,property_id,tenant_id,due_day,status',
+                'lease.tenant:id,name,deleted_at',
+                'lease.property:id,type,street,number,complement,neighborhood,city,state,deleted_at',
+                'receipts' => fn ($query) => $query->orderBy('date')->orderBy('id'),
+            ])
+            ->withSum('receipts as received_amount', 'amount');
+    }
+
+    /**
+     * Determine whether the payment can still receive amounts.
+     */
+    public function isOpen(): bool
+    {
+        return in_array($this->status, [PaymentStatus::Pending, PaymentStatus::Partial], true);
     }
 
     /**
