@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Form } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import PropertyController from '@/actions/App/Http/Controllers/PropertyController';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { useZipCodeLookup } from '@/composables/useZipCodeLookup';
+import { maskZipCode } from '@/lib/formatters';
 import {
     propertyStatusDotClasses,
     propertyStatusLabels,
@@ -47,6 +49,42 @@ const formAction = computed(() =>
 const selectableStatusLabels = Object.fromEntries(
     Object.entries(propertyStatusLabels).filter(([key]) => key !== 'rented'),
 ) as Record<Exclude<PropertyStatus, 'rented'>, string>;
+
+const zipCode = ref(maskZipCode(props.property?.zip_code ?? ''));
+const street = ref(props.property?.street ?? '');
+const neighborhood = ref(props.property?.neighborhood ?? '');
+const city = ref(props.property?.city ?? '');
+const state = ref(props.property?.state ?? '');
+
+const {
+    isLoading: isLookingUpZipCode,
+    error: zipCodeLookupError,
+    lookup: lookupZipCode,
+} = useZipCodeLookup();
+
+watch(zipCode, async (value) => {
+    const masked = maskZipCode(value);
+
+    if (masked !== value) {
+        zipCode.value = masked;
+
+        return;
+    }
+
+    const address = await lookupZipCode(masked);
+
+    if (!address || zipCode.value !== masked) {
+        return;
+    }
+
+    street.value = address.street || street.value;
+    neighborhood.value = address.neighborhood || neighborhood.value;
+    city.value = address.city;
+    state.value = address.state;
+
+    await nextTick();
+    document.getElementById(address.street ? 'number' : 'street')?.focus();
+});
 </script>
 
 <template>
@@ -169,25 +207,37 @@ const selectableStatusLabels = Object.fromEntries(
                 Endereço
             </h3>
 
-            <div class="grid gap-4 sm:grid-cols-6">
+            <div class="grid items-start gap-4 sm:grid-cols-6">
                 <div class="grid gap-2 sm:col-span-2">
                     <Label for="zip_code">CEP</Label>
-                    <Input
-                        id="zip_code"
-                        name="zip_code"
-                        placeholder="00000-000"
-                        :default-value="property?.zip_code"
-                    />
+                    <div class="relative">
+                        <Input
+                            id="zip_code"
+                            v-model="zipCode"
+                            name="zip_code"
+                            inputmode="numeric"
+                            autocomplete="postal-code"
+                            placeholder="00000-000"
+                            maxlength="9"
+                            class="pr-9"
+                        />
+                        <Spinner
+                            v-if="isLookingUpZipCode"
+                            class="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
+                        />
+                    </div>
+                    <p
+                        v-if="zipCodeLookupError"
+                        class="text-sm text-amber-600 dark:text-amber-400"
+                    >
+                        {{ zipCodeLookupError }}
+                    </p>
                     <InputError :message="errors.zip_code" />
                 </div>
 
                 <div class="grid gap-2 sm:col-span-4">
                     <Label for="street">Rua</Label>
-                    <Input
-                        id="street"
-                        name="street"
-                        :default-value="property?.street"
-                    />
+                    <Input id="street" v-model="street" name="street" />
                     <InputError :message="errors.street" />
                 </div>
 
@@ -221,19 +271,15 @@ const selectableStatusLabels = Object.fromEntries(
                     <Label for="neighborhood">Bairro</Label>
                     <Input
                         id="neighborhood"
+                        v-model="neighborhood"
                         name="neighborhood"
-                        :default-value="property?.neighborhood"
                     />
                     <InputError :message="errors.neighborhood" />
                 </div>
 
                 <div class="grid gap-2 sm:col-span-2">
                     <Label for="city">Cidade</Label>
-                    <Input
-                        id="city"
-                        name="city"
-                        :default-value="property?.city"
-                    />
+                    <Input id="city" v-model="city" name="city" />
                     <InputError :message="errors.city" />
                 </div>
 
@@ -241,10 +287,10 @@ const selectableStatusLabels = Object.fromEntries(
                     <Label for="state">UF</Label>
                     <Input
                         id="state"
+                        v-model="state"
                         name="state"
                         maxlength="2"
                         placeholder="SP"
-                        :default-value="property?.state"
                     />
                     <InputError :message="errors.state" />
                 </div>
