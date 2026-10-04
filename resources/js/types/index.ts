@@ -2,6 +2,7 @@ export * from './auth';
 export * from './dashboard';
 export * from './lease';
 export * from './navigation';
+export * from './owner';
 export * from './pagination';
 export * from './payment';
 export * from './property';

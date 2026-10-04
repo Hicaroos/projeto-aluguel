@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Number;
 
 /**
  * @property int $id
@@ -43,6 +44,30 @@ class Receipt extends Model
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
+    }
+
+    /**
+     * Get the received amount written in Brazilian Portuguese words, e.g. "mil e quinhentos reais e vinte centavos".
+     */
+    public function amountInWords(): string
+    {
+        $totalCents = (int) round((float) $this->amount * 100);
+        $reais = intdiv($totalCents, 100);
+        $centavos = $totalCents % 100;
+        $parts = [];
+
+        if ($reais > 0) {
+            $words = Number::spell($reais, locale: 'pt_BR');
+            $connector = preg_match('/(milhão|milhões|bilhão|bilhões)$/u', $words) === 1 ? ' de' : '';
+
+            $parts[] = $words.$connector.($reais === 1 ? ' real' : ' reais');
+        }
+
+        if ($centavos > 0) {
+            $parts[] = Number::spell($centavos, locale: 'pt_BR').($centavos === 1 ? ' centavo' : ' centavos');
+        }
+
+        return $parts === [] ? 'zero reais' : implode(' e ', $parts);
     }
 
     /**

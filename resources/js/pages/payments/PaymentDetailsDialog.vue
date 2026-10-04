@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { HandCoins, ReceiptText, Trash2 } from '@lucide/vue';
+import { FileText, HandCoins, ReceiptText, Trash2 } from '@lucide/vue';
 import { ref } from 'vue';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,7 @@ import {
     paymentStatusDotClasses,
     paymentStatusLabels,
 } from '@/lib/payment-labels';
-import { destroy } from '@/routes/receipts';
+import { destroy, show } from '@/routes/receipts';
 import type { Payment, Receipt } from '@/types';
 
 defineProps<{
@@ -181,6 +181,12 @@ function confirmDelete() {
                                 {{ receipt.notes }}
                             </p>
                         </div>
+                        <Button variant="outline" size="sm" as-child>
+                            <a :href="show(receipt).url" target="_blank">
+                                <FileText class="size-4" />
+                                Recibo
+                            </a>
+                        </Button>
                         <Button
                             variant="ghost"
                             size="icon-sm"

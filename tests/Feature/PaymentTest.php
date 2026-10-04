@@ -177,3 +177,37 @@ test('a user cannot manage payments from another account', function () {
 
     expect(Receipt::count())->toBe(1);
 });
+
+test('a receipt can be displayed as a printable document', function () {
+    ['user' => $user, 'lease' => $lease] = paymentScenario();
+    $receipt = Receipt::factory()->for(Payment::factory()->for($lease))->create(['amount' => 1550.2]);
+
+    $this->actingAs($user)
+        ->get(route('receipts.show', $receipt))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('receipts/Show')
+            ->where('receipt.id', $receipt->id)
+            ->where('receipt.payment.lease.tenant.name', $lease->tenant->name)
+            ->where('receipt.payment.lease.property.owner.name', $lease->property->owner->name)
+            ->where('amountInWords', 'mil quinhentos e cinquenta reais e vinte centavos')
+        );
+});
+
+test('a receipt from another account cannot be displayed', function () {
+    ['user' => $user] = paymentScenario();
+
+    $this->actingAs($user)
+        ->get(route('receipts.show', Receipt::factory()->create()))
+        ->assertNotFound();
+});
+
+test('receipt amounts are written in words', function (float $amount, string $words) {
+    expect((new Receipt(['amount' => $amount]))->amountInWords())->toBe($words);
+})->with([
+    [1.0, 'um real'],
+    [0.01, 'um centavo'],
+    [0.5, 'cinquenta centavos'],
+    [2000.0, 'dois mil reais'],
+    [1000000.0, 'um milhão de reais'],
+    [2321.99, 'dois mil trezentos e vinte e um reais e noventa e nove centavos'],
+]);
