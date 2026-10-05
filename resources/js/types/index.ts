@@ -1,5 +1,6 @@
 export * from './auth';
 export * from './dashboard';
+export * from './expense';
 export * from './lease';
 export * from './navigation';
 export * from './owner';

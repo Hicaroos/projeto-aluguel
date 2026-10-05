@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\LeaseController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PropertyController;
@@ -23,6 +24,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('payments/{payment}/receipts', [ReceiptController::class, 'store'])->name('payments.receipts.store');
     Route::get('receipts/{receipt}', [ReceiptController::class, 'show'])->name('receipts.show');
     Route::delete('receipts/{receipt}', [ReceiptController::class, 'destroy'])->name('receipts.destroy');
+
+    Route::resource('expenses', ExpenseController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::patch('expenses/{expense}/pay', [ExpenseController::class, 'pay'])->name('expenses.pay');
 });
 
 require __DIR__.'/settings.php';

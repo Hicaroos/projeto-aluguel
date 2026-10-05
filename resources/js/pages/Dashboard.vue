@@ -8,6 +8,7 @@ import {
     House,
     KeyRound,
     PartyPopper,
+    Scale,
     TriangleAlert,
     Users,
     Wallet,
@@ -263,23 +264,32 @@ const paymentToRegister = computed(
             <div class="rounded-xl border bg-card p-5 shadow-xs">
                 <div class="flex items-center justify-between">
                     <p class="text-sm text-muted-foreground">
-                        Contratos ativos
+                        Resultado do mês
                     </p>
                     <div
                         class="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground"
                     >
-                        <FileText class="size-4" />
+                        <Scale class="size-4" />
                     </div>
                 </div>
-                <p class="mt-2 text-2xl font-semibold tabular-nums">
-                    {{ stats.activeLeases }}
+                <p
+                    class="mt-2 text-2xl font-semibold tabular-nums"
+                    :class="
+                        stats.netIncome < 0
+                            ? 'text-rose-600 dark:text-rose-400'
+                            : ''
+                    "
+                >
+                    {{ formatCurrency(stats.netIncome) }}
                 </p>
-                <p class="text-sm text-muted-foreground">
-                    {{
-                        stats.tenants === 1
-                            ? '1 inquilino cadastrado'
-                            : `${stats.tenants} inquilinos cadastrados`
-                    }}
+                <p class="text-sm text-muted-foreground tabular-nums">
+                    {{ formatCurrency(stats.expensesPaid) }} em despesas pagas
+                </p>
+                <p
+                    v-if="stats.expensesPending > 0"
+                    class="text-xs text-muted-foreground tabular-nums"
+                >
+                    + {{ formatCurrency(stats.expensesPending) }} a pagar
                 </p>
             </div>
         </div>

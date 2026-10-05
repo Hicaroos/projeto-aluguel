@@ -7,6 +7,9 @@ export type DashboardStats = {
     received: number;
     overdue: number;
     overdueCount: number;
+    expensesPaid: number;
+    expensesPending: number;
+    netIncome: number;
     properties: number;
     rentedProperties: number;
     activeLeases: number;

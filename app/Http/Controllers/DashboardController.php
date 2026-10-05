@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Dashboard\GetMonthlyRevenue;
+use App\Actions\Expenses\SummarizeExpenses;
 use App\Actions\Leases\SyncLeasePayments;
 use App\Actions\Payments\SummarizePayments;
 use App\Enums\PropertyStatus;
+use App\Models\Expense;
 use App\Models\Lease;
 use App\Models\Payment;
 use App\Models\Property;
@@ -25,6 +27,7 @@ class DashboardController extends Controller
         Request $request,
         SyncLeasePayments $syncLeasePayments,
         SummarizePayments $summarizePayments,
+        SummarizeExpenses $summarizeExpenses,
         GetMonthlyRevenue $getMonthlyRevenue,
     ): Response {
         $accountId = $request->user()->account_id;
@@ -37,6 +40,7 @@ class DashboardController extends Controller
         $accountPayments = fn (): Builder => Payment::where('account_id', $accountId)->whereHas('lease');
         $monthSummary = $summarizePayments->handle($accountPayments()->dueInMonth($month));
         $overdueSummary = $summarizePayments->handle($accountPayments()->overdue());
+        $expensesSummary = $summarizeExpenses->handle(Expense::where('account_id', $accountId)->dueInMonth($month));
         $properties = fn (): Builder => Property::where('account_id', $accountId);
 
         return Inertia::render('Dashboard', [
@@ -46,6 +50,9 @@ class DashboardController extends Controller
                 'received' => $monthSummary['received'],
                 'overdue' => $overdueSummary['overdue'],
                 'overdueCount' => $overdueSummary['overdue_count'],
+                'expensesPaid' => $expensesSummary['paid'],
+                'expensesPending' => $expensesSummary['pending'],
+                'netIncome' => round($monthSummary['received'] - $expensesSummary['paid'], 2),
                 'properties' => $properties()->count(),
                 'rentedProperties' => $properties()->where('status', PropertyStatus::Rented)->count(),
                 'activeLeases' => Lease::where('account_id', $accountId)->active()->count(),

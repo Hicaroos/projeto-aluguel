@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Actions\Leases\SyncLeasePayments;
 use App\Actions\Payments\SummarizePayments;
+use App\Http\Controllers\Concerns\ResolvesMonthFilter;
 use App\Models\Lease;
 use App\Models\Payment;
-use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,6 +14,8 @@ use Inertia\Response;
 
 class PaymentController extends Controller
 {
+    use ResolvesMonthFilter;
+
     /**
      * Display the authenticated account's payments for a month or for a single lease.
      */
@@ -58,17 +60,5 @@ class PaymentController extends Controller
             ],
             'lease' => $lease,
         ]);
-    }
-
-    /**
-     * Resolve the requested month (YYYY-MM), falling back to the current month.
-     */
-    private function resolveMonth(string $month): CarbonImmutable
-    {
-        if (preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month) === 1) {
-            return CarbonImmutable::createFromFormat('Y-m-d', "{$month}-01")->startOfDay();
-        }
-
-        return CarbonImmutable::today()->startOfMonth();
     }
 }

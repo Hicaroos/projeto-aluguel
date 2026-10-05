@@ -2,6 +2,7 @@
 
 use App\Enums\PropertyStatus;
 use App\Models\Account;
+use App\Models\Expense;
 use App\Models\Lease;
 use App\Models\Owner;
 use App\Models\Payment;
@@ -46,6 +47,8 @@ test('the dashboard summarizes the account figures', function () {
     $october->refreshStatus();
 
     Payment::factory()->create(['due_date' => '2026-10-05']);
+    Expense::factory()->paid()->for($account, 'account')->for($rentedProperty)->create(['due_date' => '2026-10-05', 'amount' => 200]);
+    Expense::factory()->for($account, 'account')->for($rentedProperty)->create(['due_date' => '2026-10-25', 'amount' => 50]);
 
     $this->actingAs($user)
         ->get(route('dashboard'))
@@ -56,6 +59,9 @@ test('the dashboard summarizes the account figures', function () {
             ->where('stats.received', 300)
             ->where('stats.overdue', 700)
             ->where('stats.overdueCount', 1)
+            ->where('stats.expensesPaid', 200)
+            ->where('stats.expensesPending', 50)
+            ->where('stats.netIncome', 100)
             ->where('stats.properties', 3)
             ->where('stats.rentedProperties', 1)
             ->where('stats.activeLeases', 1)
