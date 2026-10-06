@@ -2,19 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PropertyStatus;
+use App\Enums\PropertyType;
 use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
+use App\Http\Controllers\Concerns\SortsTable;
 use App\Http\Requests\PropertyRequest;
 use App\Models\Property;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Expression;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use SortDirection;
 
 class PropertyController extends Controller
 {
-    use ResolvesSelectedRecord;
+    use ResolvesSelectedRecord, SortsTable;
 
     /**
      * Display the authenticated account's properties.
@@ -22,6 +27,8 @@ class PropertyController extends Controller
     public function index(Request $request): Response
     {
         $search = $request->string('search')->trim()->toString();
+        $type = $request->enum('type', PropertyType::class);
+        $status = $request->enum('status', PropertyStatus::class);
         $account = $request->user()->account;
         $properties = fn (): Builder => Property::where('account_id', $request->user()->account_id)
             ->with([
@@ -29,14 +36,30 @@ class PropertyController extends Controller
                 'activeLease.tenant:id,name,deleted_at',
             ]);
 
+        $list = $properties()
+            ->search($search)
+            ->when($type !== null, fn (Builder $query) => $query->where('type', $type))
+            ->when($status !== null, fn (Builder $query) => $query->where('status', $status));
+
+        $sorting = $this->applySort($list, $request, [
+            'street' => fn (Builder $query, SortDirection $direction) => $query->orderBy('street', $direction)->orderBy('number', $direction),
+            'city' => fn (Builder $query, SortDirection $direction) => $query->orderBy('city', $direction)->orderBy('state', $direction),
+            'type' => fn (Builder $query, SortDirection $direction) => $query->orderBy(new Expression("CASE type WHEN 'apartment' THEN 0 WHEN 'house' THEN 1 WHEN 'commercial' THEN 2 ELSE 3 END"), $direction),
+            'rent_amount' => fn (Builder $query, SortDirection $direction) => $query->orderBy('rent_amount', $direction),
+            'status' => fn (Builder $query, SortDirection $direction) => $query->orderBy(new Expression("CASE status WHEN 'available' THEN 0 WHEN 'rented' THEN 1 WHEN 'maintenance' THEN 2 ELSE 3 END"), $direction),
+        ], default: 'street');
+
         return Inertia::render('properties/Index', [
-            'properties' => $properties()
-                ->search($search)
-                ->latest()
+            'properties' => $list
                 ->paginate(10)
                 ->appends($this->queryWithoutSelection($request)),
             'selected' => $this->resolveSelectedRecord($request, $properties()),
-            'filters' => ['search' => $search],
+            'filters' => [
+                'search' => $search,
+                'type' => $type?->value,
+                'status' => $status?->value,
+                ...$sorting,
+            ],
             'accountType' => $account?->type->value,
             'owners' => $account?->isAgency() ? $account->owners()->get(['id', 'name']) : [],
         ]);

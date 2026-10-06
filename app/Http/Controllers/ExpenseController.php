@@ -5,22 +5,26 @@ namespace App\Http\Controllers;
 use App\Actions\Expenses\CreateExpense;
 use App\Actions\Expenses\SummarizeExpenses;
 use App\Enums\ExpenseStatus;
+use App\Enums\ExpenseType;
 use App\Enums\LeaseStatus;
 use App\Http\Controllers\Concerns\ResolvesMonthFilter;
+use App\Http\Controllers\Concerns\SortsTable;
 use App\Http\Requests\ExpenseRequest;
 use App\Models\Expense;
 use App\Models\Lease;
 use App\Models\Property;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Expression;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use SortDirection;
 
 class ExpenseController extends Controller
 {
-    use ResolvesMonthFilter;
+    use ResolvesMonthFilter, SortsTable;
 
     /**
      * Display the authenticated account's expenses due in a month.
@@ -31,16 +35,32 @@ class ExpenseController extends Controller
         $month = $this->resolveMonth($request->string('month')->toString());
         $search = $request->string('search')->trim()->toString();
         $status = $request->string('status')->toString();
+        $type = $request->enum('type', ExpenseType::class);
 
         $monthExpenses = fn (): Builder => Expense::where('account_id', $accountId)->dueInMonth($month);
 
+        $list = $monthExpenses()
+            ->with('property:id,type,street,number,complement,neighborhood,city,state,deleted_at')
+            ->filterByStatus($status)
+            ->when($type !== null, fn (Builder $query) => $query->where('type', $type))
+            ->search($search);
+
+        $sorting = $this->applySort($list, $request, [
+            'property' => fn (Builder $query, SortDirection $direction) => $query->orderBy(
+                Property::withTrashed()->select('street')->whereColumn('properties.id', 'expenses.property_id'),
+                $direction,
+            ),
+            'type' => fn (Builder $query, SortDirection $direction) => $query->orderBy(new Expression("CASE type WHEN 'condo_fee' THEN 0 WHEN 'property_tax' THEN 1 WHEN 'maintenance' THEN 2 ELSE 3 END"), $direction),
+            'due_date' => fn (Builder $query, SortDirection $direction) => $query->orderBy('due_date', $direction),
+            'amount' => fn (Builder $query, SortDirection $direction) => $query->orderBy('amount', $direction),
+            'status' => function (Builder $query, SortDirection $direction): void {
+                $query->orderBy(new Expression("CASE status WHEN 'pending' THEN 0 WHEN 'paid' THEN 1 ELSE 2 END"), $direction);
+                $query->orderBy('due_date');
+            },
+        ], default: 'property');
+
         return Inertia::render('expenses/Index', [
-            'expenses' => $monthExpenses()
-                ->with('property:id,type,street,number,complement,neighborhood,city,state,deleted_at')
-                ->filterByStatus($status)
-                ->search($search)
-                ->orderBy('due_date')
-                ->orderBy('id')
+            'expenses' => $list
                 ->paginate(15)
                 ->withQueryString(),
             'summary' => $summarizeExpenses->handle($monthExpenses()),
@@ -48,6 +68,8 @@ class ExpenseController extends Controller
                 'month' => $month->format('Y-m'),
                 'search' => $search,
                 'status' => $status !== '' ? $status : null,
+                'type' => $type?->value,
+                ...$sorting,
             ],
             'properties' => Property::where('account_id', $accountId)
                 ->orderBy('street')

@@ -16,6 +16,7 @@ import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import SearchInput from '@/components/SearchInput.vue';
+import SortableTableHead from '@/components/SortableTableHead.vue';
 import TablePagination from '@/components/TablePagination.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,8 @@ import {
 import { getInitials } from '@/composables/useInitials';
 import { useOpenSelectedRecord } from '@/composables/useOpenSelectedRecord';
 import { formatDate, formatDocument, formatPhone } from '@/lib/formatters';
+import { nextSort } from '@/lib/table-sort';
+import type { TableSort } from '@/lib/table-sort';
 import TenantDetailsDialog from '@/pages/tenants/TenantDetailsDialog.vue';
 import TenantForm from '@/pages/tenants/TenantForm.vue';
 import { destroy, index } from '@/routes/tenants';
@@ -51,7 +54,7 @@ import type { Tenant, TenantPaginator } from '@/types';
 
 const props = defineProps<{
     tenants: TenantPaginator;
-    filters: { search: string };
+    filters: TableSort & { search: string };
     selected: Tenant | null;
 }>();
 
@@ -63,17 +66,24 @@ defineOptions({
 
 const search = ref(props.filters.search);
 
-watchDebounced(
-    search,
-    (value) => {
-        router.get(
-            index().url,
-            { search: value },
-            { preserveState: true, replace: true, only: ['tenants'] },
-        );
-    },
-    { debounce: 350 },
-);
+function visit(overrides: Partial<TableSort> = {}) {
+    router.get(
+        index().url,
+        {
+            search: search.value || undefined,
+            sort: props.filters.sort,
+            direction: props.filters.direction,
+            ...overrides,
+        },
+        { preserveState: true, replace: true, only: ['tenants', 'filters'] },
+    );
+}
+
+watchDebounced(search, () => visit(), { debounce: 350 });
+
+function sortBy(column: string) {
+    visit(nextSort(props.filters, column));
+}
 
 const isFormDialogOpen = ref(false);
 const formDialogTenant = ref<Tenant | null>(null);
@@ -159,22 +169,30 @@ function confirmDelete() {
             <Table v-else>
                 <TableHeader class="bg-muted/50">
                     <TableRow class="hover:bg-transparent">
-                        <TableHead
-                            class="h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                            >Inquilino</TableHead
-                        >
-                        <TableHead
-                            class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase md:table-cell"
-                            >CPF/CNPJ</TableHead
-                        >
+                        <SortableTableHead
+                            column="name"
+                            label="Inquilino"
+                            :current="filters"
+                            @sort="sortBy"
+                        />
+                        <SortableTableHead
+                            column="cpf_cnpj"
+                            label="CPF/CNPJ"
+                            :current="filters"
+                            class="hidden md:table-cell"
+                            @sort="sortBy"
+                        />
                         <TableHead
                             class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase sm:table-cell"
                             >Telefone</TableHead
                         >
-                        <TableHead
-                            class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase lg:table-cell"
-                            >Cadastrado em</TableHead
-                        >
+                        <SortableTableHead
+                            column="created_at"
+                            label="Cadastrado em"
+                            :current="filters"
+                            class="hidden lg:table-cell"
+                            @sort="sortBy"
+                        />
                         <TableHead class="h-11 w-0 px-4"
                             ><span class="sr-only">Ações</span></TableHead
                         >

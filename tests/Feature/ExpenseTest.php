@@ -204,3 +204,26 @@ test('an expense can only be charged to a lease of its own property', function (
     expect(Expense::count())->toBe(1)
         ->and(Expense::first()->payment_id)->toBeNull();
 });
+
+test('index sorts expenses by property by default and filters by type', function () {
+    ['account' => $account, 'user' => $user, 'property' => $property] = expenseScenario();
+    $property->update(['street' => 'Rua B']);
+    $otherProperty = Property::factory()->for($account, 'account')->for($property->owner, 'owner')->create(['street' => 'Rua A']);
+    Expense::factory()->for($account, 'account')->for($property)->create(['type' => ExpenseType::CondoFee, 'due_date' => '2026-10-05', 'amount' => 100]);
+    Expense::factory()->for($account, 'account')->for($otherProperty)->create(['type' => ExpenseType::Maintenance, 'due_date' => '2026-10-06', 'amount' => 900]);
+
+    $this->actingAs($user)
+        ->get(route('expenses.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.sort', 'property')
+            ->where('expenses.data.0.property.street', 'Rua A')
+        );
+
+    $this->actingAs($user)
+        ->get(route('expenses.index', ['sort' => 'amount', 'direction' => 'asc']))
+        ->assertInertia(fn (Assert $page) => $page->where('expenses.data.0.amount', '100.00'));
+
+    $this->actingAs($user)
+        ->get(route('expenses.index', ['type' => 'maintenance']))
+        ->assertInertia(fn (Assert $page) => $page->has('expenses.data', 1));
+});

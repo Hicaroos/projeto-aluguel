@@ -280,3 +280,20 @@ test('index can preselect a lease of the account', function () {
         ->get(route('leases.index', ['show' => $otherLease->id]))
         ->assertInertia(fn (Assert $page) => $page->where('selected', null));
 });
+
+test('index sorts leases by tenant name by default', function () {
+    ['account' => $account, 'user' => $user, 'property' => $property] = leaseScenario();
+    $otherProperty = Property::factory()->for($account, 'account')->for($property->owner, 'owner')->create();
+    $bruno = Tenant::factory()->for($account, 'account')->create(['name' => 'Bruno']);
+    $ana = Tenant::factory()->for($account, 'account')->create(['name' => 'Ana']);
+    Lease::factory()->for($account, 'account')->for($property, 'property')->for($bruno, 'tenant')->create();
+    Lease::factory()->for($account, 'account')->for($otherProperty, 'property')->for($ana, 'tenant')->create();
+
+    $this->actingAs($user)
+        ->get(route('leases.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.sort', 'tenant')
+            ->where('leases.data.0.tenant.name', 'Ana')
+            ->where('leases.data.1.tenant.name', 'Bruno')
+        );
+});

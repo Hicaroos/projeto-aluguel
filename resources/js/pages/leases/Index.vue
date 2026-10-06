@@ -17,6 +17,7 @@ import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import SearchInput from '@/components/SearchInput.vue';
+import SortableTableHead from '@/components/SortableTableHead.vue';
 import TablePagination from '@/components/TablePagination.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -60,6 +61,8 @@ import {
     leaseStatusDotClasses,
     leaseStatusLabels,
 } from '@/lib/lease-labels';
+import { nextSort } from '@/lib/table-sort';
+import type { TableSort } from '@/lib/table-sort';
 import LeaseDetailsDialog from '@/pages/leases/LeaseDetailsDialog.vue';
 import LeaseFinishDialog from '@/pages/leases/LeaseFinishDialog.vue';
 import LeaseForm from '@/pages/leases/LeaseForm.vue';
@@ -74,7 +77,10 @@ import type {
 
 const props = defineProps<{
     leases: LeasePaginator;
-    filters: { search: string; status: LeaseStatus | null };
+    filters: TableSort & {
+        search: string;
+        status: LeaseStatus | null;
+    };
     selected: Lease | null;
     properties: LeasePropertyOption[];
     tenants: LeaseTenantOption[];
@@ -89,19 +95,26 @@ defineOptions({
 const search = ref(props.filters.search);
 const status = ref<LeaseStatus | 'all'>(props.filters.status ?? 'all');
 
-function applyFilters() {
+function applyFilters(overrides: Partial<TableSort> = {}) {
     router.get(
         index().url,
         {
             search: search.value || undefined,
             status: status.value === 'all' ? undefined : status.value,
+            sort: props.filters.sort,
+            direction: props.filters.direction,
+            ...overrides,
         },
         { preserveState: true, replace: true, only: ['leases', 'filters'] },
     );
 }
 
-watchDebounced(search, applyFilters, { debounce: 350 });
-watch(status, applyFilters);
+watchDebounced(search, () => applyFilters(), { debounce: 350 });
+watch(status, () => applyFilters());
+
+function sortBy(column: string) {
+    applyFilters(nextSort(props.filters, column));
+}
 
 const isFiltering = () => !!props.filters.search || !!props.filters.status;
 
@@ -218,22 +231,34 @@ function confirmDelete() {
             <Table v-else>
                 <TableHeader class="bg-muted/50">
                     <TableRow class="hover:bg-transparent">
-                        <TableHead
-                            class="h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                            >Contrato</TableHead
-                        >
-                        <TableHead
-                            class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase md:table-cell"
-                            >Vigência</TableHead
-                        >
-                        <TableHead
-                            class="h-11 px-4 text-right text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                            >Aluguel</TableHead
-                        >
-                        <TableHead
-                            class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase sm:table-cell"
-                            >Situação</TableHead
-                        >
+                        <SortableTableHead
+                            column="tenant"
+                            label="Contrato"
+                            :current="filters"
+                            @sort="sortBy"
+                        />
+                        <SortableTableHead
+                            column="start_date"
+                            label="Vigência"
+                            :current="filters"
+                            class="hidden md:table-cell"
+                            @sort="sortBy"
+                        />
+                        <SortableTableHead
+                            column="amount"
+                            label="Aluguel"
+                            :current="filters"
+                            align="right"
+                            class="text-right"
+                            @sort="sortBy"
+                        />
+                        <SortableTableHead
+                            column="status"
+                            label="Situação"
+                            :current="filters"
+                            class="hidden sm:table-cell"
+                            @sort="sortBy"
+                        />
                         <TableHead class="h-11 w-0 px-4"
                             ><span class="sr-only">Ações</span></TableHead
                         >

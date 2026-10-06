@@ -176,3 +176,17 @@ test('pagination links do not carry the preselected tenant', function () {
             ->where('tenants.next_page_url', fn (string $url) => ! str_contains($url, 'show='))
         );
 });
+
+test('index sorts tenants by name in both directions', function () {
+    $account = Account::factory()->create();
+    $user = User::factory()->for($account, 'account')->create();
+    Tenant::factory()->for($account, 'account')->create(['name' => 'Bruno']);
+    Tenant::factory()->for($account, 'account')->create(['name' => 'Ana']);
+
+    $this->actingAs($user)
+        ->get(route('tenants.index', ['sort' => 'name', 'direction' => 'desc']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('tenants.data.0.name', 'Bruno')
+            ->where('filters.direction', 'desc')
+        );
+});

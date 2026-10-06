@@ -306,3 +306,27 @@ test('a user cannot delete an extra charge from another account', function () {
 
     expect(Payment::find($otherCharge->id))->not->toBeNull();
 });
+
+test('index sorts payments by due date by default and can sort by amount or filter by type', function () {
+    ['user' => $user, 'lease' => $lease] = paymentScenario();
+    $this->actingAs($user)->get(route('payments.index'));
+    app(CreateExtraCharge::class)->handle($lease, ['description' => 'Multa', 'amount' => 5000, 'due_date' => '2026-10-02']);
+    Lease::factory()->for($lease->account, 'account')->create(['start_date' => '2026-10-01', 'end_date' => '2027-09-30', 'due_day' => 20, 'amount' => 700]);
+    $this->actingAs($user)->get(route('payments.index'));
+
+    $this->actingAs($user)
+        ->get(route('payments.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.sort', 'due_date')
+            ->where('payments.data.0.due_date', '2026-10-02')
+            ->where('payments.data.2.due_date', '2026-10-20')
+        );
+
+    $this->actingAs($user)
+        ->get(route('payments.index', ['sort' => 'amount', 'direction' => 'desc']))
+        ->assertInertia(fn (Assert $page) => $page->where('payments.data.0.amount', '5000.00'));
+
+    $this->actingAs($user)
+        ->get(route('payments.index', ['type' => 'extra']))
+        ->assertInertia(fn (Assert $page) => $page->has('payments.data', 1));
+});

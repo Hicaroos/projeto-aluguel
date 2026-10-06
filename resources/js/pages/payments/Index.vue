@@ -21,6 +21,7 @@ import EmptyState from '@/components/EmptyState.vue';
 import MonthNavigator from '@/components/MonthNavigator.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import SearchInput from '@/components/SearchInput.vue';
+import SortableTableHead from '@/components/SortableTableHead.vue';
 import TablePagination from '@/components/TablePagination.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -67,6 +68,8 @@ import {
     paymentStatusDotClasses,
     paymentStatusLabels,
 } from '@/lib/payment-labels';
+import { nextSort } from '@/lib/table-sort';
+import type { TableSort } from '@/lib/table-sort';
 import ExtraChargeForm from '@/pages/payments/ExtraChargeForm.vue';
 import PaymentDetailsDialog from '@/pages/payments/PaymentDetailsDialog.vue';
 import ReceiptFormDialog from '@/pages/payments/ReceiptFormDialog.vue';
@@ -78,15 +81,17 @@ import type {
     PaymentLeaseOption,
     PaymentPaginator,
     PaymentSummary,
+    PaymentType,
 } from '@/types';
 
 const props = defineProps<{
     payments: PaymentPaginator;
     summary: PaymentSummary;
-    filters: {
+    filters: TableSort & {
         month: string;
         search: string;
         status: PaymentDisplayStatus | null;
+        type: PaymentType | null;
         lease: number | null;
     };
     lease: PaymentLeaseFilter | null;
@@ -101,6 +106,7 @@ defineOptions({
 
 const search = ref(props.filters.search);
 const status = ref<PaymentDisplayStatus | 'all'>(props.filters.status ?? 'all');
+const type = ref<PaymentType | 'all'>(props.filters.type ?? 'all');
 
 function visit(overrides: Record<string, string | number | undefined> = {}) {
     router.get(
@@ -110,6 +116,9 @@ function visit(overrides: Record<string, string | number | undefined> = {}) {
             lease: props.filters.lease ?? undefined,
             search: search.value || undefined,
             status: status.value === 'all' ? undefined : status.value,
+            type: type.value === 'all' ? undefined : type.value,
+            sort: props.filters.sort,
+            direction: props.filters.direction,
             ...overrides,
         },
         { preserveState: true, preserveScroll: true, replace: true },
@@ -117,15 +126,23 @@ function visit(overrides: Record<string, string | number | undefined> = {}) {
 }
 
 watchDebounced(search, () => visit(), { debounce: 350 });
-watch(status, () => visit());
+watch([status, type], () => visit());
+
+function sortBy(column: string) {
+    visit(nextSort(props.filters, column));
+}
 
 const isFiltering = computed(
-    () => !!props.filters.search || !!props.filters.status,
+    () =>
+        !!props.filters.search ||
+        !!props.filters.status ||
+        !!props.filters.type,
 );
 
 function clearFilters() {
     search.value = '';
     status.value = 'all';
+    type.value = 'all';
 }
 
 const summaryCards = computed(() => [
@@ -285,6 +302,16 @@ function openRegisterDialog(paymentId: number) {
                         </SelectItem>
                     </SelectContent>
                 </Select>
+                <Select v-model="type">
+                    <SelectTrigger class="w-full sm:w-36">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todos os tipos</SelectItem>
+                        <SelectItem value="rent">Aluguel</SelectItem>
+                        <SelectItem value="extra">Avulsa</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
 
             <EmptyState
@@ -312,26 +339,41 @@ function openRegisterDialog(paymentId: number) {
             <Table v-else>
                 <TableHeader class="bg-muted/50">
                     <TableRow class="hover:bg-transparent">
-                        <TableHead
-                            class="h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                            >Inquilino</TableHead
-                        >
-                        <TableHead
-                            class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase lg:table-cell"
-                            >Referência</TableHead
-                        >
-                        <TableHead
-                            class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase md:table-cell"
-                            >Vencimento</TableHead
-                        >
-                        <TableHead
-                            class="h-11 px-4 text-right text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                            >Valor</TableHead
-                        >
-                        <TableHead
-                            class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase sm:table-cell"
-                            >Situação</TableHead
-                        >
+                        <SortableTableHead
+                            column="tenant"
+                            label="Inquilino"
+                            :current="filters"
+                            @sort="sortBy"
+                        />
+                        <SortableTableHead
+                            column="reference"
+                            label="Referência"
+                            :current="filters"
+                            class="hidden lg:table-cell"
+                            @sort="sortBy"
+                        />
+                        <SortableTableHead
+                            column="due_date"
+                            label="Vencimento"
+                            :current="filters"
+                            class="hidden md:table-cell"
+                            @sort="sortBy"
+                        />
+                        <SortableTableHead
+                            column="amount"
+                            label="Valor"
+                            :current="filters"
+                            align="right"
+                            class="text-right"
+                            @sort="sortBy"
+                        />
+                        <SortableTableHead
+                            column="status"
+                            label="Situação"
+                            :current="filters"
+                            class="hidden sm:table-cell"
+                            @sort="sortBy"
+                        />
                         <TableHead class="h-11 w-0 px-4"
                             ><span class="sr-only">Ações</span></TableHead
                         >

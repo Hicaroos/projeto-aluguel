@@ -10,11 +10,12 @@ import {
     Trash2,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import SearchInput from '@/components/SearchInput.vue';
+import SortableTableHead from '@/components/SortableTableHead.vue';
 import TablePagination from '@/components/TablePagination.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,13 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
     Table,
     TableBody,
     TableCell,
@@ -50,14 +58,26 @@ import {
     propertyTypeIcons,
     propertyTypeLabels,
 } from '@/lib/property-labels';
+import { nextSort } from '@/lib/table-sort';
+import type { TableSort } from '@/lib/table-sort';
 import PropertyDetailsDialog from '@/pages/properties/PropertyDetailsDialog.vue';
 import PropertyForm from '@/pages/properties/PropertyForm.vue';
 import { destroy, index } from '@/routes/properties';
-import type { Property, PropertyOwnerOption, PropertyPaginator } from '@/types';
+import type {
+    Property,
+    PropertyOwnerOption,
+    PropertyPaginator,
+    PropertyStatus,
+    PropertyType,
+} from '@/types';
 
 const props = defineProps<{
     properties: PropertyPaginator;
-    filters: { search: string };
+    filters: TableSort & {
+        search: string;
+        type: PropertyType | null;
+        status: PropertyStatus | null;
+    };
     selected: Property | null;
     accountType: 'single_owner' | 'agency';
     owners: PropertyOwnerOption[];
@@ -70,18 +90,40 @@ defineOptions({
 });
 
 const search = ref(props.filters.search);
+const type = ref<PropertyType | 'all'>(props.filters.type ?? 'all');
+const status = ref<PropertyStatus | 'all'>(props.filters.status ?? 'all');
 
-watchDebounced(
-    search,
-    (value) => {
-        router.get(
-            index().url,
-            { search: value },
-            { preserveState: true, replace: true, only: ['properties'] },
-        );
-    },
-    { debounce: 350 },
+function visit(overrides: Partial<TableSort> = {}) {
+    router.get(
+        index().url,
+        {
+            search: search.value || undefined,
+            type: type.value === 'all' ? undefined : type.value,
+            status: status.value === 'all' ? undefined : status.value,
+            sort: props.filters.sort,
+            direction: props.filters.direction,
+            ...overrides,
+        },
+        { preserveState: true, replace: true, only: ['properties', 'filters'] },
+    );
+}
+
+watchDebounced(search, () => visit(), { debounce: 350 });
+watch([type, status], () => visit());
+
+function sortBy(column: string) {
+    visit(nextSort(props.filters, column));
+}
+
+const isFiltering = computed(
+    () => !!props.filters.search || !!props.filters.type || !!props.filters.status,
 );
+
+function clearFilters() {
+    search.value = '';
+    type.value = 'all';
+    status.value = 'all';
+}
 
 const isFormDialogOpen = ref(false);
 const formDialogProperty = ref<Property | null>(null);
@@ -137,15 +179,37 @@ function confirmDelete() {
         </PageHeader>
 
         <div class="overflow-hidden rounded-xl border bg-card shadow-xs">
-            <div class="border-b p-4">
+            <div class="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center">
                 <SearchInput v-model="search" placeholder="Buscar por rua, bairro, cidade ou CEP" />
+                <Select v-model="type">
+                    <SelectTrigger class="w-full sm:w-40">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todos os tipos</SelectItem>
+                        <SelectItem v-for="(label, key) in propertyTypeLabels" :key="key" :value="key">
+                            {{ label }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+                <Select v-model="status">
+                    <SelectTrigger class="w-full sm:w-44">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todas as situações</SelectItem>
+                        <SelectItem v-for="(label, key) in propertyStatusLabels" :key="key" :value="key">
+                            {{ label }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
 
-            <EmptyState v-if="properties.data.length === 0 && filters.search" :icon="SearchX"
+            <EmptyState v-if="properties.data.length === 0 && isFiltering" :icon="SearchX"
                 title="Nenhum imóvel encontrado"
-                :description="`Não encontramos resultados para “${filters.search}”. Tente buscar por outro termo.`">
-                <Button variant="outline" size="sm" @click="search = ''">
-                    Limpar busca
+                description="Não encontramos imóveis com esses filtros. Tente buscar por outro termo.">
+                <Button variant="outline" size="sm" @click="clearFilters">
+                    Limpar filtros
                 </Button>
             </EmptyState>
 
@@ -155,20 +219,15 @@ function confirmDelete() {
             <Table v-else>
                 <TableHeader class="bg-muted/50">
                     <TableRow class="hover:bg-transparent">
-                        <TableHead class="h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                            Imóvel</TableHead>
-                        <TableHead
-                            class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase md:table-cell">
-                            Localização</TableHead>
-                        <TableHead
-                            class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase lg:table-cell">
-                            Tipo</TableHead>
-                        <TableHead
-                            class="h-11 px-4 text-right text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                            Aluguel</TableHead>
-                        <TableHead
-                            class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase sm:table-cell">
-                            Situação</TableHead>
+                        <SortableTableHead column="street" label="Imóvel" :current="filters" @sort="sortBy" />
+                        <SortableTableHead column="city" label="Localização" :current="filters"
+                            class="hidden md:table-cell" @sort="sortBy" />
+                        <SortableTableHead column="type" label="Tipo" :current="filters" class="hidden lg:table-cell"
+                            @sort="sortBy" />
+                        <SortableTableHead column="rent_amount" label="Aluguel" :current="filters" align="right"
+                            class="text-right" @sort="sortBy" />
+                        <SortableTableHead column="status" label="Situação" :current="filters"
+                            class="hidden sm:table-cell" @sort="sortBy" />
                         <TableHead class="h-11 w-0 px-4"><span class="sr-only">Ações</span></TableHead>
                     </TableRow>
                 </TableHeader>

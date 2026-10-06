@@ -19,6 +19,7 @@ import EmptyState from '@/components/EmptyState.vue';
 import MonthNavigator from '@/components/MonthNavigator.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import SearchInput from '@/components/SearchInput.vue';
+import SortableTableHead from '@/components/SortableTableHead.vue';
 import TablePagination from '@/components/TablePagination.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -62,6 +63,8 @@ import {
     expenseTypeLabels,
 } from '@/lib/expense-labels';
 import { formatDate } from '@/lib/formatters';
+import { nextSort } from '@/lib/table-sort';
+import type { TableSort } from '@/lib/table-sort';
 import ExpenseForm from '@/pages/expenses/ExpenseForm.vue';
 import PayExpenseDialog from '@/pages/expenses/PayExpenseDialog.vue';
 import { destroy, index } from '@/routes/expenses';
@@ -72,15 +75,17 @@ import type {
     ExpenseLeaseOption,
     ExpensePropertyOption,
     ExpenseSummary,
+    ExpenseType,
 } from '@/types';
 
 const props = defineProps<{
     expenses: ExpensePaginator;
     summary: ExpenseSummary;
-    filters: {
+    filters: TableSort & {
         month: string;
         search: string;
         status: ExpenseDisplayStatus | null;
+        type: ExpenseType | null;
     };
     properties: ExpensePropertyOption[];
     leaseOptions: ExpenseLeaseOption[];
@@ -94,6 +99,7 @@ defineOptions({
 
 const search = ref(props.filters.search);
 const status = ref<ExpenseDisplayStatus | 'all'>(props.filters.status ?? 'all');
+const type = ref<ExpenseType | 'all'>(props.filters.type ?? 'all');
 
 function visit(overrides: Record<string, string | undefined> = {}) {
     router.get(
@@ -102,6 +108,9 @@ function visit(overrides: Record<string, string | undefined> = {}) {
             month: props.filters.month,
             search: search.value || undefined,
             status: status.value === 'all' ? undefined : status.value,
+            type: type.value === 'all' ? undefined : type.value,
+            sort: props.filters.sort,
+            direction: props.filters.direction,
             ...overrides,
         },
         { preserveState: true, preserveScroll: true, replace: true },
@@ -109,15 +118,23 @@ function visit(overrides: Record<string, string | undefined> = {}) {
 }
 
 watchDebounced(search, () => visit(), { debounce: 350 });
-watch(status, () => visit());
+watch([status, type], () => visit());
+
+function sortBy(column: string) {
+    visit(nextSort(props.filters, column));
+}
 
 const isFiltering = computed(
-    () => !!props.filters.search || !!props.filters.status,
+    () =>
+        !!props.filters.search ||
+        !!props.filters.status ||
+        !!props.filters.type,
 );
 
 function clearFilters() {
     search.value = '';
     status.value = 'all';
+    type.value = 'all';
 }
 
 const summaryCards = computed(() => [
@@ -246,6 +263,21 @@ function confirmDelete() {
                         </SelectItem>
                     </SelectContent>
                 </Select>
+                <Select v-model="type">
+                    <SelectTrigger class="w-full sm:w-40">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todos os tipos</SelectItem>
+                        <SelectItem
+                            v-for="(label, key) in expenseTypeLabels"
+                            :key="key"
+                            :value="key"
+                        >
+                            {{ label }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
 
             <EmptyState
@@ -269,26 +301,41 @@ function confirmDelete() {
             <Table v-else>
                 <TableHeader class="bg-muted/50">
                     <TableRow class="hover:bg-transparent">
-                        <TableHead
-                            class="h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                            >Despesa</TableHead
-                        >
-                        <TableHead
-                            class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase lg:table-cell"
-                            >Imóvel</TableHead
-                        >
-                        <TableHead
-                            class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase md:table-cell"
-                            >Vencimento</TableHead
-                        >
-                        <TableHead
-                            class="h-11 px-4 text-right text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                            >Valor</TableHead
-                        >
-                        <TableHead
-                            class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase sm:table-cell"
-                            >Situação</TableHead
-                        >
+                        <SortableTableHead
+                            column="type"
+                            label="Despesa"
+                            :current="filters"
+                            @sort="sortBy"
+                        />
+                        <SortableTableHead
+                            column="property"
+                            label="Imóvel"
+                            :current="filters"
+                            class="hidden lg:table-cell"
+                            @sort="sortBy"
+                        />
+                        <SortableTableHead
+                            column="due_date"
+                            label="Vencimento"
+                            :current="filters"
+                            class="hidden md:table-cell"
+                            @sort="sortBy"
+                        />
+                        <SortableTableHead
+                            column="amount"
+                            label="Valor"
+                            :current="filters"
+                            align="right"
+                            class="text-right"
+                            @sort="sortBy"
+                        />
+                        <SortableTableHead
+                            column="status"
+                            label="Situação"
+                            :current="filters"
+                            class="hidden sm:table-cell"
+                            @sort="sortBy"
+                        />
                         <TableHead class="h-11 w-0 px-4"
                             ><span class="sr-only">Ações</span></TableHead
                         >

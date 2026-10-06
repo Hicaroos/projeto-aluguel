@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\LeaseStatus;
 use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
+use App\Http\Controllers\Concerns\SortsTable;
 use App\Http\Requests\TenantRequest;
 use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,10 +13,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use SortDirection;
 
 class TenantController extends Controller
 {
-    use ResolvesSelectedRecord;
+    use ResolvesSelectedRecord, SortsTable;
 
     /**
      * Display the authenticated account's tenants.
@@ -32,14 +34,20 @@ class TenantController extends Controller
                 'leases.property:id,type,street,number,neighborhood,deleted_at',
             ]);
 
+        $list = $tenants()->search($search);
+
+        $sorting = $this->applySort($list, $request, [
+            'name' => fn (Builder $query, SortDirection $direction) => $query->orderBy('name', $direction),
+            'cpf_cnpj' => fn (Builder $query, SortDirection $direction) => $query->orderBy('cpf_cnpj', $direction),
+            'created_at' => fn (Builder $query, SortDirection $direction) => $query->orderBy('created_at', $direction),
+        ], default: 'name');
+
         return Inertia::render('tenants/Index', [
-            'tenants' => $tenants()
-                ->search($search)
-                ->orderBy('name')
+            'tenants' => $list
                 ->paginate(10)
                 ->appends($this->queryWithoutSelection($request)),
             'selected' => $this->resolveSelectedRecord($request, $tenants()),
-            'filters' => ['search' => $search],
+            'filters' => ['search' => $search, ...$sorting],
         ]);
     }
 

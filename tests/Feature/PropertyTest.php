@@ -202,3 +202,52 @@ test('index includes the active lease of rented properties and can preselect a p
         ->get(route('properties.index', ['show' => $otherProperty->id]))
         ->assertInertia(fn (Assert $page) => $page->where('selected', null));
 });
+
+test('index sorts properties by street by default and by any allowed column on request', function () {
+    $account = Account::factory()->create();
+    $owner = Owner::factory()->for($account, 'account')->create();
+    $user = User::factory()->for($account, 'account')->create();
+    Property::factory()->for($account, 'account')->for($owner, 'owner')->create(['street' => 'Rua B', 'rent_amount' => 900]);
+    Property::factory()->for($account, 'account')->for($owner, 'owner')->create(['street' => 'Rua C', 'rent_amount' => 3000]);
+    Property::factory()->for($account, 'account')->for($owner, 'owner')->create(['street' => 'Rua A', 'rent_amount' => 1500]);
+
+    $this->actingAs($user)
+        ->get(route('properties.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.sort', 'street')
+            ->where('filters.direction', 'asc')
+            ->where('properties.data.0.street', 'Rua A')
+            ->where('properties.data.2.street', 'Rua C')
+        );
+
+    $this->actingAs($user)
+        ->get(route('properties.index', ['sort' => 'rent_amount', 'direction' => 'desc']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('properties.data.0.street', 'Rua C')
+            ->where('properties.data.2.street', 'Rua B')
+        );
+
+    $this->actingAs($user)
+        ->get(route('properties.index', ['sort' => 'owner_id; drop table', 'direction' => 'sideways']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.sort', 'street')
+            ->where('filters.direction', 'asc')
+        );
+});
+
+test('index filters properties by type and status', function () {
+    $account = Account::factory()->create();
+    $owner = Owner::factory()->for($account, 'account')->create();
+    $user = User::factory()->for($account, 'account')->create();
+    Property::factory()->for($account, 'account')->for($owner, 'owner')->create(['type' => PropertyType::House, 'status' => PropertyStatus::Available]);
+    Property::factory()->for($account, 'account')->for($owner, 'owner')->create(['type' => PropertyType::Apartment, 'status' => PropertyStatus::Available]);
+    Property::factory()->for($account, 'account')->for($owner, 'owner')->create(['type' => PropertyType::Apartment, 'status' => PropertyStatus::Inactive]);
+
+    $this->actingAs($user)
+        ->get(route('properties.index', ['type' => 'apartment', 'status' => 'available']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('properties.data', 1)
+            ->where('filters.type', 'apartment')
+            ->where('filters.status', 'available')
+        );
+});

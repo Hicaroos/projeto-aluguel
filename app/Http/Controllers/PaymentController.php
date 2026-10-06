@@ -6,20 +6,25 @@ use App\Actions\Leases\SyncLeasePayments;
 use App\Actions\Payments\CreateExtraCharge;
 use App\Actions\Payments\SummarizePayments;
 use App\Enums\LeaseStatus;
+use App\Enums\PaymentType;
 use App\Http\Controllers\Concerns\ResolvesMonthFilter;
+use App\Http\Controllers\Concerns\SortsTable;
 use App\Http\Requests\ExtraChargeRequest;
 use App\Models\Lease;
 use App\Models\Payment;
+use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Expression;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use SortDirection;
 
 class PaymentController extends Controller
 {
-    use ResolvesMonthFilter;
+    use ResolvesMonthFilter, SortsTable;
 
     /**
      * Display the authenticated account's payments for a month or for a single lease.
@@ -33,6 +38,7 @@ class PaymentController extends Controller
         $month = $this->resolveMonth($request->string('month')->toString());
         $search = $request->string('search')->trim()->toString();
         $status = $request->string('status')->toString();
+        $type = $request->enum('type', PaymentType::class);
         $lease = $request->integer('lease') > 0
             ? Lease::where('account_id', $accountId)
                 ->with(['tenant:id,name,deleted_at', 'property:id,street,number,deleted_at'])
@@ -47,13 +53,32 @@ class PaymentController extends Controller
                 fn (Builder $query) => $query->dueInMonth($month),
             );
 
+        $list = $scopedQuery()
+            ->withListDetails()
+            ->filterByStatus($status)
+            ->when($type !== null, fn (Builder $query) => $query->where('type', $type))
+            ->search($search);
+
+        $sorting = $this->applySort($list, $request, [
+            'tenant' => fn (Builder $query, SortDirection $direction) => $query->orderBy(
+                Tenant::withTrashed()
+                    ->select('tenants.name')
+                    ->join('leases', 'leases.tenant_id', '=', 'tenants.id')
+                    ->whereColumn('leases.id', 'payments.lease_id')
+                    ->limit(1),
+                $direction,
+            ),
+            'reference' => fn (Builder $query, SortDirection $direction) => $query->orderBy(new Expression('COALESCE(reference_month, DATE(created_at))'), $direction),
+            'due_date' => fn (Builder $query, SortDirection $direction) => $query->orderBy('due_date', $direction),
+            'amount' => fn (Builder $query, SortDirection $direction) => $query->orderBy('amount', $direction),
+            'status' => function (Builder $query, SortDirection $direction): void {
+                $query->orderBy(new Expression("CASE status WHEN 'pending' THEN 0 WHEN 'partial' THEN 1 WHEN 'paid' THEN 2 ELSE 3 END"), $direction);
+                $query->orderBy('due_date');
+            },
+        ], default: 'due_date');
+
         return Inertia::render('payments/Index', [
-            'payments' => $scopedQuery()
-                ->withListDetails()
-                ->filterByStatus($status)
-                ->search($search)
-                ->orderBy('due_date')
-                ->orderBy('id')
+            'payments' => $list
                 ->paginate(15)
                 ->withQueryString(),
             'summary' => $summarizePayments->handle($scopedQuery()),
@@ -61,7 +86,9 @@ class PaymentController extends Controller
                 'month' => $month->format('Y-m'),
                 'search' => $search,
                 'status' => $status !== '' ? $status : null,
+                'type' => $type?->value,
                 'lease' => $lease?->id,
+                ...$sorting,
             ],
             'lease' => $lease,
             'leaseOptions' => Lease::where('account_id', $accountId)

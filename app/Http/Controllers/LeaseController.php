@@ -8,24 +8,27 @@ use App\Actions\Leases\FinishLease;
 use App\Actions\Leases\UpdateLease;
 use App\Enums\LeaseStatus;
 use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
+use App\Http\Controllers\Concerns\SortsTable;
 use App\Http\Requests\LeaseRequest;
 use App\Models\Lease;
 use App\Models\Property;
 use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Expression;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use SortDirection;
 
 class LeaseController extends Controller
 {
-    use ResolvesSelectedRecord;
+    use ResolvesSelectedRecord, SortsTable;
 
     /**
-     * Display the authenticated account's leases, active ones first.
+     * Display the authenticated account's leases, sorted by tenant name by default.
      */
     public function index(Request $request): Response
     {
@@ -38,16 +41,30 @@ class LeaseController extends Controller
                 'tenant:id,name,email,phone,deleted_at',
             ]);
 
+        $list = $leases()
+            ->when($status !== null, fn (Builder $query) => $query->where('status', $status))
+            ->search($search);
+
+        $sorting = $this->applySort($list, $request, [
+            'tenant' => fn (Builder $query, SortDirection $direction) => $query->orderBy(
+                Tenant::withTrashed()->select('name')->whereColumn('tenants.id', 'leases.tenant_id'),
+                $direction,
+            ),
+            'start_date' => fn (Builder $query, SortDirection $direction) => $query->orderBy('start_date', $direction),
+            'amount' => fn (Builder $query, SortDirection $direction) => $query->orderBy('amount', $direction),
+            'status' => fn (Builder $query, SortDirection $direction) => $query->orderBy(new Expression("CASE status WHEN 'active' THEN 0 WHEN 'ended' THEN 1 ELSE 2 END"), $direction),
+        ], default: 'tenant');
+
         return Inertia::render('leases/Index', [
             'selected' => $this->resolveSelectedRecord($request, $leases()),
-            'leases' => $leases()
-                ->when($status !== null, fn ($query) => $query->where('status', $status))
-                ->search($search)
-                ->orderByRaw('status = ? desc', [LeaseStatus::Active->value])
-                ->latest('start_date')
+            'leases' => $list
                 ->paginate(10)
                 ->appends($this->queryWithoutSelection($request)),
-            'filters' => ['search' => $search, 'status' => $status?->value],
+            'filters' => [
+                'search' => $search,
+                'status' => $status?->value,
+                ...$sorting,
+            ],
             'properties' => Property::where('account_id', $accountId)
                 ->orderBy('street')
                 ->get(['id', 'street', 'number', 'complement', 'neighborhood', 'city', 'state', 'rent_amount', 'status']),
