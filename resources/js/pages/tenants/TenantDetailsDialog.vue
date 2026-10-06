@@ -6,8 +6,10 @@ import {
     House,
     IdCard,
     Mail,
+    MapPin,
     Pencil,
     Phone,
+    UserRound,
 } from '@lucide/vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +27,10 @@ import { getInitials } from '@/composables/useInitials';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate, formatDocument, formatPhone } from '@/lib/formatters';
 import { leaseStatusBadgeClasses, leaseStatusLabels } from '@/lib/lease-labels';
+import {
+    formatPersonAddress,
+    formatPersonQualification,
+} from '@/lib/person-labels';
 import { index as leasesIndex } from '@/routes/leases';
 import { index as propertiesIndex } from '@/routes/properties';
 import type { Tenant } from '@/types';
@@ -95,6 +101,34 @@ const emit = defineEmits<{
                             >{{ formatPhone(tenant.phone) }}</a
                         >
                         <p v-else class="text-sm font-medium">—</p>
+                    </div>
+                </li>
+                <li
+                    v-if="formatPersonQualification(tenant)"
+                    class="flex items-center gap-3 p-3"
+                >
+                    <UserRound class="size-4 shrink-0 text-muted-foreground" />
+                    <div class="min-w-0">
+                        <p class="text-xs text-muted-foreground">
+                            Qualificação
+                        </p>
+                        <p class="text-sm font-medium">
+                            {{ formatPersonQualification(tenant) }}
+                        </p>
+                    </div>
+                </li>
+                <li
+                    v-if="formatPersonAddress(tenant)"
+                    class="flex items-center gap-3 p-3"
+                >
+                    <MapPin class="size-4 shrink-0 text-muted-foreground" />
+                    <div class="min-w-0">
+                        <p class="text-xs text-muted-foreground">
+                            Endereço atual
+                        </p>
+                        <p class="text-sm font-medium">
+                            {{ formatPersonAddress(tenant) }}
+                        </p>
                     </div>
                 </li>
                 <li class="flex items-center gap-3 p-3">

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\MaritalStatus;
 use Database\Factories\TenantFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -19,14 +20,42 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property string|null $cpf_cnpj
  * @property string|null $email
+ * @property string|null $rg
+ * @property string|null $nationality
+ * @property MaritalStatus|null $marital_status
+ * @property string|null $profession
  * @property string|null $phone
+ * @property string|null $zip_code
+ * @property string|null $street
+ * @property string|null $number
+ * @property string|null $complement
+ * @property string|null $neighborhood
+ * @property string|null $city
+ * @property string|null $state
  * @property Carbon|null $deleted_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Account $account
  * @property-read Collection<int, Lease> $leases
  */
-#[Fillable(['account_id', 'name', 'cpf_cnpj', 'email', 'phone'])]
+#[Fillable([
+    'account_id',
+    'name',
+    'cpf_cnpj',
+    'rg',
+    'nationality',
+    'marital_status',
+    'profession',
+    'email',
+    'phone',
+    'zip_code',
+    'street',
+    'number',
+    'complement',
+    'neighborhood',
+    'city',
+    'state',
+])]
 class Tenant extends Model
 {
     /** @use HasFactory<TenantFactory> */
@@ -69,5 +98,17 @@ class Tenant extends Model
     public function hasActiveLease(): bool
     {
         return $this->leases()->active()->exists();
+    }
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'marital_status' => MaritalStatus::class,
+        ];
     }
 }

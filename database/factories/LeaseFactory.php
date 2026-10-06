@@ -2,9 +2,12 @@
 
 namespace Database\Factories;
 
+use App\Enums\AdjustmentIndex;
 use App\Enums\GuaranteeType;
+use App\Enums\LeasePurpose;
 use App\Enums\LeaseStatus;
 use App\Models\Account;
+use App\Models\Guarantor;
 use App\Models\Lease;
 use App\Models\Property;
 use App\Models\Tenant;
@@ -32,11 +35,28 @@ class LeaseFactory extends Factory
             'end_date' => (clone $startDate)->modify('+30 months'),
             'amount' => fake()->numberBetween(8, 60) * 100,
             'due_day' => fake()->numberBetween(1, 28),
+            'purpose' => LeasePurpose::Residential,
+            'adjustment_index' => AdjustmentIndex::Igpm,
+            'late_fee_percent' => 10,
+            'monthly_interest_percent' => 1,
+            'termination_fee_months' => 3,
             'guarantee_type' => GuaranteeType::None,
             'deposit_amount' => null,
+            'surety_insurer' => null,
+            'surety_policy_number' => null,
             'status' => LeaseStatus::Active,
             'notes' => null,
         ];
+    }
+
+    /**
+     * Indicate that the lease is guaranteed by a guarantor.
+     */
+    public function withGuarantor(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'guarantee_type' => GuaranteeType::Guarantor,
+        ])->has(Guarantor::factory());
     }
 
     /**

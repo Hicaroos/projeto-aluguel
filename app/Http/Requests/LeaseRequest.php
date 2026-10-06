@@ -2,7 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Concerns\PersonQualificationRules;
+use App\Enums\AdjustmentIndex;
 use App\Enums\GuaranteeType;
+use App\Enums\LeasePurpose;
 use App\Enums\PropertyStatus;
 use App\Models\Lease;
 use App\Models\Property;
@@ -13,6 +16,8 @@ use Illuminate\Validation\Rule;
 
 class LeaseRequest extends FormRequest
 {
+    use PersonQualificationRules;
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -57,8 +62,64 @@ class LeaseRequest extends FormRequest
                 'numeric',
                 'min:0',
             ],
+            'surety_insurer' => ['exclude_unless:guarantee_type,'.GuaranteeType::SuretyBond->value, 'nullable', 'string', 'max:255'],
+            'surety_policy_number' => ['exclude_unless:guarantee_type,'.GuaranteeType::SuretyBond->value, 'nullable', 'string', 'max:100'],
+            ...$this->guarantorRules(),
+            'purpose' => ['sometimes', 'required', Rule::enum(LeasePurpose::class)],
+            'adjustment_index' => ['sometimes', 'required', Rule::enum(AdjustmentIndex::class)],
+            'late_fee_percent' => ['sometimes', 'required', 'numeric', 'between:0,100'],
+            'monthly_interest_percent' => ['sometimes', 'required', 'numeric', 'between:0,100'],
+            'termination_fee_months' => ['sometimes', 'required', 'integer', 'between:0,12'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ];
+    }
+
+    /**
+     * Get the validation rules for the guarantor, only kept when the lease is guaranteed by one.
+     *
+     * @return array<string, array<int, ValidationRule|array<mixed>|string>>
+     */
+    private function guarantorRules(): array
+    {
+        $rules = [
+            'guarantor' => ['required', 'array'],
+            'guarantor.name' => ['required', 'string', 'max:255'],
+            'guarantor.cpf_cnpj' => ['nullable', 'string', 'max:20'],
+            'guarantor.email' => ['nullable', 'string', 'email', 'max:255'],
+            'guarantor.phone' => ['nullable', 'string', 'max:20'],
+            ...$this->qualificationRules('guarantor.'),
+            'guarantor.spouse_name' => ['nullable', 'string', 'max:255'],
+            'guarantor.spouse_cpf' => ['nullable', 'string', 'max:20'],
+            'guarantor.property_registration' => ['nullable', 'string', 'max:255'],
+        ];
+
+        return array_map(
+            fn (array $fieldRules): array => ['exclude_unless:guarantee_type,'.GuaranteeType::Guarantor->value, ...$fieldRules],
+            $rules,
+        );
+    }
+
+    /**
+     * Get the validated lease attributes, without the guarantor.
+     *
+     * @return array<string, mixed>
+     */
+    public function leaseAttributes(): array
+    {
+        return $this->safe()->except('guarantor');
+    }
+
+    /**
+     * Get the validated guarantor details, or null when the lease is not guaranteed by one.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function guarantorAttributes(): ?array
+    {
+        /** @var array<string, mixed>|null $guarantor */
+        $guarantor = $this->validated('guarantor');
+
+        return $guarantor;
     }
 
     /**

@@ -39,6 +39,7 @@ class LeaseController extends Controller
             ->with([
                 'property:id,type,street,number,complement,neighborhood,city,state,rent_amount,status,deleted_at',
                 'tenant:id,name,email,phone,deleted_at',
+                'guarantor',
             ]);
 
         $list = $leases()
@@ -79,7 +80,7 @@ class LeaseController extends Controller
      */
     public function store(LeaseRequest $request, CreateLease $createLease): RedirectResponse
     {
-        $createLease->handle($request->user()->account_id, $request->validated());
+        $createLease->handle($request->user()->account_id, $request->leaseAttributes(), $request->guarantorAttributes());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Contrato cadastrado com sucesso.')]);
 
@@ -93,7 +94,7 @@ class LeaseController extends Controller
     {
         Gate::authorize('update', $lease);
 
-        $updateLease->handle($lease, $request->validated());
+        $updateLease->handle($lease, $request->leaseAttributes(), $request->guarantorAttributes());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Contrato atualizado com sucesso.')]);
 

@@ -1,8 +1,9 @@
 import type { LeaseStatus } from './lease';
 import type { Paginator } from './pagination';
+import type { PersonQualification } from './person';
 import type { Property } from './property';
 
-export type Tenant = {
+export type Tenant = PersonQualification & {
     id: number;
     account_id: number;
     name: string;

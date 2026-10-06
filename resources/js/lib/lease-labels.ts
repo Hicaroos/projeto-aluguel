@@ -1,5 +1,11 @@
 import { daysUntil } from '@/lib/formatters';
-import type { GuaranteeType, Lease, LeaseStatus } from '@/types';
+import type {
+    AdjustmentIndex,
+    GuaranteeType,
+    Lease,
+    LeasePurpose,
+    LeaseStatus,
+} from '@/types';
 
 export const leaseStatusLabels: Record<LeaseStatus, string> = {
     active: 'Ativo',
@@ -25,6 +31,18 @@ export const guaranteeTypeLabels: Record<GuaranteeType, string> = {
     deposit: 'Caução',
     guarantor: 'Fiador',
     surety_bond: 'Seguro-fiança',
+};
+
+export const leasePurposeLabels: Record<LeasePurpose, string> = {
+    residential: 'Residencial',
+    commercial: 'Comercial',
+};
+
+export const adjustmentIndexLabels: Record<AdjustmentIndex, string> = {
+    igpm: 'IGP-M',
+    ipca: 'IPCA',
+    inpc: 'INPC',
+    ivar: 'IVAR',
 };
 
 export function leaseDeadlineHint(

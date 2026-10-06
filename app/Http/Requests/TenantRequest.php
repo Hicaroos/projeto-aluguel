@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Concerns\PersonQualificationRules;
 use App\Models\Tenant;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -9,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 class TenantRequest extends FormRequest
 {
+    use PersonQualificationRules;
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -31,6 +34,7 @@ class TenantRequest extends FormRequest
             ],
             'email' => ['nullable', 'string', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:20'],
+            ...$this->qualificationRules(),
         ];
     }
 

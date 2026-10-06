@@ -2,7 +2,9 @@
 import { Form } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import LeaseController from '@/actions/App/Http/Controllers/LeaseController';
+import AddressFields from '@/components/AddressFields.vue';
 import InputError from '@/components/InputError.vue';
+import PersonQualificationFields from '@/components/PersonQualificationFields.vue';
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import type { SearchableSelectOption } from '@/components/SearchableSelect.vue';
 import { Button } from '@/components/ui/button';
@@ -18,10 +20,16 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { todayIsoDate } from '@/lib/formatters';
-import { guaranteeTypeLabels } from '@/lib/lease-labels';
+import {
+    adjustmentIndexLabels,
+    guaranteeTypeLabels,
+    leasePurposeLabels,
+} from '@/lib/lease-labels';
 import type {
+    AdjustmentIndex,
     GuaranteeType,
     Lease,
+    LeasePurpose,
     LeasePropertyOption,
     LeaseTenantOption,
 } from '@/types';
@@ -69,6 +77,10 @@ const propertyId = ref(props.lease ? String(props.lease.property_id) : '');
 const tenantId = ref(props.lease ? String(props.lease.tenant_id) : '');
 const amount = ref(props.lease?.amount ?? '');
 const guaranteeType = ref<GuaranteeType>(props.lease?.guarantee_type ?? 'none');
+const purpose = ref<LeasePurpose>(props.lease?.purpose ?? 'residential');
+const adjustmentIndex = ref<AdjustmentIndex>(
+    props.lease?.adjustment_index ?? 'igpm',
+);
 
 watch(propertyId, (selectedId) => {
     const property = props.properties.find(
@@ -206,6 +218,121 @@ watch(propertyId, (selectedId) => {
             <h3
                 class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
             >
+                Termos do contrato
+            </h3>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid gap-2">
+                    <Label for="purpose">Finalidade</Label>
+                    <Select v-model="purpose" name="purpose">
+                        <SelectTrigger id="purpose" class="w-full">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem
+                                v-for="(label, key) in leasePurposeLabels"
+                                :key="key"
+                                :value="key"
+                            >
+                                {{ label }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <InputError :message="errors.purpose" />
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="adjustment_index">Índice de reajuste</Label>
+                    <Select v-model="adjustmentIndex" name="adjustment_index">
+                        <SelectTrigger id="adjustment_index" class="w-full">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem
+                                v-for="(label, key) in adjustmentIndexLabels"
+                                :key="key"
+                                :value="key"
+                            >
+                                {{ label }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <InputError :message="errors.adjustment_index" />
+                </div>
+            </div>
+
+            <div class="grid items-start gap-4 sm:grid-cols-3">
+                <div class="grid gap-2">
+                    <Label for="late_fee_percent">Multa por atraso</Label>
+                    <div class="relative">
+                        <Input
+                            id="late_fee_percent"
+                            name="late_fee_percent"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="100"
+                            class="pr-8 tabular-nums"
+                            :default-value="lease?.late_fee_percent ?? '10'"
+                        />
+                        <span
+                            class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground"
+                            >%</span
+                        >
+                    </div>
+                    <InputError :message="errors.late_fee_percent" />
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="monthly_interest_percent">Juros ao mês</Label>
+                    <div class="relative">
+                        <Input
+                            id="monthly_interest_percent"
+                            name="monthly_interest_percent"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="100"
+                            class="pr-8 tabular-nums"
+                            :default-value="
+                                lease?.monthly_interest_percent ?? '1'
+                            "
+                        />
+                        <span
+                            class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground"
+                            >%</span
+                        >
+                    </div>
+                    <InputError :message="errors.monthly_interest_percent" />
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="termination_fee_months">Multa rescisória</Label>
+                    <div class="relative">
+                        <Input
+                            id="termination_fee_months"
+                            name="termination_fee_months"
+                            type="number"
+                            step="1"
+                            min="0"
+                            max="12"
+                            class="pr-20 tabular-nums"
+                            :default-value="lease?.termination_fee_months ?? 3"
+                        />
+                        <span
+                            class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground"
+                            >aluguéis</span
+                        >
+                    </div>
+                    <InputError :message="errors.termination_fee_months" />
+                </div>
+            </div>
+        </section>
+
+        <section class="grid gap-4">
+            <h3
+                class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+            >
                 Garantia
             </h3>
 
@@ -248,6 +375,141 @@ watch(propertyId, (selectedId) => {
                         />
                     </div>
                     <InputError :message="errors.deposit_amount" />
+                </div>
+
+                <template v-if="guaranteeType === 'surety_bond'">
+                    <div class="grid gap-2">
+                        <Label for="surety_insurer">Seguradora</Label>
+                        <Input
+                            id="surety_insurer"
+                            name="surety_insurer"
+                            placeholder="Ex.: Porto Seguro"
+                            :default-value="lease?.surety_insurer ?? ''"
+                        />
+                        <InputError :message="errors.surety_insurer" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="surety_policy_number">
+                            Número da apólice
+                        </Label>
+                        <Input
+                            id="surety_policy_number"
+                            name="surety_policy_number"
+                            :default-value="lease?.surety_policy_number ?? ''"
+                        />
+                        <InputError :message="errors.surety_policy_number" />
+                    </div>
+                </template>
+            </div>
+
+            <div
+                v-if="guaranteeType === 'guarantor'"
+                class="grid gap-4 rounded-lg border bg-muted/30 p-4"
+            >
+                <p class="text-sm font-medium">Dados do fiador</p>
+
+                <div class="grid gap-2">
+                    <Label for="guarantor_name">Nome completo</Label>
+                    <Input
+                        id="guarantor_name"
+                        name="guarantor[name]"
+                        :default-value="lease?.guarantor?.name ?? ''"
+                    />
+                    <InputError :message="errors['guarantor.name']" />
+                </div>
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="grid gap-2">
+                        <Label for="guarantor_cpf_cnpj">CPF/CNPJ</Label>
+                        <Input
+                            id="guarantor_cpf_cnpj"
+                            name="guarantor[cpf_cnpj]"
+                            placeholder="000.000.000-00"
+                            :default-value="lease?.guarantor?.cpf_cnpj ?? ''"
+                        />
+                        <InputError :message="errors['guarantor.cpf_cnpj']" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="guarantor_phone">Telefone</Label>
+                        <Input
+                            id="guarantor_phone"
+                            name="guarantor[phone]"
+                            type="tel"
+                            placeholder="(00) 00000-0000"
+                            :default-value="lease?.guarantor?.phone ?? ''"
+                        />
+                        <InputError :message="errors['guarantor.phone']" />
+                    </div>
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="guarantor_email">E-mail</Label>
+                    <Input
+                        id="guarantor_email"
+                        name="guarantor[email]"
+                        type="email"
+                        placeholder="nome@exemplo.com"
+                        :default-value="lease?.guarantor?.email ?? ''"
+                    />
+                    <InputError :message="errors['guarantor.email']" />
+                </div>
+
+                <PersonQualificationFields
+                    name-prefix="guarantor"
+                    :value="lease?.guarantor"
+                    :errors="errors"
+                />
+
+                <AddressFields
+                    name-prefix="guarantor"
+                    :value="lease?.guarantor"
+                    :errors="errors"
+                />
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="grid gap-2">
+                        <Label for="guarantor_spouse_name"
+                            >Nome do cônjuge</Label
+                        >
+                        <Input
+                            id="guarantor_spouse_name"
+                            name="guarantor[spouse_name]"
+                            :default-value="lease?.guarantor?.spouse_name ?? ''"
+                        />
+                        <InputError
+                            :message="errors['guarantor.spouse_name']"
+                        />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="guarantor_spouse_cpf">CPF do cônjuge</Label>
+                        <Input
+                            id="guarantor_spouse_cpf"
+                            name="guarantor[spouse_cpf]"
+                            placeholder="000.000.000-00"
+                            :default-value="lease?.guarantor?.spouse_cpf ?? ''"
+                        />
+                        <InputError :message="errors['guarantor.spouse_cpf']" />
+                    </div>
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="guarantor_property_registration">
+                        Matrícula do imóvel em garantia
+                    </Label>
+                    <Input
+                        id="guarantor_property_registration"
+                        name="guarantor[property_registration]"
+                        placeholder="Ex.: Matrícula 12.345 do 1º Registro de Imóveis"
+                        :default-value="
+                            lease?.guarantor?.property_registration ?? ''
+                        "
+                    />
+                    <InputError
+                        :message="errors['guarantor.property_registration']"
+                    />
                 </div>
             </div>
         </section>

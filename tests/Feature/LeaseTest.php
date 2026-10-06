@@ -1,7 +1,10 @@
 <?php
 
+use App\Enums\AdjustmentIndex;
 use App\Enums\GuaranteeType;
+use App\Enums\LeasePurpose;
 use App\Enums\LeaseStatus;
+use App\Enums\MaritalStatus;
 use App\Enums\PropertyStatus;
 use App\Models\Account;
 use App\Models\Lease;
@@ -124,6 +127,7 @@ test('the deposit amount is ignored for other guarantee types', function () {
     $this->actingAs($user)
         ->post(route('leases.store'), validLeasePayload($property, $tenant, [
             'guarantee_type' => 'guarantor',
+            'guarantor' => ['name' => 'José Fiador'],
             'deposit_amount' => '3600.00',
         ]))
         ->assertSessionHasNoErrors();
@@ -296,4 +300,112 @@ test('index sorts leases by tenant name by default', function () {
             ->where('leases.data.0.tenant.name', 'Ana')
             ->where('leases.data.1.tenant.name', 'Bruno')
         );
+});
+
+test('a lease uses the default contract terms when they are omitted', function () {
+    ['user' => $user, 'property' => $property, 'tenant' => $tenant] = leaseScenario();
+
+    $this->actingAs($user)
+        ->post(route('leases.store'), validLeasePayload($property, $tenant))
+        ->assertSessionHasNoErrors();
+
+    $lease = Lease::first();
+
+    expect($lease->purpose)->toBe(LeasePurpose::Residential)
+        ->and($lease->adjustment_index)->toBe(AdjustmentIndex::Igpm)
+        ->and($lease->late_fee_percent)->toBe('10.00')
+        ->and($lease->monthly_interest_percent)->toBe('1.00')
+        ->and($lease->termination_fee_months)->toBe(3);
+});
+
+test('a lease validates its contract terms', function () {
+    ['user' => $user, 'property' => $property, 'tenant' => $tenant] = leaseScenario();
+
+    $this->actingAs($user)
+        ->post(route('leases.store'), validLeasePayload($property, $tenant, [
+            'purpose' => 'industrial',
+            'adjustment_index' => 'selic',
+            'late_fee_percent' => '150',
+            'monthly_interest_percent' => '-1',
+            'termination_fee_months' => '13',
+        ]))
+        ->assertSessionHasErrors(['purpose', 'adjustment_index', 'late_fee_percent', 'monthly_interest_percent', 'termination_fee_months']);
+
+    expect(Lease::count())->toBe(0);
+});
+
+test('a lease guaranteed by a guarantor stores the guarantor', function () {
+    ['user' => $user, 'property' => $property, 'tenant' => $tenant] = leaseScenario();
+
+    $this->actingAs($user)
+        ->post(route('leases.store'), validLeasePayload($property, $tenant, [
+            'guarantee_type' => GuaranteeType::Guarantor->value,
+            'guarantor' => ['name' => ''],
+        ]))
+        ->assertSessionHasErrors('guarantor.name');
+
+    $this->actingAs($user)
+        ->post(route('leases.store'), validLeasePayload($property, $tenant, [
+            'purpose' => 'commercial',
+            'guarantee_type' => GuaranteeType::Guarantor->value,
+            'guarantor' => [
+                'name' => 'José Fiador',
+                'cpf_cnpj' => '98765432100',
+                'marital_status' => 'married',
+                'spouse_name' => 'Ana Fiadora',
+                'property_registration' => 'Matrícula 12.345',
+                'state' => 'PR',
+            ],
+        ]))
+        ->assertSessionHasNoErrors();
+
+    $lease = Lease::first();
+
+    expect($lease->purpose)->toBe(LeasePurpose::Commercial)
+        ->and($lease->guarantor->name)->toBe('José Fiador')
+        ->and($lease->guarantor->marital_status)->toBe(MaritalStatus::Married)
+        ->and($lease->guarantor->spouse_name)->toBe('Ana Fiadora');
+});
+
+test('changing the guarantee type removes the guarantor and the surety details', function () {
+    ['account' => $account, 'user' => $user, 'property' => $property, 'tenant' => $tenant] = leaseScenario();
+    $property->update(['status' => PropertyStatus::Rented]);
+    $lease = Lease::factory()->withGuarantor()->for($account, 'account')->for($property, 'property')->for($tenant, 'tenant')->create();
+
+    expect($lease->guarantor)->not->toBeNull();
+
+    $this->actingAs($user)
+        ->put(route('leases.update', $lease), validLeasePayload($property, $tenant, [
+            'guarantee_type' => GuaranteeType::SuretyBond->value,
+            'surety_insurer' => 'Seguradora X',
+            'surety_policy_number' => 'AP-123',
+            'guarantor' => ['name' => 'Ignorado'],
+        ]))
+        ->assertSessionHasNoErrors();
+
+    $lease->refresh();
+
+    expect($lease->guarantor)->toBeNull()
+        ->and($lease->surety_insurer)->toBe('Seguradora X')
+        ->and($lease->surety_policy_number)->toBe('AP-123');
+
+    $this->actingAs($user)
+        ->put(route('leases.update', $lease), validLeasePayload($property, $tenant, [
+            'guarantee_type' => GuaranteeType::Deposit->value,
+            'deposit_amount' => '3600.00',
+            'surety_insurer' => 'Seguradora X',
+        ]))
+        ->assertSessionHasNoErrors();
+
+    expect($lease->fresh()->surety_insurer)->toBeNull()
+        ->and($lease->fresh()->surety_policy_number)->toBeNull();
+});
+
+test('index includes the lease guarantor', function () {
+    ['account' => $account, 'user' => $user, 'property' => $property, 'tenant' => $tenant] = leaseScenario();
+    Lease::factory()->withGuarantor()->for($account, 'account')->for($property, 'property')->for($tenant, 'tenant')->create();
+
+    $this->actingAs($user)
+        ->get(route('leases.index'))
+        ->assertInertia(fn (Assert $page) => $page->has('leases.data.0.guarantor.name'));
 });

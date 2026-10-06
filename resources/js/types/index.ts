@@ -6,6 +6,7 @@ export * from './navigation';
 export * from './owner';
 export * from './pagination';
 export * from './payment';
+export * from './person';
 export * from './property';
 export * from './tenant';
 export * from './ui';

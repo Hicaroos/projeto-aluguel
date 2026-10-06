@@ -8,6 +8,7 @@ import {
     NotebookPen,
     Pencil,
     ReceiptText,
+    Scale,
     ShieldCheck,
     UserRound,
     Wallet,
@@ -24,14 +25,25 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { formatCurrency } from '@/lib/currency';
-import { formatDate, monthsBetween } from '@/lib/formatters';
 import {
+    formatDate,
+    formatDocument,
+    formatPhone,
+    monthsBetween,
+} from '@/lib/formatters';
+import {
+    adjustmentIndexLabels,
     guaranteeTypeLabels,
     leaseDeadlineHint,
     leaseStatusBadgeClasses,
     leaseStatusDotClasses,
+    leasePurposeLabels,
     leaseStatusLabels,
 } from '@/lib/lease-labels';
+import {
+    formatPersonAddress,
+    formatPersonQualification,
+} from '@/lib/person-labels';
 import { index as paymentsIndex } from '@/routes/payments';
 import { index as propertiesIndex } from '@/routes/properties';
 import { index as tenantsIndex } from '@/routes/tenants';
@@ -46,6 +58,9 @@ const emit = defineEmits<{
     edit: [lease: Lease];
     finish: [lease: Lease];
 }>();
+
+const formatPercent = (value: string): string =>
+    `${Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`;
 </script>
 
 <template>
@@ -160,6 +175,112 @@ const emit = defineEmits<{
                         <dt class="text-muted-foreground">Valor da caução</dt>
                         <dd class="font-medium tabular-nums">
                             {{ formatCurrency(lease.deposit_amount) }}
+                        </dd>
+                    </div>
+                    <template v-if="lease.guarantee_type === 'surety_bond'">
+                        <div>
+                            <dt class="text-muted-foreground">Seguradora</dt>
+                            <dd class="font-medium">
+                                {{ lease.surety_insurer || '—' }}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-muted-foreground">Apólice</dt>
+                            <dd class="font-medium">
+                                {{ lease.surety_policy_number || '—' }}
+                            </dd>
+                        </div>
+                    </template>
+                </dl>
+
+                <div
+                    v-if="lease.guarantor"
+                    class="space-y-1 rounded-lg border bg-muted/40 p-3 text-sm"
+                >
+                    <p class="font-medium">
+                        {{ lease.guarantor.name }}
+                        <span
+                            v-if="lease.guarantor.cpf_cnpj"
+                            class="font-normal text-muted-foreground tabular-nums"
+                        >
+                            · {{ formatDocument(lease.guarantor.cpf_cnpj) }}
+                        </span>
+                    </p>
+                    <p
+                        v-if="formatPersonQualification(lease.guarantor)"
+                        class="text-muted-foreground"
+                    >
+                        {{ formatPersonQualification(lease.guarantor) }}
+                    </p>
+                    <p
+                        v-if="formatPersonAddress(lease.guarantor)"
+                        class="text-muted-foreground"
+                    >
+                        {{ formatPersonAddress(lease.guarantor) }}
+                    </p>
+                    <p
+                        v-if="lease.guarantor.phone"
+                        class="text-muted-foreground tabular-nums"
+                    >
+                        {{ formatPhone(lease.guarantor.phone) }}
+                    </p>
+                    <p
+                        v-if="lease.guarantor.spouse_name"
+                        class="text-muted-foreground"
+                    >
+                        Cônjuge: {{ lease.guarantor.spouse_name }}
+                    </p>
+                    <p
+                        v-if="lease.guarantor.property_registration"
+                        class="text-muted-foreground"
+                    >
+                        Imóvel em garantia:
+                        {{ lease.guarantor.property_registration }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <h3
+                    class="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                >
+                    <Scale class="size-3.5" />
+                    Termos do contrato
+                </h3>
+                <dl class="grid grid-cols-3 gap-x-6 gap-y-4 text-sm">
+                    <div>
+                        <dt class="text-muted-foreground">Finalidade</dt>
+                        <dd class="font-medium">
+                            {{ leasePurposeLabels[lease.purpose] }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-muted-foreground">Reajuste</dt>
+                        <dd class="font-medium">
+                            {{ adjustmentIndexLabels[lease.adjustment_index] }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-muted-foreground">Multa rescisória</dt>
+                        <dd class="font-medium tabular-nums">
+                            {{ lease.termination_fee_months }}
+                            {{
+                                lease.termination_fee_months === 1
+                                    ? 'aluguel'
+                                    : 'aluguéis'
+                            }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-muted-foreground">Multa por atraso</dt>
+                        <dd class="font-medium tabular-nums">
+                            {{ formatPercent(lease.late_fee_percent) }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-muted-foreground">Juros ao mês</dt>
+                        <dd class="font-medium tabular-nums">
+                            {{ formatPercent(lease.monthly_interest_percent) }}
                         </dd>
                     </div>
                 </dl>

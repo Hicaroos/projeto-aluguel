@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\AdjustmentIndex;
 use App\Enums\GuaranteeType;
+use App\Enums\LeasePurpose;
 use App\Enums\LeaseStatus;
 use Database\Factories\LeaseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -12,6 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -20,12 +23,19 @@ use Illuminate\Support\Carbon;
  * @property int $account_id
  * @property int $property_id
  * @property int $tenant_id
+ * @property LeasePurpose $purpose
  * @property Carbon $start_date
  * @property Carbon $end_date
  * @property string $amount
  * @property int $due_day
+ * @property AdjustmentIndex $adjustment_index
+ * @property string $late_fee_percent
+ * @property string $monthly_interest_percent
+ * @property int $termination_fee_months
  * @property GuaranteeType $guarantee_type
  * @property string|null $deposit_amount
+ * @property string|null $surety_insurer
+ * @property string|null $surety_policy_number
  * @property LeaseStatus $status
  * @property string|null $notes
  * @property Carbon|null $deleted_at
@@ -34,18 +44,26 @@ use Illuminate\Support\Carbon;
  * @property-read Account $account
  * @property-read Property $property
  * @property-read Tenant $tenant
+ * @property-read Guarantor|null $guarantor
  * @property-read Collection<int, Payment> $payments
  */
 #[Fillable([
     'account_id',
     'property_id',
     'tenant_id',
+    'purpose',
     'start_date',
     'end_date',
     'amount',
     'due_day',
+    'adjustment_index',
+    'late_fee_percent',
+    'monthly_interest_percent',
+    'termination_fee_months',
     'guarantee_type',
     'deposit_amount',
+    'surety_insurer',
+    'surety_policy_number',
     'status',
     'notes',
 ])]
@@ -55,11 +73,16 @@ class Lease extends Model
     use HasFactory, SoftDeletes;
 
     /**
-     * @var array<string, string>
+     * @var array<string, string|int>
      */
     protected $attributes = [
         'status' => 'active',
         'guarantee_type' => 'none',
+        'purpose' => 'residential',
+        'adjustment_index' => 'igpm',
+        'late_fee_percent' => '10.00',
+        'monthly_interest_percent' => '1.00',
+        'termination_fee_months' => 3,
     ];
 
     /**
@@ -84,6 +107,14 @@ class Lease extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class)->withTrashed();
+    }
+
+    /**
+     * @return HasOne<Guarantor, $this>
+     */
+    public function guarantor(): HasOne
+    {
+        return $this->hasOne(Guarantor::class);
     }
 
     /**
@@ -152,6 +183,11 @@ class Lease extends Model
             'amount' => 'decimal:2',
             'deposit_amount' => 'decimal:2',
             'guarantee_type' => GuaranteeType::class,
+            'purpose' => LeasePurpose::class,
+            'adjustment_index' => AdjustmentIndex::class,
+            'late_fee_percent' => 'decimal:2',
+            'monthly_interest_percent' => 'decimal:2',
+            'termination_fee_months' => 'integer',
             'status' => LeaseStatus::class,
         ];
     }

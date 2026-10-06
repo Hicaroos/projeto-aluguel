@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\MaritalStatus;
 use App\Models\Account;
 use App\Models\Lease;
 use App\Models\Tenant;
@@ -189,4 +190,41 @@ test('index sorts tenants by name in both directions', function () {
             ->where('tenants.data.0.name', 'Bruno')
             ->where('filters.direction', 'desc')
         );
+});
+
+test('a tenant stores the qualification and address used in lease contracts', function () {
+    $account = Account::factory()->create();
+    $user = User::factory()->for($account, 'account')->create();
+
+    $this->actingAs($user)
+        ->post(route('tenants.store'), validTenantPayload([
+            'rg' => '12.345.678-9',
+            'nationality' => 'brasileira',
+            'marital_status' => 'married',
+            'profession' => 'Engenheira',
+            'zip_code' => '01310-100',
+            'street' => 'Avenida Paulista',
+            'number' => '1000',
+            'neighborhood' => 'Bela Vista',
+            'city' => 'São Paulo',
+            'state' => 'SP',
+        ]))
+        ->assertSessionHasNoErrors();
+
+    $tenant = Tenant::first();
+
+    expect($tenant->marital_status)->toBe(MaritalStatus::Married)
+        ->and($tenant->profession)->toBe('Engenheira')
+        ->and($tenant->city)->toBe('São Paulo');
+});
+
+test('a tenant rejects an invalid marital status and state', function () {
+    $account = Account::factory()->create();
+    $user = User::factory()->for($account, 'account')->create();
+
+    $this->actingAs($user)
+        ->post(route('tenants.store'), validTenantPayload(['marital_status' => 'complicated', 'state' => 'São Paulo']))
+        ->assertSessionHasErrors(['marital_status', 'state']);
+
+    expect(Tenant::count())->toBe(0);
 });

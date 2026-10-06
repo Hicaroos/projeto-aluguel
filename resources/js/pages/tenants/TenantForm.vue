@@ -2,7 +2,9 @@
 import { Form } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import TenantController from '@/actions/App/Http/Controllers/TenantController';
+import AddressFields from '@/components/AddressFields.vue';
 import InputError from '@/components/InputError.vue';
+import PersonQualificationFields from '@/components/PersonQualificationFields.vue';
 import { Button } from '@/components/ui/button';
 import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -29,10 +31,16 @@ const formAction = computed(() =>
     <Form
         v-bind="formAction"
         v-slot="{ errors, processing }"
-        class="flex flex-col gap-6"
+        class="flex flex-col gap-8"
         @success="emit('success')"
     >
-        <div class="grid gap-4">
+        <section class="grid gap-4">
+            <h3
+                class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+            >
+                Dados pessoais
+            </h3>
+
             <div class="grid gap-2">
                 <Label for="name">Nome completo</Label>
                 <Input
@@ -96,7 +104,32 @@ const formAction = computed(() =>
                 />
                 <InputError :message="errors.email" />
             </div>
-        </div>
+        </section>
+
+        <section class="grid gap-4">
+            <div>
+                <h3
+                    class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                >
+                    Qualificação
+                </h3>
+                <p class="mt-1 text-sm text-muted-foreground">
+                    Usada no contrato. Pode ser preenchida depois.
+                </p>
+            </div>
+
+            <PersonQualificationFields :value="tenant" :errors="errors" />
+        </section>
+
+        <section class="grid gap-4">
+            <h3
+                class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+            >
+                Endereço atual
+            </h3>
+
+            <AddressFields :value="tenant" :errors="errors" />
+        </section>
 
         <DialogFooter class="border-t pt-6">
             <DialogClose as-child>
