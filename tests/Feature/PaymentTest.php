@@ -1,7 +1,10 @@
 <?php
 
+use App\Actions\Payments\CreateExtraCharge;
+use App\Enums\LeaseStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Account;
+use App\Models\Expense;
 use App\Models\Lease;
 use App\Models\Payment;
 use App\Models\Receipt;
@@ -211,3 +214,95 @@ test('receipt amounts are written in words', function (float $amount, string $wo
     [1000000.0, 'um milhão de reais'],
     [2321.99, 'dois mil trezentos e vinte e um reais e noventa e nove centavos'],
 ]);
+
+test('an extra charge can be created for a finished lease and is listed in its due month', function () {
+    ['user' => $user, 'lease' => $lease] = paymentScenario();
+    $lease->update(['status' => LeaseStatus::Ended]);
+
+    $this->actingAs($user)
+        ->post(route('payments.store'), [
+            'lease_id' => $lease->id,
+            'description' => 'Reparo da pintura',
+            'amount' => '800.00',
+            'due_date' => '2026-10-20',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $charge = Payment::extra()->first();
+
+    expect($charge->lease_id)->toBe($lease->id)
+        ->and($charge->description)->toBe('Reparo da pintura')
+        ->and($charge->reference_month)->toBeNull()
+        ->and($charge->status)->toBe(PaymentStatus::Pending);
+
+    $this->actingAs($user)
+        ->get(route('payments.index', ['lease' => $lease->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('payments.data', 1)
+            ->where('payments.data.0.type', 'extra')
+            ->where('payments.data.0.description', 'Reparo da pintura')
+        );
+});
+
+test('an extra charge requires a description and a lease of the account', function () {
+    ['user' => $user] = paymentScenario();
+    $otherLease = Lease::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('payments.store'), [
+            'lease_id' => $otherLease->id,
+            'description' => '',
+            'amount' => '800.00',
+            'due_date' => '2026-10-20',
+        ])
+        ->assertSessionHasErrors(['lease_id', 'description']);
+
+    expect(Payment::extra()->count())->toBe(0);
+});
+
+test('the receipt of an extra charge carries its description', function () {
+    ['user' => $user, 'lease' => $lease] = paymentScenario();
+    $charge = app(CreateExtraCharge::class)->handle($lease, ['description' => 'Multa rescisória', 'amount' => 500, 'due_date' => '2026-10-10']);
+    $receipt = Receipt::factory()->for($charge)->create(['amount' => 500]);
+
+    $this->actingAs($user)
+        ->get(route('receipts.show', $receipt))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('receipt.payment.type', 'extra')
+            ->where('receipt.payment.description', 'Multa rescisória')
+        );
+});
+
+test('an extra charge without receipts can be deleted, unlinking its expense', function () {
+    ['user' => $user, 'lease' => $lease] = paymentScenario();
+    $charge = app(CreateExtraCharge::class)->handle($lease, ['description' => 'Reparo da pintura', 'amount' => 800, 'due_date' => '2026-10-20']);
+    $expense = Expense::factory()->for($lease->account, 'account')->for($lease->property)->create(['payment_id' => $charge->id]);
+
+    $this->actingAs($user)
+        ->delete(route('payments.destroy', $charge))
+        ->assertSessionHasNoErrors();
+
+    expect(Payment::find($charge->id))->toBeNull()
+        ->and($expense->fresh()->payment_id)->toBeNull();
+});
+
+test('rent payments and extra charges with receipts cannot be deleted', function () {
+    ['user' => $user, 'lease' => $lease] = paymentScenario();
+    $rent = Payment::factory()->for($lease)->create();
+    $paidCharge = app(CreateExtraCharge::class)->handle($lease, ['description' => 'Multa', 'amount' => 300, 'due_date' => '2026-10-10']);
+    Receipt::factory()->for($paidCharge)->create(['amount' => 100]);
+
+    $this->actingAs($user)->delete(route('payments.destroy', $rent))->assertForbidden();
+    $this->actingAs($user)->delete(route('payments.destroy', $paidCharge))->assertForbidden();
+
+    expect(Payment::count())->toBe(2);
+});
+
+test('a user cannot delete an extra charge from another account', function () {
+    ['user' => $user] = paymentScenario();
+    $otherCharge = app(CreateExtraCharge::class)->handle(Lease::factory()->create(), ['description' => 'Multa', 'amount' => 300, 'due_date' => '2026-10-10']);
+
+    $this->actingAs($user)->delete(route('payments.destroy', $otherCharge))->assertNotFound();
+
+    expect(Payment::find($otherCharge->id))->not->toBeNull();
+});

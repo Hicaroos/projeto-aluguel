@@ -1,4 +1,4 @@
-import { daysUntil } from '@/lib/formatters';
+import { daysUntil, formatMonthYear } from '@/lib/formatters';
 import type { Payment, PaymentDisplayStatus, PaymentMethod } from '@/types';
 
 export const paymentStatusLabels: Record<PaymentDisplayStatus, string> = {
@@ -97,4 +97,24 @@ export function paymentDueHint(
     }
 
     return null;
+}
+
+export function paymentReferenceLabel(
+    payment: Pick<Payment, 'type' | 'description' | 'reference_month'>,
+    style: 'long' | 'short' = 'long',
+): string {
+    if (payment.type === 'extra' || !payment.reference_month) {
+        return payment.description ?? 'Cobrança avulsa';
+    }
+
+    return formatMonthYear(payment.reference_month, style);
+}
+
+/**
+ * Extra charges can be deleted while no amount was received for them.
+ */
+export function isDeletableCharge(
+    payment: Pick<Payment, 'type' | 'receipts'>,
+): boolean {
+    return payment.type === 'extra' && payment.receipts.length === 0;
 }

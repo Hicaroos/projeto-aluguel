@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\PaymentStatus;
+use App\Enums\PaymentType;
 use Carbon\CarbonInterface;
 use Database\Factories\PaymentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -18,7 +19,9 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $account_id
  * @property int $lease_id
- * @property Carbon $reference_month
+ * @property PaymentType $type
+ * @property string|null $description
+ * @property Carbon|null $reference_month Null for extra charges.
  * @property Carbon $due_date
  * @property string $amount
  * @property PaymentStatus $status
@@ -32,6 +35,8 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'account_id',
     'lease_id',
+    'type',
+    'description',
     'reference_month',
     'due_date',
     'amount',
@@ -46,6 +51,7 @@ class Payment extends Model
      * @var array<string, string>
      */
     protected $attributes = [
+        'type' => 'rent',
         'status' => 'pending',
     ];
 
@@ -152,6 +158,34 @@ class Payment extends Model
     }
 
     /**
+     * Scope the query to monthly rent payments, generated from the lease terms.
+     *
+     * @param  Builder<Payment>  $query
+     */
+    public function scopeRent(Builder $query): void
+    {
+        $query->where('type', PaymentType::Rent);
+    }
+
+    /**
+     * Scope the query to extra charges, such as a repair or fine owed by the tenant.
+     *
+     * @param  Builder<Payment>  $query
+     */
+    public function scopeExtra(Builder $query): void
+    {
+        $query->where('type', PaymentType::Extra);
+    }
+
+    /**
+     * Determine whether the payment is an extra charge rather than monthly rent.
+     */
+    public function isExtra(): bool
+    {
+        return $this->type === PaymentType::Extra;
+    }
+
+    /**
      * Determine whether the payment can still receive amounts.
      */
     public function isOpen(): bool
@@ -198,6 +232,7 @@ class Payment extends Model
             'reference_month' => 'date:Y-m-d',
             'due_date' => 'date:Y-m-d',
             'amount' => 'decimal:2',
+            'type' => PaymentType::class,
             'status' => PaymentStatus::class,
         ];
     }

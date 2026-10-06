@@ -7,6 +7,8 @@ export type PaymentStatus = 'pending' | 'partial' | 'paid' | 'canceled';
 
 export type PaymentDisplayStatus = PaymentStatus | 'overdue';
 
+export type PaymentType = 'rent' | 'extra';
+
 export type PaymentMethod =
     'pix' | 'cash' | 'bank_transfer' | 'bank_slip' | 'card';
 
@@ -23,8 +25,12 @@ export type Receipt = {
 export type Payment = {
     id: number;
     lease_id: number;
-    reference_month: string;
+    type: PaymentType;
+    description: string | null;
+    /** Null for extra charges. */
+    reference_month: string | null;
     due_date: string;
+    created_at: string;
     amount: string;
     status: PaymentStatus;
     received_amount: string | null;
@@ -62,4 +68,11 @@ export type PaymentLeaseFilter = {
     id: number;
     tenant: Pick<Tenant, 'id' | 'name'>;
     property: Pick<Property, 'id' | 'street' | 'number'>;
+};
+
+export type PaymentLeaseOption = {
+    id: number;
+    status: LeaseStatus;
+    tenant: Pick<Tenant, 'id' | 'name'>;
+    property: Pick<Property, 'id' | 'street' | 'number' | 'neighborhood'>;
 };

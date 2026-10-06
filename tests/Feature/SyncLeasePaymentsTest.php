@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Leases\SyncLeasePayments;
+use App\Actions\Payments\CreateExtraCharge;
 use App\Enums\PaymentStatus;
 use App\Enums\PropertyStatus;
 use App\Models\Account;
@@ -156,4 +157,24 @@ test('creating and finishing a lease generates and cancels its payments', functi
     $this->actingAs($user)->patch(route('leases.finish', $lease), ['status' => 'terminated']);
 
     expect($lease->payments()->where('status', PaymentStatus::Canceled)->count())->toBe(2);
+});
+
+test('extra charges are left untouched by the rent sync and kept when the lease is finished', function () {
+    $lease = Lease::factory()->create(['start_date' => '2026-01-01', 'end_date' => '2028-06-30', 'due_day' => 10, 'amount' => 1500]);
+    app(SyncLeasePayments::class)->handle($lease);
+
+    $repair = app(CreateExtraCharge::class)->handle($lease, [
+        'description' => 'Reparo da pintura',
+        'amount' => 800,
+        'due_date' => '2026-10-25',
+    ]);
+
+    $lease->update(['amount' => 1800]);
+    app(SyncLeasePayments::class)->handle($lease);
+    app(SyncLeasePayments::class)->cancelUpcoming($lease);
+
+    expect($lease->payments()->rent()->count())->toBe(2)
+        ->and($repair->fresh()->status)->toBe(PaymentStatus::Pending)
+        ->and($repair->fresh()->amount)->toBe('800.00')
+        ->and($repair->fresh()->reference_month)->toBeNull();
 });

@@ -5,21 +5,21 @@ import { computed } from 'vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/currency';
+import { formatDate, formatDocument, formatZipCode } from '@/lib/formatters';
 import {
-    formatDate,
-    formatDocument,
-    formatMonthYear,
-    formatZipCode,
-} from '@/lib/formatters';
-import { paymentMethodLabels } from '@/lib/payment-labels';
+    paymentMethodLabels,
+    paymentReferenceLabel,
+} from '@/lib/payment-labels';
 import { index as paymentsIndex } from '@/routes/payments';
-import type { Owner, Property, Receipt, Tenant } from '@/types';
+import type { Owner, PaymentType, Property, Receipt, Tenant } from '@/types';
 
 const props = defineProps<{
     receipt: Receipt & {
         payment: {
             id: number;
-            reference_month: string;
+            type: PaymentType;
+            description: string | null;
+            reference_month: string | null;
             due_date: string;
             amount: string;
             lease: {
@@ -60,13 +60,20 @@ const tenantDocumentClause = computed(() =>
 const amountText = computed(
     () => `${formatCurrency(props.receipt.amount)} (${props.amountInWords})`,
 );
-const paymentDescription = computed(() =>
-    isPartial.value
-        ? 'ao pagamento parcial do aluguel do mês'
-        : 'ao aluguel do mês',
-);
-const referenceMonth = computed(() =>
-    formatMonthYear(props.receipt.payment.reference_month).toLowerCase(),
+const isExtraCharge = computed(() => props.receipt.payment.type === 'extra');
+const paymentDescription = computed(() => {
+    if (isExtraCharge.value) {
+        return isPartial.value ? 'ao pagamento parcial de' : 'a';
+    }
+
+    return isPartial.value
+        ? 'ao pagamento parcial do aluguel do mês de'
+        : 'ao aluguel do mês de';
+});
+const referenceText = computed(() =>
+    isExtraCharge.value
+        ? paymentReferenceLabel(props.receipt.payment)
+        : paymentReferenceLabel(props.receipt.payment).toLowerCase(),
 );
 
 const fullAddress = computed(() => {
@@ -156,9 +163,9 @@ function print() {
                 <strong class="font-semibold text-zinc-900">{{
                     amountText
                 }}</strong
-                >, referente {{ paymentDescription }} de
+                >, referente {{ paymentDescription }}
                 <strong class="font-semibold text-zinc-900">{{
-                    referenceMonth
+                    referenceText
                 }}</strong>
                 do imóvel situado à {{ fullAddress }}.
             </p>
@@ -173,7 +180,7 @@ function print() {
                 <div>
                     <dt class="text-zinc-500">Referência</dt>
                     <dd class="font-medium">
-                        {{ formatMonthYear(receipt.payment.reference_month) }}
+                        {{ paymentReferenceLabel(receipt.payment) }}
                     </dd>
                 </div>
                 <div>

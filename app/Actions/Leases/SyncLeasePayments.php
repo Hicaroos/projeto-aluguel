@@ -3,6 +3,7 @@
 namespace App\Actions\Leases;
 
 use App\Enums\PaymentStatus;
+use App\Enums\PaymentType;
 use App\Models\Lease;
 use App\Models\Payment;
 use Carbon\CarbonImmutable;
@@ -29,6 +30,7 @@ class SyncLeasePayments
         $schedule = $this->schedule($lease);
 
         $existingPayments = $lease->payments()
+            ->rent()
             ->get()
             ->keyBy(fn (Payment $payment): string => $payment->reference_month->toDateString());
 
@@ -52,6 +54,7 @@ class SyncLeasePayments
 
                 $lease->payments()->create([
                     'account_id' => $lease->account_id,
+                    'type' => PaymentType::Rent,
                     'reference_month' => $referenceMonth,
                     'due_date' => $dueDate,
                     'amount' => $lease->amount,
@@ -84,11 +87,14 @@ class SyncLeasePayments
     }
 
     /**
-     * Cancel the pending payments of the lease that are not due yet.
+     * Cancel the pending rent payments of the lease that are not due yet.
+     *
+     * Extra charges are kept: they are debts the tenant still owes after the lease ends.
      */
     public function cancelUpcoming(Lease $lease): void
     {
         $lease->payments()
+            ->rent()
             ->where('status', PaymentStatus::Pending)
             ->whereDate('due_date', '>', today())
             ->update(['status' => PaymentStatus::Canceled]);

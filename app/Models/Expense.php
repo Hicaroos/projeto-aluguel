@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $account_id
  * @property int $property_id
+ * @property int|null $payment_id Extra charge billing this expense to a tenant.
  * @property ExpenseType $type
  * @property string|null $description
  * @property string $amount
@@ -27,8 +28,9 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read Account $account
  * @property-read Property $property
+ * @property-read Payment|null $payment
  */
-#[Fillable(['account_id', 'property_id', 'type', 'description', 'amount', 'due_date', 'payment_date', 'status'])]
+#[Fillable(['account_id', 'property_id', 'payment_id', 'type', 'description', 'amount', 'due_date', 'payment_date', 'status'])]
 class Expense extends Model
 {
     /** @use HasFactory<ExpenseFactory> */
@@ -55,6 +57,16 @@ class Expense extends Model
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class)->withTrashed();
+    }
+
+    /**
+     * Get the extra charge that bills this expense to a tenant, if any.
+     *
+     * @return BelongsTo<Payment, $this>
+     */
+    public function payment(): BelongsTo
+    {
+        return $this->belongsTo(Payment::class);
     }
 
     /**

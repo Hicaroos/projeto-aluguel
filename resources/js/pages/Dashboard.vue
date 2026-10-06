@@ -23,7 +23,11 @@ import { getInitials } from '@/composables/useInitials';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate, formatMonthYear } from '@/lib/formatters';
 import { leaseDeadlineHint } from '@/lib/lease-labels';
-import { paymentDueHint, paymentRemainingAmount } from '@/lib/payment-labels';
+import {
+    paymentDueHint,
+    paymentReferenceLabel,
+    paymentRemainingAmount,
+} from '@/lib/payment-labels';
 import { propertyTypeIcons } from '@/lib/property-labels';
 import ReceiptFormDialog from '@/pages/payments/ReceiptFormDialog.vue';
 import { dashboard } from '@/routes';
@@ -44,6 +48,7 @@ const props = defineProps<{
     stats: DashboardStats;
     monthlyRevenue: MonthlyRevenue[];
     attentionPayments: Payment[];
+    formerTenantDebts: Payment[];
     endingLeases: DashboardEndingLease[];
     vacantProperties: DashboardVacantProperty[];
     vacantPropertiesCount: number;
@@ -97,7 +102,7 @@ const showOnboarding = computed(() =>
 const registeringPaymentId = ref<number | null>(null);
 const paymentToRegister = computed(
     () =>
-        props.attentionPayments.find(
+        [...props.attentionPayments, ...props.formerTenantDebts].find(
             (payment) => payment.id === registeringPaymentId.value,
         ) ?? null,
 );
@@ -491,6 +496,53 @@ const paymentToRegister = computed(
                 </ul>
             </DashboardPanel>
         </div>
+
+        <DashboardPanel
+            v-if="formerTenantDebts.length > 0"
+            title="Pendências de ex-inquilinos"
+            description="Cobranças atrasadas de contratos já encerrados."
+        >
+            <ul class="divide-y">
+                <li
+                    v-for="payment in formerTenantDebts"
+                    :key="payment.id"
+                    class="flex items-center gap-3 px-5 py-3"
+                >
+                    <Avatar class="size-9">
+                        <AvatarFallback
+                            class="bg-rose-100 text-xs font-medium text-rose-700 dark:bg-rose-950/60 dark:text-rose-300"
+                        >
+                            {{ getInitials(payment.lease.tenant.name) }}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-medium">
+                            {{ payment.lease.tenant.name }}
+                        </p>
+                        <p class="truncate text-xs text-muted-foreground">
+                            {{ paymentReferenceLabel(payment) }} ·
+                            <span :class="paymentDueHint(payment)?.class">{{
+                                paymentDueHint(payment)?.label
+                            }}</span>
+                        </p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-medium tabular-nums">
+                            {{
+                                formatCurrency(paymentRemainingAmount(payment))
+                            }}
+                        </p>
+                        <button
+                            type="button"
+                            class="text-xs font-medium text-primary hover:underline"
+                            @click="registeringPaymentId = payment.id"
+                        >
+                            Receber
+                        </button>
+                    </div>
+                </li>
+            </ul>
+        </DashboardPanel>
     </div>
 
     <ReceiptFormDialog

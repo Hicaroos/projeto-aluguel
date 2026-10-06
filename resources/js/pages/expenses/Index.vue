@@ -69,6 +69,7 @@ import type {
     Expense,
     ExpenseDisplayStatus,
     ExpensePaginator,
+    ExpenseLeaseOption,
     ExpensePropertyOption,
     ExpenseSummary,
 } from '@/types';
@@ -82,6 +83,7 @@ const props = defineProps<{
         status: ExpenseDisplayStatus | null;
     };
     properties: ExpensePropertyOption[];
+    leaseOptions: ExpenseLeaseOption[];
 }>();
 
 defineOptions({
@@ -308,8 +310,17 @@ function confirmDelete() {
                                     />
                                 </div>
                                 <div class="min-w-0">
-                                    <p class="truncate font-medium">
+                                    <p
+                                        class="flex items-center gap-2 truncate font-medium"
+                                    >
                                         {{ expenseTypeLabels[expense.type] }}
+                                        <Badge
+                                            v-if="expense.payment_id"
+                                            variant="outline"
+                                            class="border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/60 dark:text-violet-300"
+                                        >
+                                            Cobrada do inquilino
+                                        </Badge>
                                     </p>
                                     <p
                                         class="truncate text-sm text-muted-foreground"
@@ -470,6 +481,7 @@ function confirmDelete() {
                 :key="formDialogExpense?.id ?? 'create'"
                 :expense="formDialogExpense"
                 :properties="properties"
+                :leases="leaseOptions"
                 @success="isFormDialogOpen = false"
             />
         </DialogScrollContent>

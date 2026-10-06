@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Payments\CreateExtraCharge;
 use App\Enums\PropertyStatus;
 use App\Models\Account;
 use App\Models\Expense;
@@ -74,5 +75,27 @@ test('the dashboard summarizes the account figures', function () {
             ->has('endingLeases', 1)
             ->has('vacantProperties', 2)
             ->where('vacantPropertiesCount', 2)
+        );
+});
+
+test('the dashboard lists overdue debts left by former tenants separately', function () {
+    $this->travelTo('2026-10-15 09:00:00');
+
+    $account = Account::factory()->create();
+    $user = User::factory()->for($account, 'account')->create();
+    $activeLease = Lease::factory()->for($account, 'account')->create(['start_date' => '2026-01-01', 'end_date' => '2028-06-30']);
+    $finishedLease = Lease::factory()->ended()->for($account, 'account')->create();
+
+    $activeDebt = app(CreateExtraCharge::class)->handle($activeLease, ['description' => 'Conta de água', 'amount' => 90, 'due_date' => '2026-10-05']);
+    $formerDebt = app(CreateExtraCharge::class)->handle($finishedLease, ['description' => 'Reparo da pintura', 'amount' => 800, 'due_date' => '2026-09-20']);
+    app(CreateExtraCharge::class)->handle($finishedLease, ['description' => 'Multa', 'amount' => 300, 'due_date' => '2026-11-20']);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('formerTenantDebts', 1)
+            ->where('formerTenantDebts.0.id', $formerDebt->id)
+            ->where('attentionPayments', fn ($payments) => collect($payments)->pluck('id')->contains($activeDebt->id)
+                && ! collect($payments)->pluck('id')->contains($formerDebt->id))
         );
 });

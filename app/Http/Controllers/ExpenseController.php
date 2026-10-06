@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Expenses\CreateExpense;
 use App\Actions\Expenses\SummarizeExpenses;
 use App\Enums\ExpenseStatus;
+use App\Enums\LeaseStatus;
 use App\Http\Controllers\Concerns\ResolvesMonthFilter;
 use App\Http\Requests\ExpenseRequest;
 use App\Models\Expense;
+use App\Models\Lease;
 use App\Models\Property;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -49,20 +52,33 @@ class ExpenseController extends Controller
             'properties' => Property::where('account_id', $accountId)
                 ->orderBy('street')
                 ->get(['id', 'street', 'number', 'complement', 'neighborhood', 'city', 'state']),
+            'leaseOptions' => Lease::where('account_id', $accountId)
+                ->with('tenant:id,name,deleted_at')
+                ->orderByRaw('status = ? desc', [LeaseStatus::Active->value])
+                ->latest('start_date')
+                ->get(['id', 'tenant_id', 'property_id', 'status', 'start_date', 'end_date']),
         ]);
     }
 
     /**
-     * Store a newly created expense.
+     * Store a newly created expense, optionally charging it to a tenant.
      */
-    public function store(ExpenseRequest $request): RedirectResponse
+    public function store(ExpenseRequest $request, CreateExpense $createExpense): RedirectResponse
     {
-        Expense::create([
-            ...$request->expenseAttributes(),
-            'account_id' => $request->user()->account_id,
-        ]);
+        $chargeLeaseId = $request->chargeLeaseId();
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Despesa cadastrada com sucesso.')]);
+        $createExpense->handle(
+            $request->user()->account_id,
+            $request->expenseAttributes(),
+            $chargeLeaseId !== null ? Lease::findOrFail($chargeLeaseId) : null,
+        );
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => $chargeLeaseId !== null
+                ? __('Despesa cadastrada e cobrança gerada para o inquilino.')
+                : __('Despesa cadastrada com sucesso.'),
+        ]);
 
         return back();
     }

@@ -2,8 +2,10 @@
 
 use App\Enums\ExpenseStatus;
 use App\Enums\ExpenseType;
+use App\Enums\PaymentType;
 use App\Models\Account;
 use App\Models\Expense;
+use App\Models\Lease;
 use App\Models\Owner;
 use App\Models\Property;
 use App\Models\User;
@@ -158,4 +160,47 @@ test('a user cannot manage expenses from another account', function () {
     $this->actingAs($user)->delete(route('expenses.destroy', $otherExpense))->assertNotFound();
 
     expect($otherExpense->fresh()->isPending())->toBeTrue();
+});
+
+test('an expense can be charged to the tenant of a lease of the same property', function () {
+    ['account' => $account, 'user' => $user, 'property' => $property] = expenseScenario();
+    $lease = Lease::factory()->ended()->for($account, 'account')->for($property)->create();
+
+    $this->actingAs($user)
+        ->post(route('expenses.store'), validExpensePayload($property, [
+            'type' => 'maintenance',
+            'description' => 'Reparo da pintura',
+            'amount' => '800.00',
+            'charge_tenant' => '1',
+            'charge_lease_id' => $lease->id,
+        ]))
+        ->assertSessionHasNoErrors();
+
+    $expense = Expense::first();
+    $charge = $expense->payment;
+
+    expect($charge)->not->toBeNull()
+        ->and($charge->lease_id)->toBe($lease->id)
+        ->and($charge->type)->toBe(PaymentType::Extra)
+        ->and($charge->description)->toBe('Reparo da pintura')
+        ->and($charge->amount)->toBe('800.00');
+});
+
+test('an expense can only be charged to a lease of its own property', function () {
+    ['account' => $account, 'user' => $user, 'property' => $property] = expenseScenario();
+    $otherPropertyLease = Lease::factory()->for($account, 'account')->create();
+
+    $this->actingAs($user)
+        ->post(route('expenses.store'), validExpensePayload($property, [
+            'charge_tenant' => '1',
+            'charge_lease_id' => $otherPropertyLease->id,
+        ]))
+        ->assertSessionHasErrors('charge_lease_id');
+
+    $this->actingAs($user)
+        ->post(route('expenses.store'), validExpensePayload($property, ['charge_tenant' => '0', 'charge_lease_id' => 999]))
+        ->assertSessionHasNoErrors();
+
+    expect(Expense::count())->toBe(1)
+        ->and(Expense::first()->payment_id)->toBeNull();
 });

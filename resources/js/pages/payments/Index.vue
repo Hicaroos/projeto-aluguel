@@ -7,13 +7,16 @@ import {
     Eye,
     HandCoins,
     MoreHorizontal,
+    Plus,
     ReceiptText,
     SearchX,
+    Trash2,
     TriangleAlert,
     Wallet,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import MonthNavigator from '@/components/MonthNavigator.vue';
 import PageHeader from '@/components/PageHeader.vue';
@@ -23,9 +26,17 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+    Dialog,
+    DialogDescription,
+    DialogHeader,
+    DialogScrollContent,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -47,6 +58,7 @@ import { getInitials } from '@/composables/useInitials';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate, formatMonthYear } from '@/lib/formatters';
 import {
+    isDeletableCharge,
     isPaymentOpen,
     paymentDisplayStatus,
     paymentDueHint,
@@ -55,12 +67,15 @@ import {
     paymentStatusDotClasses,
     paymentStatusLabels,
 } from '@/lib/payment-labels';
+import ExtraChargeForm from '@/pages/payments/ExtraChargeForm.vue';
 import PaymentDetailsDialog from '@/pages/payments/PaymentDetailsDialog.vue';
 import ReceiptFormDialog from '@/pages/payments/ReceiptFormDialog.vue';
-import { index } from '@/routes/payments';
+import { destroy, index } from '@/routes/payments';
 import type {
+    Payment,
     PaymentDisplayStatus,
     PaymentLeaseFilter,
+    PaymentLeaseOption,
     PaymentPaginator,
     PaymentSummary,
 } from '@/types';
@@ -75,6 +90,7 @@ const props = defineProps<{
         lease: number | null;
     };
     lease: PaymentLeaseFilter | null;
+    leaseOptions: PaymentLeaseOption[];
 }>();
 
 defineOptions({
@@ -147,6 +163,32 @@ const paymentToShow = computed(
         ) ?? null,
 );
 
+const isExtraChargeDialogOpen = ref(false);
+
+const chargeToDelete = ref<Payment | null>(null);
+const isDeletingCharge = ref(false);
+
+function openDeleteDialog(payment: Payment) {
+    selectedPaymentId.value = null;
+    chargeToDelete.value = payment;
+}
+
+function confirmDeleteCharge() {
+    if (!chargeToDelete.value) {
+        return;
+    }
+
+    isDeletingCharge.value = true;
+
+    router.delete(destroy(chargeToDelete.value).url, {
+        preserveScroll: true,
+        onFinish: () => {
+            isDeletingCharge.value = false;
+            chargeToDelete.value = null;
+        },
+    });
+}
+
 const registeringPaymentId = ref<number | null>(null);
 const paymentToRegister = computed(
     () =>
@@ -176,6 +218,10 @@ function openRegisterDialog(paymentId: number) {
                     Todas as cobranças
                 </Link>
             </Button>
+            <Button @click="isExtraChargeDialogOpen = true">
+                <Plus class="size-4" />
+                Cobrança avulsa
+            </Button>
         </PageHeader>
 
         <PageHeader
@@ -187,6 +233,10 @@ function openRegisterDialog(paymentId: number) {
                 :month="filters.month"
                 @change="(month) => visit({ month })"
             />
+            <Button @click="isExtraChargeDialogOpen = true">
+                <Plus class="size-4" />
+                Cobrança avulsa
+            </Button>
         </PageHeader>
 
         <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -325,7 +375,8 @@ function openRegisterDialog(paymentId: number) {
                         >
                             {{
                                 formatMonthYear(
-                                    payment.reference_month,
+                                    payment.reference_month ??
+                                        payment.created_at,
                                     'short',
                                 )
                             }}
@@ -359,28 +410,37 @@ function openRegisterDialog(paymentId: number) {
                             </p>
                         </TableCell>
                         <TableCell class="hidden px-4 py-3 sm:table-cell">
-                            <Badge
-                                variant="outline"
-                                :class="
-                                    paymentStatusBadgeClasses[
-                                        paymentDisplayStatus(payment)
-                                    ]
-                                "
-                            >
-                                <span
-                                    class="size-1.5 rounded-full"
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <Badge
+                                    variant="outline"
                                     :class="
-                                        paymentStatusDotClasses[
+                                        paymentStatusBadgeClasses[
                                             paymentDisplayStatus(payment)
                                         ]
                                     "
-                                />
-                                {{
-                                    paymentStatusLabels[
-                                        paymentDisplayStatus(payment)
-                                    ]
-                                }}
-                            </Badge>
+                                >
+                                    <span
+                                        class="size-1.5 rounded-full"
+                                        :class="
+                                            paymentStatusDotClasses[
+                                                paymentDisplayStatus(payment)
+                                            ]
+                                        "
+                                    />
+                                    {{
+                                        paymentStatusLabels[
+                                            paymentDisplayStatus(payment)
+                                        ]
+                                    }}
+                                </Badge>
+                                <Badge
+                                    v-if="payment.type === 'extra'"
+                                    variant="outline"
+                                    class="border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/60 dark:text-violet-300"
+                                >
+                                    Avulsa
+                                </Badge>
+                            </div>
                         </TableCell>
                         <TableCell class="px-4 py-3" @click.stop>
                             <div class="flex items-center justify-end gap-1">
@@ -422,6 +482,20 @@ function openRegisterDialog(paymentId: number) {
                                             <HandCoins class="size-4" />
                                             Registrar pagamento
                                         </DropdownMenuItem>
+                                        <template
+                                            v-if="isDeletableCharge(payment)"
+                                        >
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                variant="destructive"
+                                                @click="
+                                                    chargeToDelete = payment
+                                                "
+                                            >
+                                                <Trash2 class="size-4" />
+                                                Excluir
+                                            </DropdownMenuItem>
+                                        </template>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
@@ -444,10 +518,50 @@ function openRegisterDialog(paymentId: number) {
         :payment="paymentToShow"
         @close="selectedPaymentId = null"
         @register="(payment) => openRegisterDialog(payment.id)"
+        @delete="openDeleteDialog"
     />
 
     <ReceiptFormDialog
         :payment="paymentToRegister"
         @close="registeringPaymentId = null"
     />
+
+    <ConfirmDeleteDialog
+        :open="!!chargeToDelete"
+        title="Excluir cobrança avulsa?"
+        :processing="isDeletingCharge"
+        @close="chargeToDelete = null"
+        @confirm="confirmDeleteCharge"
+    >
+        A cobrança
+        <span class="font-medium text-foreground">{{
+            chargeToDelete?.description
+        }}</span>
+        de {{ chargeToDelete?.lease.tenant.name }} será removida. Esta ação não
+        pode ser desfeita.
+    </ConfirmDeleteDialog>
+
+    <Dialog v-model:open="isExtraChargeDialogOpen">
+        <DialogScrollContent class="sm:max-w-xl">
+            <DialogHeader class="flex-row items-center gap-3 text-left">
+                <div
+                    class="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
+                >
+                    <ReceiptText class="size-5" />
+                </div>
+                <div class="space-y-1">
+                    <DialogTitle>Cobrança avulsa</DialogTitle>
+                    <DialogDescription>
+                        Cobre do inquilino um valor fora do aluguel, como um
+                        reparo ou uma multa.
+                    </DialogDescription>
+                </div>
+            </DialogHeader>
+            <ExtraChargeForm
+                :leases="leaseOptions"
+                :initial-lease-id="filters.lease"
+                @success="isExtraChargeDialogOpen = false"
+            />
+        </DialogScrollContent>
+    </Dialog>
 </template>

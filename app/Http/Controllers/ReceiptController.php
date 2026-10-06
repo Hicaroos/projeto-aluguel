@@ -22,7 +22,7 @@ class ReceiptController extends Controller
         Gate::authorize('view', $receipt);
 
         $receipt->load([
-            'payment:id,lease_id,reference_month,due_date,amount,status',
+            'payment:id,lease_id,type,description,reference_month,due_date,amount,status',
             'payment.lease:id,tenant_id,property_id',
             'payment.lease.tenant:id,name,cpf_cnpj,deleted_at',
             'payment.lease.property:id,owner_id,street,number,complement,neighborhood,city,state,zip_code,deleted_at',

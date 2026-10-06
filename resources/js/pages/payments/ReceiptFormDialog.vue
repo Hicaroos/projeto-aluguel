@@ -24,9 +24,10 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { formatCurrency } from '@/lib/currency';
-import { formatMonthYear, todayIsoDate } from '@/lib/formatters';
+import { todayIsoDate } from '@/lib/formatters';
 import {
     paymentMethodLabels,
+    paymentReferenceLabel,
     paymentRemainingAmount,
 } from '@/lib/payment-labels';
 import type { Payment } from '@/types';
@@ -53,7 +54,7 @@ const emit = defineEmits<{
                     <DialogTitle>Registrar pagamento</DialogTitle>
                     <DialogDescription class="truncate">
                         {{ payment.lease.tenant.name }} ·
-                        {{ formatMonthYear(payment.reference_month) }}
+                        {{ paymentReferenceLabel(payment) }}
                     </DialogDescription>
                 </div>
             </DialogHeader>

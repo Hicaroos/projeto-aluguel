@@ -6,6 +6,7 @@ use App\Actions\Dashboard\GetMonthlyRevenue;
 use App\Actions\Expenses\SummarizeExpenses;
 use App\Actions\Leases\SyncLeasePayments;
 use App\Actions\Payments\SummarizePayments;
+use App\Enums\LeaseStatus;
 use App\Enums\PropertyStatus;
 use App\Models\Expense;
 use App\Models\Lease;
@@ -61,10 +62,18 @@ class DashboardController extends Controller
             'monthlyRevenue' => $getMonthlyRevenue->handle($accountId, $month),
             'attentionPayments' => $accountPayments()
                 ->open()
+                ->whereHas('lease', fn (Builder $query) => $query->where('status', LeaseStatus::Active))
                 ->whereDate('due_date', '<=', today()->addDays(7))
                 ->withListDetails()
                 ->orderBy('due_date')
                 ->limit(6)
+                ->get(),
+            'formerTenantDebts' => $accountPayments()
+                ->overdue()
+                ->whereHas('lease', fn (Builder $query) => $query->where('status', '!=', LeaseStatus::Active))
+                ->withListDetails()
+                ->orderBy('due_date')
+                ->limit(5)
                 ->get(),
             'endingLeases' => Lease::where('account_id', $accountId)
                 ->endingWithin(60)

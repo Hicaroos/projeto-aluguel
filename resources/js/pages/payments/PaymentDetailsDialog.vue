@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { FileText, HandCoins, ReceiptText, Trash2 } from '@lucide/vue';
+import {
+    FileText,
+    HandCoins,
+    NotebookPen,
+    ReceiptText,
+    Trash2,
+} from '@lucide/vue';
 import { ref } from 'vue';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue';
 import { Badge } from '@/components/ui/badge';
@@ -15,13 +21,15 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { formatCurrency } from '@/lib/currency';
-import { formatDate, formatMonthYear } from '@/lib/formatters';
+import { formatDate } from '@/lib/formatters';
 import {
+    isDeletableCharge,
     isPaymentOpen,
     paymentDisplayStatus,
     paymentDueHint,
     paymentMethodLabels,
     paymentReceivedAmount,
+    paymentReferenceLabel,
     paymentRemainingAmount,
     paymentStatusBadgeClasses,
     paymentStatusDotClasses,
@@ -37,6 +45,7 @@ defineProps<{
 const emit = defineEmits<{
     close: [];
     register: [payment: Payment];
+    delete: [payment: Payment];
 }>();
 
 const receiptToDelete = ref<Receipt | null>(null);
@@ -73,8 +82,11 @@ function confirmDelete() {
                         {{ payment.lease.tenant.name }}
                     </DialogTitle>
                     <DialogDescription>
-                        Referência
-                        {{ formatMonthYear(payment.reference_month) }} ·
+                        <template v-if="payment.type === 'extra'"
+                            >Cobrança avulsa:
+                        </template>
+                        <template v-else>Referência </template>
+                        {{ paymentReferenceLabel(payment) }} ·
                         {{ payment.lease.property.street }},
                         {{ payment.lease.property.number }}
                     </DialogDescription>
@@ -139,6 +151,20 @@ function confirmDelete() {
                 </div>
             </dl>
 
+            <div v-if="payment.type === 'extra'" class="space-y-3">
+                <h3
+                    class="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                >
+                    <NotebookPen class="size-3.5" />
+                    Descrição
+                </h3>
+                <p
+                    class="rounded-lg border bg-muted/40 p-3 text-sm whitespace-pre-line"
+                >
+                    {{ payment.description ?? 'Sem descrição.' }}
+                </p>
+            </div>
+
             <div class="space-y-3">
                 <h3
                     class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
@@ -201,6 +227,15 @@ function confirmDelete() {
             </div>
 
             <DialogFooter class="border-t pt-6">
+                <Button
+                    v-if="isDeletableCharge(payment)"
+                    variant="ghost"
+                    class="text-destructive hover:bg-destructive/10 hover:text-destructive sm:mr-auto"
+                    @click="emit('delete', payment)"
+                >
+                    <Trash2 class="size-4" />
+                    Excluir cobrança
+                </Button>
                 <DialogClose as-child>
                     <Button variant="outline">Fechar</Button>
                 </DialogClose>

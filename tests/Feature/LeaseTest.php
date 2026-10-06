@@ -60,6 +60,7 @@ test('index only lists leases belonging to the authenticated account', function 
 
 test('index filters leases by status and tenant name', function () {
     ['account' => $account, 'user' => $user, 'property' => $property] = leaseScenario();
+    $property->update(['street' => 'Rua das Flores', 'neighborhood' => 'Centro', 'city' => 'Curitiba']);
     $ana = Tenant::factory()->for($account, 'account')->create(['name' => 'Ana Pereira']);
     $carlos = Tenant::factory()->for($account, 'account')->create(['name' => 'Carlos Lima']);
 
