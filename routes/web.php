@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\ContractTemplateController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\LeaseContractController;
 use App\Http\Controllers\LeaseController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PropertyController;
@@ -19,6 +21,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('tenants', TenantController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('leases', LeaseController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::patch('leases/{lease}/finish', [LeaseController::class, 'finish'])->name('leases.finish');
+    Route::get('leases/{lease}/contract', [LeaseContractController::class, 'show'])->name('leases.contract');
+
+    Route::resource('contract-templates', ContractTemplateController::class)->except('show');
+    Route::patch('contract-templates/{contract_template}/default', [ContractTemplateController::class, 'makeDefault'])->name('contract-templates.default');
 
     Route::get('payments', [PaymentController::class, 'index'])->name('payments.index');
     Route::post('payments', [PaymentController::class, 'store'])->name('payments.store');

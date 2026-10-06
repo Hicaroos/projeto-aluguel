@@ -62,6 +62,14 @@ class Account extends Model
     }
 
     /**
+     * @return HasMany<ContractTemplate, $this>
+     */
+    public function contractTemplates(): HasMany
+    {
+        return $this->hasMany(ContractTemplate::class);
+    }
+
+    /**
      * Determine whether the account is a real estate agency managing many owners.
      */
     public function isAgency(): bool

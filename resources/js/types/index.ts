@@ -1,4 +1,5 @@
 export * from './auth';
+export * from './contract-template';
 export * from './dashboard';
 export * from './expense';
 export * from './lease';

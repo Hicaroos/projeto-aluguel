@@ -20,6 +20,7 @@ test('a single owner account can view and update its owner details', function ()
 
     $this->actingAs($user)
         ->patch(route('owner.update'), [
+            'name' => 'Carlos Proprietário',
             'rg' => '12.345.678-9',
             'nationality' => 'brasileiro',
             'marital_status' => 'divorced',
@@ -33,7 +34,9 @@ test('a single owner account can view and update its owner details', function ()
 
     $owner->refresh();
 
-    expect($owner->marital_status)->toBe(MaritalStatus::Divorced)
+    expect($owner->name)->toBe('Carlos Proprietário')
+        ->and($user->fresh()->name)->toBe('Carlos Proprietário')
+        ->and($owner->marital_status)->toBe(MaritalStatus::Divorced)
         ->and($owner->pix_key)->toBe('dono@example.com')
         ->and($owner->state)->toBe('PR');
 });
@@ -44,8 +47,8 @@ test('the owner details validate the marital status and state', function () {
     $user = User::factory()->for($account, 'account')->create();
 
     $this->actingAs($user)
-        ->patch(route('owner.update'), ['marital_status' => 'unknown', 'state' => 'Paraná'])
-        ->assertSessionHasErrors(['marital_status', 'state']);
+        ->patch(route('owner.update'), ['name' => '', 'marital_status' => 'unknown', 'state' => 'Paraná'])
+        ->assertSessionHasErrors(['name', 'marital_status', 'state']);
 });
 
 test('agencies cannot use the single owner details page', function () {
@@ -54,5 +57,5 @@ test('agencies cannot use the single owner details page', function () {
     $user = User::factory()->for($account, 'account')->create();
 
     $this->actingAs($user)->get(route('owner.edit'))->assertNotFound();
-    $this->actingAs($user)->patch(route('owner.update'), ['pix_key' => 'x'])->assertNotFound();
+    $this->actingAs($user)->patch(route('owner.update'), ['name' => 'Agência', 'pix_key' => 'x'])->assertNotFound();
 });

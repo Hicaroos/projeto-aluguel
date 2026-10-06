@@ -7,6 +7,7 @@ use App\Http\Requests\Settings\OwnerUpdateRequest;
 use App\Models\Owner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,11 +24,15 @@ class OwnerController extends Controller
     }
 
     /**
-     * Update the owner details used in lease contracts.
+     * Update the owner details used in lease contracts. The owner is the user of a single owner account,
+     * so both keep the same name.
      */
     public function update(OwnerUpdateRequest $request): RedirectResponse
     {
-        $this->owner($request)->update($request->validated());
+        DB::transaction(function () use ($request): void {
+            $this->owner($request)->update($request->validated());
+            $request->user()->update(['name' => $request->validated('name')]);
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Dados do proprietário atualizados.')]);
 

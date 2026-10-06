@@ -2,6 +2,7 @@
 import { Link } from '@inertiajs/vue3';
 import {
     Coins,
+    FileSignature,
     FileText,
     House,
     LayoutGrid,
@@ -22,6 +23,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index as contractTemplates } from '@/routes/contract-templates';
 import { index as expenses } from '@/routes/expenses';
 import { index as leases } from '@/routes/leases';
 import { index as payments } from '@/routes/payments';
@@ -62,7 +64,13 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
-const footerNavItems: NavItem[] = [];
+const footerNavItems: NavItem[] = [
+    {
+        title: 'Modelos de contrato',
+        href: contractTemplates(),
+        icon: FileSignature,
+    },
+];
 </script>
 
 <template>

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\SpellsMoney;
 use App\Enums\PaymentMethod;
 use Database\Factories\ReceiptFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -9,8 +10,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Number;
-use RuntimeException;
 
 /**
  * @property int $id
@@ -29,7 +28,7 @@ use RuntimeException;
 class Receipt extends Model
 {
     /** @use HasFactory<ReceiptFactory> */
-    use HasFactory;
+    use HasFactory, SpellsMoney;
 
     /**
      * @return BelongsTo<Account, $this>
@@ -52,39 +51,7 @@ class Receipt extends Model
      */
     public function amountInWords(): string
     {
-        $totalCents = (int) round((float) $this->amount * 100);
-        $reais = intdiv($totalCents, 100);
-        $centavos = $totalCents % 100;
-        $parts = [];
-
-        if ($reais > 0) {
-            $words = $this->spell($reais);
-            $connector = preg_match('/(milhão|milhões|bilhão|bilhões)$/u', $words) === 1 ? ' de' : '';
-
-            $parts[] = $words.$connector.($reais === 1 ? ' real' : ' reais');
-        }
-
-        if ($centavos > 0) {
-            $parts[] = $this->spell($centavos).($centavos === 1 ? ' centavo' : ' centavos');
-        }
-
-        return $parts === [] ? 'zero reais' : implode(' e ', $parts);
-    }
-
-    /**
-     * Spell the given number in Brazilian Portuguese.
-     *
-     * @throws RuntimeException when the number cannot be spelled (e.g. the intl extension is missing).
-     */
-    private function spell(int $number): string
-    {
-        $words = Number::spell($number, locale: 'pt_BR');
-
-        if ($words === false) {
-            throw new RuntimeException('Não foi possível escrever o valor por extenso. Verifique se a extensão intl do PHP está ativa.');
-        }
-
-        return $words;
+        return $this->spellMoney($this->amount);
     }
 
     /**

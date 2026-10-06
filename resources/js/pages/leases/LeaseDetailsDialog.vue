@@ -2,7 +2,9 @@
 import { Link } from '@inertiajs/vue3';
 import {
     CalendarDays,
+    ChevronDown,
     FileCheck,
+    FileDown,
     FileText,
     House,
     NotebookPen,
@@ -10,6 +12,7 @@ import {
     ReceiptText,
     Scale,
     ShieldCheck,
+    Star,
     UserRound,
     Wallet,
 } from '@lucide/vue';
@@ -24,6 +27,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { formatCurrency } from '@/lib/currency';
 import {
     formatDate,
@@ -44,14 +54,19 @@ import {
     formatPersonAddress,
     formatPersonQualification,
 } from '@/lib/person-labels';
+import { contract } from '@/routes/leases';
 import { index as paymentsIndex } from '@/routes/payments';
 import { index as propertiesIndex } from '@/routes/properties';
 import { index as tenantsIndex } from '@/routes/tenants';
-import type { Lease } from '@/types';
+import type { ContractTemplateOption, Lease } from '@/types';
 
-defineProps<{
-    lease: Lease | null;
-}>();
+withDefaults(
+    defineProps<{
+        lease: Lease | null;
+        contractTemplates?: ContractTemplateOption[];
+    }>(),
+    { contractTemplates: () => [] },
+);
 
 const emit = defineEmits<{
     close: [];
@@ -329,6 +344,51 @@ const formatPercent = (value: string): string =>
                         Ver cobranças
                     </Link>
                 </Button>
+                <Button
+                    v-if="contractTemplates.length <= 1"
+                    variant="outline"
+                    size="sm"
+                    as-child
+                >
+                    <a :href="contract(lease).url" target="_blank">
+                        <FileDown class="size-4" />
+                        Gerar contrato (PDF)
+                    </a>
+                </Button>
+                <DropdownMenu v-else>
+                    <DropdownMenuTrigger as-child>
+                        <Button variant="outline" size="sm">
+                            <FileDown class="size-4" />
+                            Gerar contrato (PDF)
+                            <ChevronDown class="size-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" class="w-64">
+                        <DropdownMenuLabel>Escolha o modelo</DropdownMenuLabel>
+                        <DropdownMenuItem
+                            v-for="template in contractTemplates"
+                            :key="template.id"
+                            as-child
+                        >
+                            <a
+                                :href="
+                                    contract(lease, {
+                                        query: { template: template.id },
+                                    }).url
+                                "
+                                target="_blank"
+                            >
+                                <span class="min-w-0 flex-1 truncate">{{
+                                    template.name
+                                }}</span>
+                                <Star
+                                    v-if="template.is_default"
+                                    class="size-3.5 text-primary"
+                                />
+                            </a>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
 
             <DialogFooter class="border-t pt-6">

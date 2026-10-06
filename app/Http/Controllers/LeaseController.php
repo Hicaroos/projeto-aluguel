@@ -10,6 +10,7 @@ use App\Enums\LeaseStatus;
 use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
 use App\Http\Controllers\Concerns\SortsTable;
 use App\Http\Requests\LeaseRequest;
+use App\Models\ContractTemplate;
 use App\Models\Lease;
 use App\Models\Property;
 use App\Models\Tenant;
@@ -72,6 +73,10 @@ class LeaseController extends Controller
             'tenants' => Tenant::where('account_id', $accountId)
                 ->orderBy('name')
                 ->get(['id', 'name']),
+            'contractTemplates' => ContractTemplate::where('account_id', $accountId)
+                ->orderByDesc('is_default')
+                ->orderBy('name')
+                ->get(['id', 'name', 'is_default']),
         ]);
     }
 

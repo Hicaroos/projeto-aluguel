@@ -68,6 +68,7 @@ import LeaseFinishDialog from '@/pages/leases/LeaseFinishDialog.vue';
 import LeaseForm from '@/pages/leases/LeaseForm.vue';
 import { destroy, index } from '@/routes/leases';
 import type {
+    ContractTemplateOption,
     Lease,
     LeasePaginator,
     LeasePropertyOption,
@@ -84,6 +85,7 @@ const props = defineProps<{
     selected: Lease | null;
     properties: LeasePropertyOption[];
     tenants: LeaseTenantOption[];
+    contractTemplates: ContractTemplateOption[];
 }>();
 
 defineOptions({
@@ -419,6 +421,7 @@ function confirmDelete() {
 
     <LeaseDetailsDialog
         :lease="leaseToShow"
+        :contract-templates="contractTemplates"
         @close="leaseToShow = null"
         @edit="openEditDialog"
         @finish="openFinishDialog"

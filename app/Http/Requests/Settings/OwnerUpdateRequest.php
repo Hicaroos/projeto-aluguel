@@ -18,6 +18,7 @@ class OwnerUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'name' => ['required', 'string', 'max:255'],
             ...$this->qualificationRules(),
             'pix_key' => ['nullable', 'string', 'max:255'],
         ];

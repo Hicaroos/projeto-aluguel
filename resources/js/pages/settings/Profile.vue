@@ -13,7 +13,7 @@ import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
 import type { Account } from '@/types';
 
-defineProps<{
+const props = defineProps<{
     account?: Account | null;
     owner?: { phone: string | null; cpf_cnpj: string | null } | null;
 }>();
@@ -31,6 +31,9 @@ defineOptions({
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+
+/** Single owner accounts edit their name in the owner details, where it is used in contracts. */
+const isSingleOwner = computed(() => props.account?.type === 'single_owner');
 </script>
 
 <template>
@@ -50,7 +53,20 @@ const user = computed(() => page.props.auth.user);
             class="space-y-6"
             v-slot="{ errors, processing }"
         >
-            <div class="grid gap-2">
+            <div v-if="account" class="grid gap-2">
+                <Label for="account_name">Nome da conta</Label>
+                <Input
+                    id="account_name"
+                    class="mt-1 block w-full"
+                    name="account_name"
+                    :default-value="account.name"
+                    required
+                    placeholder="Nome da conta"
+                />
+                <InputError class="mt-2" :message="errors.account_name" />
+            </div>
+
+            <div v-if="!isSingleOwner" class="grid gap-2">
                 <Label for="name">Nome</Label>
                 <Input
                     id="name"
@@ -77,19 +93,6 @@ const user = computed(() => page.props.auth.user);
                     placeholder="E-mail"
                 />
                 <InputError class="mt-2" :message="errors.email" />
-            </div>
-
-            <div v-if="account" class="grid gap-2">
-                <Label for="account_name">Nome da conta</Label>
-                <Input
-                    id="account_name"
-                    class="mt-1 block w-full"
-                    name="account_name"
-                    :default-value="account.name"
-                    required
-                    placeholder="Nome da conta"
-                />
-                <InputError class="mt-2" :message="errors.account_name" />
             </div>
 
             <div v-if="owner" class="grid gap-2">

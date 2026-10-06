@@ -12,6 +12,14 @@ class LeasePolicy
     use ChecksAccountOwnership;
 
     /**
+     * Determine whether the user can view the lease, e.g. to generate its contract.
+     */
+    public function view(User $user, Lease $lease): Response
+    {
+        return $this->belongsToUserAccount($user, $lease);
+    }
+
+    /**
      * Determine whether the user can update the lease: only active leases can change.
      */
     public function update(User $user, Lease $lease): Response

@@ -36,7 +36,7 @@ defineOptions({
         <Heading
             variant="small"
             title="Dados do proprietário"
-            description="Informações do locador usadas nos contratos. Nome, CPF e telefone ficam no seu perfil."
+            description="Informações do locador usadas nos contratos. CPF e telefone ficam no seu perfil."
         />
 
         <Form
@@ -50,6 +50,19 @@ defineOptions({
                 >
                     Qualificação
                 </h3>
+
+                <div class="grid gap-2">
+                    <Label for="name">Nome completo</Label>
+                    <Input
+                        id="name"
+                        name="name"
+                        required
+                        autocomplete="name"
+                        placeholder="Nome completo"
+                        :default-value="owner.name"
+                    />
+                    <InputError :message="errors.name" />
+                </div>
 
                 <PersonQualificationFields :value="owner" :errors="errors" />
             </section>

@@ -39,7 +39,7 @@ class ProfileController extends Controller
         $user = $request->user();
 
         $user->fill([
-            'name' => $validated['name'],
+            'name' => $validated['name'] ?? $user->name,
             'email' => $validated['email'],
         ]);
 
@@ -53,7 +53,13 @@ class ProfileController extends Controller
             $user->account?->update(['name' => $validated['account_name']]);
         }
 
-        $user->account?->owners()->first()?->update(['phone' => $validated['owner_phone'] ?? null]);
+        if ($user->account?->isAgency() === false) {
+            $user->account->primaryOwner()?->update([
+                'name' => $user->name,
+                'email' => $validated['email'],
+                'phone' => $validated['owner_phone'] ?? null,
+            ]);
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Profile updated.')]);
 

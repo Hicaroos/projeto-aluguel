@@ -19,6 +19,7 @@ class ProfileUpdateRequest extends FormRequest
     {
         return [
             ...$this->profileRules($this->user()->id),
+            'name' => ['sometimes', ...$this->nameRules()],
             'account_name' => ['sometimes', 'required', 'string', 'max:255'],
             'owner_phone' => ['nullable', 'string', 'max:20'],
         ];

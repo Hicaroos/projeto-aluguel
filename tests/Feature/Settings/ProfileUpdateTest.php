@@ -81,6 +81,48 @@ test('account name and owner phone can be updated, but cpf/cnpj cannot', functio
     expect($owner->fresh()->cpf_cnpj)->toBe('123.456.789-00');
 });
 
+test('updating the profile of a single owner account keeps the owner name and email in sync', function () {
+    $account = Account::factory()->create();
+    $owner = Owner::factory()->for($account, 'account')->create(['name' => 'Nome Antigo']);
+    $user = User::factory()->for($account, 'account')->create();
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'name' => 'Nome Novo',
+            'email' => 'novo@example.com',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($owner->fresh()->name)->toBe('Nome Novo')
+        ->and($owner->fresh()->email)->toBe('novo@example.com');
+});
+
+test('a single owner account can update the profile without the name, which is edited in the owner details', function () {
+    $account = Account::factory()->create();
+    $owner = Owner::factory()->for($account, 'account')->create(['name' => 'Maria Dona']);
+    $user = User::factory()->for($account, 'account')->create(['name' => 'Maria Dona']);
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), ['email' => 'maria@example.com', 'account_name' => 'Imóveis da Maria'])
+        ->assertSessionHasNoErrors();
+
+    expect($user->fresh()->name)->toBe('Maria Dona')
+        ->and($owner->fresh()->name)->toBe('Maria Dona')
+        ->and($owner->fresh()->email)->toBe('maria@example.com');
+});
+
+test('updating the profile of an agency does not change its owners', function () {
+    $account = Account::factory()->agency()->create();
+    $owner = Owner::factory()->for($account, 'account')->create(['name' => 'Proprietário Cliente']);
+    $user = User::factory()->for($account, 'account')->create();
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), ['name' => 'Corretor', 'email' => 'corretor@example.com'])
+        ->assertSessionHasNoErrors();
+
+    expect($owner->fresh()->name)->toBe('Proprietário Cliente');
+});
+
 test('email verification status is unchanged when the email address is unchanged', function () {
     $user = User::factory()->create();
 
