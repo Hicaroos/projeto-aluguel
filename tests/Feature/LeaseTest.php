@@ -266,3 +266,17 @@ test('tenants and properties with only finished leases can be deleted', function
     expect($tenant->fresh()->trashed())->toBeTrue()
         ->and($property->fresh()->trashed())->toBeTrue();
 });
+
+test('index can preselect a lease of the account', function () {
+    ['account' => $account, 'user' => $user, 'property' => $property, 'tenant' => $tenant] = leaseScenario();
+    $lease = Lease::factory()->for($account, 'account')->for($property, 'property')->for($tenant, 'tenant')->create();
+    $otherLease = Lease::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('leases.index', ['show' => $lease->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('selected.id', $lease->id));
+
+    $this->actingAs($user)
+        ->get(route('leases.index', ['show' => $otherLease->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('selected', null));
+});

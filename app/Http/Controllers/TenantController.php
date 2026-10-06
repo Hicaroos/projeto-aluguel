@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\LeaseStatus;
+use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
 use App\Http\Requests\TenantRequest;
 use App\Models\Tenant;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -12,19 +15,30 @@ use Inertia\Response;
 
 class TenantController extends Controller
 {
+    use ResolvesSelectedRecord;
+
     /**
      * Display the authenticated account's tenants.
      */
     public function index(Request $request): Response
     {
         $search = $request->string('search')->trim()->toString();
+        $tenants = fn (): Builder => Tenant::where('account_id', $request->user()->account_id)
+            ->with([
+                'leases' => fn ($query) => $query
+                    ->select(['id', 'tenant_id', 'property_id', 'start_date', 'end_date', 'amount', 'status'])
+                    ->orderByRaw('status = ? desc', [LeaseStatus::Active->value])
+                    ->latest('start_date'),
+                'leases.property:id,type,street,number,neighborhood,deleted_at',
+            ]);
 
         return Inertia::render('tenants/Index', [
-            'tenants' => Tenant::where('account_id', $request->user()->account_id)
+            'tenants' => $tenants()
                 ->search($search)
                 ->orderBy('name')
                 ->paginate(10)
-                ->withQueryString(),
+                ->appends($this->queryWithoutSelection($request)),
+            'selected' => $this->resolveSelectedRecord($request, $tenants()),
             'filters' => ['search' => $search],
         ]);
     }

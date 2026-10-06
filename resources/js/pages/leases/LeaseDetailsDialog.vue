@@ -4,10 +4,12 @@ import {
     CalendarDays,
     FileCheck,
     FileText,
+    House,
     NotebookPen,
     Pencil,
     ReceiptText,
     ShieldCheck,
+    UserRound,
     Wallet,
 } from '@lucide/vue';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +33,8 @@ import {
     leaseStatusLabels,
 } from '@/lib/lease-labels';
 import { index as paymentsIndex } from '@/routes/payments';
+import { index as propertiesIndex } from '@/routes/properties';
+import { index as tenantsIndex } from '@/routes/tenants';
 import type { Lease } from '@/types';
 
 defineProps<{
@@ -46,7 +50,10 @@ const emit = defineEmits<{
 
 <template>
     <Dialog :open="!!lease" @update:open="(open) => !open && emit('close')">
-        <DialogContent v-if="lease" class="sm:max-w-xl">
+        <DialogContent
+            v-if="lease"
+            class="max-h-[90dvh] overflow-y-auto sm:max-w-xl"
+        >
             <DialogHeader class="flex-row items-start gap-4 text-left">
                 <div
                     class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
@@ -172,13 +179,38 @@ const emit = defineEmits<{
                 </p>
             </div>
 
-            <DialogFooter class="border-t pt-6">
-                <Button variant="ghost" class="sm:mr-auto" as-child>
+            <div class="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" as-child>
+                    <Link
+                        :href="
+                            propertiesIndex({
+                                query: { show: lease.property_id },
+                            })
+                        "
+                    >
+                        <House class="size-4" />
+                        Ver imóvel
+                    </Link>
+                </Button>
+                <Button variant="outline" size="sm" as-child>
+                    <Link
+                        :href="
+                            tenantsIndex({ query: { show: lease.tenant_id } })
+                        "
+                    >
+                        <UserRound class="size-4" />
+                        Ver inquilino
+                    </Link>
+                </Button>
+                <Button variant="outline" size="sm" as-child>
                     <Link :href="paymentsIndex({ query: { lease: lease.id } })">
                         <ReceiptText class="size-4" />
                         Ver cobranças
                     </Link>
                 </Button>
+            </div>
+
+            <DialogFooter class="border-t pt-6">
                 <template v-if="lease.status === 'active'">
                     <Button variant="outline" @click="emit('finish', lease)">
                         <FileCheck class="size-4" />

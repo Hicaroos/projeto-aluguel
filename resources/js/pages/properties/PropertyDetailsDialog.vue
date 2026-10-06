@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { MapPin, Pencil, Wallet } from '@lucide/vue';
+import { Link } from '@inertiajs/vue3';
+import { FileText, MapPin, Pencil, UserRound, Wallet } from '@lucide/vue';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,6 +13,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { getInitials } from '@/composables/useInitials';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate, formatZipCode } from '@/lib/formatters';
 import {
@@ -20,6 +23,8 @@ import {
     propertyTypeIcons,
     propertyTypeLabels,
 } from '@/lib/property-labels';
+import { index as leasesIndex } from '@/routes/leases';
+import { index as tenantsIndex } from '@/routes/tenants';
 import type { Property } from '@/types';
 
 defineProps<{
@@ -34,7 +39,10 @@ const emit = defineEmits<{
 
 <template>
     <Dialog :open="!!property" @update:open="(open) => !open && emit('close')">
-        <DialogContent v-if="property" class="sm:max-w-xl">
+        <DialogContent
+            v-if="property"
+            class="max-h-[90dvh] overflow-y-auto sm:max-w-xl"
+        >
             <DialogHeader class="flex-row items-start gap-4 text-left">
                 <div
                     class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
@@ -126,6 +134,81 @@ const emit = defineEmits<{
                         </dd>
                     </div>
                 </dl>
+            </div>
+
+            <div v-if="property.active_lease" class="space-y-3">
+                <h3
+                    class="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                >
+                    <FileText class="size-3.5" />
+                    Contrato atual
+                </h3>
+                <div
+                    class="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center"
+                >
+                    <div class="flex min-w-0 flex-1 items-center gap-3">
+                        <Avatar class="size-10">
+                            <AvatarFallback
+                                class="bg-primary/10 text-sm font-medium text-primary"
+                            >
+                                {{
+                                    getInitials(
+                                        property.active_lease.tenant.name,
+                                    )
+                                }}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div class="min-w-0">
+                            <p class="truncate font-medium">
+                                {{ property.active_lease.tenant.name }}
+                            </p>
+                            <p
+                                class="text-sm text-muted-foreground tabular-nums"
+                            >
+                                {{
+                                    formatDate(property.active_lease.start_date)
+                                }}
+                                a
+                                {{ formatDate(property.active_lease.end_date) }}
+                                ·
+                                {{
+                                    formatCurrency(property.active_lease.amount)
+                                }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <Button variant="outline" size="sm" as-child>
+                            <Link
+                                :href="
+                                    tenantsIndex({
+                                        query: {
+                                            show: property.active_lease
+                                                .tenant_id,
+                                        },
+                                    })
+                                "
+                            >
+                                <UserRound class="size-4" />
+                                Ver inquilino
+                            </Link>
+                        </Button>
+                        <Button variant="outline" size="sm" as-child>
+                            <Link
+                                :href="
+                                    leasesIndex({
+                                        query: {
+                                            show: property.active_lease.id,
+                                        },
+                                    })
+                                "
+                            >
+                                <FileText class="size-4" />
+                                Ver contrato
+                            </Link>
+                        </Button>
+                    </div>
+                </div>
             </div>
 
             <DialogFooter class="border-t pt-6">

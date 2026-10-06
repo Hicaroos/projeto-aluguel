@@ -26,6 +26,18 @@ export type Property = {
     status: PropertyStatus;
     created_at: string;
     updated_at: string;
+    /** Loaded on the properties list: the lease currently renting the property. */
+    active_lease?: PropertyActiveLease | null;
 };
 
 export type PropertyPaginator = Paginator<Property>;
+
+export type PropertyActiveLease = {
+    id: number;
+    tenant_id: number;
+    start_date: string;
+    end_date: string;
+    amount: string;
+    due_day: number;
+    tenant: { id: number; name: string };
+};

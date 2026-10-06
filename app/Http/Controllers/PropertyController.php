@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
 use App\Http\Requests\PropertyRequest;
 use App\Models\Property;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -12,6 +14,8 @@ use Inertia\Response;
 
 class PropertyController extends Controller
 {
+    use ResolvesSelectedRecord;
+
     /**
      * Display the authenticated account's properties.
      */
@@ -19,13 +23,19 @@ class PropertyController extends Controller
     {
         $search = $request->string('search')->trim()->toString();
         $account = $request->user()->account;
+        $properties = fn (): Builder => Property::where('account_id', $request->user()->account_id)
+            ->with([
+                'activeLease:id,property_id,tenant_id,start_date,end_date,amount,due_day,status',
+                'activeLease.tenant:id,name,deleted_at',
+            ]);
 
         return Inertia::render('properties/Index', [
-            'properties' => Property::where('account_id', $request->user()->account_id)
+            'properties' => $properties()
                 ->search($search)
                 ->latest()
                 ->paginate(10)
-                ->withQueryString(),
+                ->appends($this->queryWithoutSelection($request)),
+            'selected' => $this->resolveSelectedRecord($request, $properties()),
             'filters' => ['search' => $search],
             'accountType' => $account?->type->value,
             'owners' => $account?->isAgency() ? $account->owners()->get(['id', 'name']) : [],

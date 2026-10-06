@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\LeaseStatus;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use Database\Factories\PropertyFactory;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -36,6 +38,7 @@ use Illuminate\Support\Carbon;
  * @property-read Owner $owner
  * @property-read Collection<int, PropertyPhoto> $photos
  * @property-read Collection<int, Lease> $leases
+ * @property-read Lease|null $activeLease
  * @property-read Collection<int, Expense> $expenses
  */
 #[Fillable([
@@ -94,6 +97,16 @@ class Property extends Model
     public function leases(): HasMany
     {
         return $this->hasMany(Lease::class);
+    }
+
+    /**
+     * Get the lease currently renting the property, if any.
+     *
+     * @return HasOne<Lease, $this>
+     */
+    public function activeLease(): HasOne
+    {
+        return $this->hasOne(Lease::class)->where('status', LeaseStatus::Active);
     }
 
     /**

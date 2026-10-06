@@ -51,6 +51,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { getInitials } from '@/composables/useInitials';
+import { useOpenSelectedRecord } from '@/composables/useOpenSelectedRecord';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate } from '@/lib/formatters';
 import {
@@ -74,6 +75,7 @@ import type {
 const props = defineProps<{
     leases: LeasePaginator;
     filters: { search: string; status: LeaseStatus | null };
+    selected: Lease | null;
     properties: LeasePropertyOption[];
     tenants: LeaseTenantOption[];
 }>();
@@ -123,6 +125,11 @@ function openEditDialog(lease: Lease) {
 }
 
 const leaseToShow = ref<Lease | null>(null);
+
+useOpenSelectedRecord(
+    () => props.selected,
+    (lease) => (leaseToShow.value = lease),
+);
 
 const leaseToFinish = ref<Lease | null>(null);
 

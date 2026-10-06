@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Account;
+use App\Models\Lease;
 use App\Models\Tenant;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -141,5 +142,37 @@ test('index paginates tenants', function () {
             ->component('tenants/Index')
             ->has('tenants.data', 10)
             ->where('tenants.last_page', 2)
+        );
+});
+
+test('index includes the leases of each tenant and can preselect a tenant', function () {
+    $account = Account::factory()->create();
+    $user = User::factory()->for($account, 'account')->create();
+    $tenant = Tenant::factory()->for($account, 'account')->create();
+    $endedLease = Lease::factory()->ended()->for($account, 'account')->for($tenant)->create(['start_date' => '2024-01-01']);
+    $activeLease = Lease::factory()->for($account, 'account')->for($tenant)->create(['start_date' => '2025-01-01']);
+
+    $this->actingAs($user)
+        ->get(route('tenants.index', ['show' => $tenant->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('tenants.data.0.leases', 2)
+            ->where('tenants.data.0.leases.0.id', $activeLease->id)
+            ->where('tenants.data.0.leases.1.id', $endedLease->id)
+            ->has('tenants.data.0.leases.0.property.street')
+            ->where('selected.id', $tenant->id)
+        );
+});
+
+test('pagination links do not carry the preselected tenant', function () {
+    $account = Account::factory()->create();
+    $user = User::factory()->for($account, 'account')->create();
+    $tenant = Tenant::factory()->for($account, 'account')->create();
+    Tenant::factory()->for($account, 'account')->count(11)->create();
+
+    $this->actingAs($user)
+        ->get(route('tenants.index', ['show' => $tenant->id, 'search' => '']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('selected.id', $tenant->id)
+            ->where('tenants.next_page_url', fn (string $url) => ! str_contains($url, 'show='))
         );
 });

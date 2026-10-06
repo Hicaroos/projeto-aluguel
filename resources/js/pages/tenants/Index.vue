@@ -42,6 +42,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { getInitials } from '@/composables/useInitials';
+import { useOpenSelectedRecord } from '@/composables/useOpenSelectedRecord';
 import { formatDate, formatDocument, formatPhone } from '@/lib/formatters';
 import TenantDetailsDialog from '@/pages/tenants/TenantDetailsDialog.vue';
 import TenantForm from '@/pages/tenants/TenantForm.vue';
@@ -51,6 +52,7 @@ import type { Tenant, TenantPaginator } from '@/types';
 const props = defineProps<{
     tenants: TenantPaginator;
     filters: { search: string };
+    selected: Tenant | null;
 }>();
 
 defineOptions({
@@ -88,6 +90,11 @@ function openEditDialog(tenant: Tenant) {
 }
 
 const tenantToShow = ref<Tenant | null>(null);
+
+useOpenSelectedRecord(
+    () => props.selected,
+    (tenant) => (tenantToShow.value = tenant),
+);
 
 const tenantToDelete = ref<Tenant | null>(null);
 const isDeleting = ref(false);

@@ -40,6 +40,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useOpenSelectedRecord } from '@/composables/useOpenSelectedRecord';
 import { formatCurrency } from '@/lib/currency';
 import { formatZipCode } from '@/lib/formatters';
 import {
@@ -57,6 +58,7 @@ import type { Property, PropertyOwnerOption, PropertyPaginator } from '@/types';
 const props = defineProps<{
     properties: PropertyPaginator;
     filters: { search: string };
+    selected: Property | null;
     accountType: 'single_owner' | 'agency';
     owners: PropertyOwnerOption[];
 }>();
@@ -96,6 +98,11 @@ function openEditDialog(property: Property) {
 }
 
 const propertyToShow = ref<Property | null>(null);
+
+useOpenSelectedRecord(
+    () => props.selected,
+    (property) => (propertyToShow.value = property),
+);
 
 const propertyToDelete = ref<Property | null>(null);
 const isDeleting = ref(false);

@@ -1,6 +1,16 @@
 <script setup lang="ts">
-import { CalendarDays, IdCard, Mail, Pencil, Phone } from '@lucide/vue';
+import { Link } from '@inertiajs/vue3';
+import {
+    CalendarDays,
+    FileText,
+    House,
+    IdCard,
+    Mail,
+    Pencil,
+    Phone,
+} from '@lucide/vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -12,7 +22,11 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { getInitials } from '@/composables/useInitials';
+import { formatCurrency } from '@/lib/currency';
 import { formatDate, formatDocument, formatPhone } from '@/lib/formatters';
+import { leaseStatusBadgeClasses, leaseStatusLabels } from '@/lib/lease-labels';
+import { index as leasesIndex } from '@/routes/leases';
+import { index as propertiesIndex } from '@/routes/properties';
 import type { Tenant } from '@/types';
 
 defineProps<{
@@ -27,7 +41,10 @@ const emit = defineEmits<{
 
 <template>
     <Dialog :open="!!tenant" @update:open="(open) => !open && emit('close')">
-        <DialogContent v-if="tenant">
+        <DialogContent
+            v-if="tenant"
+            class="max-h-[90dvh] overflow-y-auto sm:max-w-xl"
+        >
             <DialogHeader class="flex-row items-center gap-4 text-left">
                 <Avatar class="size-14">
                     <AvatarFallback
@@ -94,6 +111,82 @@ const emit = defineEmits<{
                     </div>
                 </li>
             </ul>
+
+            <div class="space-y-3">
+                <h3
+                    class="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                >
+                    <FileText class="size-3.5" />
+                    Contratos
+                </h3>
+
+                <p
+                    v-if="!tenant.leases?.length"
+                    class="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground"
+                >
+                    Este inquilino ainda não tem contratos.
+                </p>
+
+                <ul v-else class="divide-y rounded-lg border">
+                    <li
+                        v-for="lease in tenant.leases"
+                        :key="lease.id"
+                        class="flex flex-col gap-2 p-3 sm:flex-row sm:items-center"
+                    >
+                        <div class="min-w-0 flex-1">
+                            <p
+                                class="flex items-center gap-2 text-sm font-medium"
+                            >
+                                <span class="min-w-0 truncate">
+                                    {{ lease.property.street }},
+                                    {{ lease.property.number }}
+                                </span>
+                                <Badge
+                                    variant="outline"
+                                    :class="
+                                        leaseStatusBadgeClasses[lease.status]
+                                    "
+                                >
+                                    {{ leaseStatusLabels[lease.status] }}
+                                </Badge>
+                            </p>
+                            <p
+                                class="text-xs text-muted-foreground tabular-nums"
+                            >
+                                {{ formatDate(lease.start_date) }} a
+                                {{ formatDate(lease.end_date) }} ·
+                                {{ formatCurrency(lease.amount) }}
+                            </p>
+                        </div>
+                        <div class="flex gap-2">
+                            <Button variant="outline" size="sm" as-child>
+                                <Link
+                                    :href="
+                                        propertiesIndex({
+                                            query: { show: lease.property_id },
+                                        })
+                                    "
+                                >
+                                    <House class="size-4" />
+                                    Imóvel
+                                </Link>
+                            </Button>
+                            <Button variant="outline" size="sm" as-child>
+                                <Link
+                                    :href="
+                                        leasesIndex({
+                                            query: { show: lease.id },
+                                        })
+                                    "
+                                >
+                                    <FileText class="size-4" />
+                                    Contrato
+                                </Link>
+                            </Button>
+                        </div>
+                    </li>
+                </ul>
+            </div>
 
             <DialogFooter class="border-t pt-6">
                 <DialogClose as-child>

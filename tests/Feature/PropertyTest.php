@@ -3,6 +3,7 @@
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Models\Account;
+use App\Models\Lease;
 use App\Models\Owner;
 use App\Models\Property;
 use App\Models\User;
@@ -179,4 +180,25 @@ test('updating a rented property keeps its rented status', function () {
         ->assertSessionHasNoErrors();
 
     expect($property->fresh()->status)->toBe(PropertyStatus::Rented);
+});
+
+test('index includes the active lease of rented properties and can preselect a property', function () {
+    $account = Account::factory()->create();
+    $owner = Owner::factory()->for($account, 'account')->create();
+    $user = User::factory()->for($account, 'account')->create();
+    $property = Property::factory()->for($account, 'account')->for($owner, 'owner')->create(['status' => PropertyStatus::Rented]);
+    $lease = Lease::factory()->for($account, 'account')->for($property)->create();
+    $otherProperty = Property::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('properties.index', ['show' => $property->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('properties.data.0.active_lease.id', $lease->id)
+            ->where('properties.data.0.active_lease.tenant.name', $lease->tenant->name)
+            ->where('selected.id', $property->id)
+        );
+
+    $this->actingAs($user)
+        ->get(route('properties.index', ['show' => $otherProperty->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('selected', null));
 });
