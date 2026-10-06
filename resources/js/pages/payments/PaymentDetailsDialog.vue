@@ -25,6 +25,7 @@ import { formatDate } from '@/lib/formatters';
 import {
     isDeletableCharge,
     isPaymentOpen,
+    lateChargesTodayTotal as lateChargesTotal,
     paymentDisplayStatus,
     paymentDueHint,
     paymentMethodLabels,
@@ -34,6 +35,7 @@ import {
     paymentStatusBadgeClasses,
     paymentStatusDotClasses,
     paymentStatusLabels,
+    receiptTotalAmount,
 } from '@/lib/payment-labels';
 import { destroy, show } from '@/routes/receipts';
 import type { Payment, Receipt } from '@/types';
@@ -151,6 +153,21 @@ function confirmDelete() {
                 </div>
             </dl>
 
+            <p
+                v-if="isPaymentOpen(payment) && lateChargesTotal(payment) > 0"
+                class="-mt-2 rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300"
+            >
+                Pago hoje:
+                <span class="font-semibold tabular-nums">{{
+                    formatCurrency(
+                        paymentRemainingAmount(payment) +
+                            lateChargesTotal(payment),
+                    )
+                }}</span>
+                com multa e juros de
+                {{ payment.late_charges_today?.days_late }} dias de atraso.
+            </p>
+
             <div v-if="payment.type === 'extra'" class="space-y-3">
                 <h3
                     class="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
@@ -187,7 +204,9 @@ function confirmDelete() {
                     >
                         <div class="min-w-0 flex-1">
                             <p class="text-sm font-medium tabular-nums">
-                                {{ formatCurrency(receipt.amount) }}
+                                {{
+                                    formatCurrency(receiptTotalAmount(receipt))
+                                }}
                                 <span class="font-normal text-muted-foreground">
                                     · {{ formatDate(receipt.date) }}
                                     <template v-if="receipt.payment_method">
@@ -199,6 +218,19 @@ function confirmDelete() {
                                         }}
                                     </template>
                                 </span>
+                            </p>
+                            <p
+                                v-if="
+                                    receiptTotalAmount(receipt) >
+                                    Number(receipt.amount)
+                                "
+                                class="text-xs text-amber-700 tabular-nums dark:text-amber-400"
+                            >
+                                {{ formatCurrency(receipt.amount) }} de aluguel
+                                + {{ formatCurrency(receipt.late_fee_amount) }}
+                                de multa +
+                                {{ formatCurrency(receipt.interest_amount) }}
+                                de juros
                             </p>
                             <p
                                 v-if="receipt.notes"
@@ -258,7 +290,7 @@ function confirmDelete() {
                 O pagamento de
                 <span class="font-medium text-foreground">{{
                     receiptToDelete
-                        ? formatCurrency(receiptToDelete.amount)
+                        ? formatCurrency(receiptTotalAmount(receiptToDelete))
                         : ''
                 }}</span>
                 será removido e a cobrança voltará a ficar em aberto.

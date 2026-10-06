@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Leases\SyncLeasePayments;
+use App\Actions\Payments\CalculateLateCharges;
 use App\Actions\Payments\CreateExtraCharge;
 use App\Actions\Payments\SummarizePayments;
 use App\Enums\LeaseStatus;
@@ -29,8 +30,12 @@ class PaymentController extends Controller
     /**
      * Display the authenticated account's payments for a month or for a single lease.
      */
-    public function index(Request $request, SyncLeasePayments $syncLeasePayments, SummarizePayments $summarizePayments): Response
-    {
+    public function index(
+        Request $request,
+        SyncLeasePayments $syncLeasePayments,
+        SummarizePayments $summarizePayments,
+        CalculateLateCharges $calculateLateCharges,
+    ): Response {
         $accountId = $request->user()->account_id;
 
         $syncLeasePayments->handleMissingForAccount($accountId);
@@ -80,7 +85,15 @@ class PaymentController extends Controller
         return Inertia::render('payments/Index', [
             'payments' => $list
                 ->paginate(15)
-                ->withQueryString(),
+                ->withQueryString()
+                ->through(fn (Payment $payment): Payment => $payment->setAttribute(
+                    'late_charges_today',
+                    $calculateLateCharges->handle(
+                        $payment,
+                        max(0, (float) $payment->amount - (float) $payment->received_amount),
+                        today(),
+                    ),
+                )),
             'summary' => $summarizePayments->handle($scopedQuery()),
             'filters' => [
                 'month' => $month->format('Y-m'),

@@ -149,7 +149,7 @@ class Payment extends Model
     {
         $query
             ->with([
-                'lease:id,property_id,tenant_id,due_day,status',
+                'lease:id,property_id,tenant_id,due_day,status,late_fee_percent,monthly_interest_percent',
                 'lease.tenant:id,name,deleted_at',
                 'lease.property:id,type,street,number,complement,neighborhood,city,state,deleted_at',
                 'receipts' => fn ($query) => $query->orderBy('date')->orderBy('id'),

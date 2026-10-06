@@ -15,7 +15,10 @@ export type PaymentMethod =
 export type Receipt = {
     id: number;
     payment_id: number;
+    /** The part of the rent paid, which is what reduces the payment balance. */
     amount: string;
+    late_fee_amount: string;
+    interest_amount: string;
     date: string;
     payment_method: PaymentMethod | null;
     notes: string | null;
@@ -35,10 +38,14 @@ export type Payment = {
     status: PaymentStatus;
     received_amount: string | null;
     receipts: Receipt[];
+    /** Late fee and interest on the open rent if it were paid today. Sent on the payments list. */
+    late_charges_today?: LateCharges;
     lease: {
         id: number;
         due_day: number;
         status: LeaseStatus;
+        late_fee_percent: string;
+        monthly_interest_percent: string;
         tenant: Pick<Tenant, 'id' | 'name'>;
         property: Pick<
             Property,
@@ -56,9 +63,17 @@ export type Payment = {
 
 export type PaymentPaginator = Paginator<Payment>;
 
+export type LateCharges = {
+    days_late: number;
+    late_fee: number;
+    interest: number;
+};
+
 export type PaymentSummary = {
     expected: number;
     received: number;
+    /** Late fees and interest received on top of the rent. */
+    charges: number;
     open: number;
     overdue: number;
     overdue_count: number;

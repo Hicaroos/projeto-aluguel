@@ -15,7 +15,9 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $account_id
  * @property int $payment_id
- * @property string $amount
+ * @property string $amount The part of the rent paid, which is what reduces the payment balance.
+ * @property string $late_fee_amount Late fee charged on top of the amount.
+ * @property string $interest_amount Late interest charged on top of the amount.
  * @property Carbon $date
  * @property PaymentMethod|null $payment_method
  * @property string|null $notes
@@ -24,7 +26,7 @@ use Illuminate\Support\Carbon;
  * @property-read Account $account
  * @property-read Payment $payment
  */
-#[Fillable(['account_id', 'payment_id', 'amount', 'date', 'payment_method', 'notes'])]
+#[Fillable(['account_id', 'payment_id', 'amount', 'late_fee_amount', 'interest_amount', 'date', 'payment_method', 'notes'])]
 class Receipt extends Model
 {
     /** @use HasFactory<ReceiptFactory> */
@@ -47,11 +49,19 @@ class Receipt extends Model
     }
 
     /**
-     * Get the received amount written in Brazilian Portuguese words, e.g. "mil e quinhentos reais e vinte centavos".
+     * Get the total received: the rent part plus the late fee and interest.
+     */
+    public function totalAmount(): float
+    {
+        return round((float) $this->amount + (float) $this->late_fee_amount + (float) $this->interest_amount, 2);
+    }
+
+    /**
+     * Get the total received written in Brazilian Portuguese words, e.g. "mil e quinhentos reais e vinte centavos".
      */
     public function amountInWords(): string
     {
-        return $this->spellMoney($this->amount);
+        return $this->spellMoney($this->totalAmount());
     }
 
     /**
@@ -63,6 +73,8 @@ class Receipt extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'late_fee_amount' => 'decimal:2',
+            'interest_amount' => 'decimal:2',
             'date' => 'date:Y-m-d',
             'payment_method' => PaymentMethod::class,
         ];

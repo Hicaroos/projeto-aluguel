@@ -1,5 +1,11 @@
 import { daysUntil, formatMonthYear } from '@/lib/formatters';
-import type { Payment, PaymentDisplayStatus, PaymentMethod } from '@/types';
+import type {
+    LateCharges,
+    Payment,
+    PaymentDisplayStatus,
+    PaymentMethod,
+    Receipt,
+} from '@/types';
 
 export const paymentStatusLabels: Record<PaymentDisplayStatus, string> = {
     pending: 'Pendente',
@@ -63,6 +69,78 @@ export function paymentRemainingAmount(
         Math.round(
             (Number(payment.amount) - paymentReceivedAmount(payment)) * 100,
         ) / 100,
+    );
+}
+
+/**
+ * Calculate the late fee and interest the lease charges on the rent amount paid on the given date.
+ * Mirrors App\Actions\Payments\CalculateLateCharges: the fee is charged once from the first day late
+ * and interest is simple, counting each day as 1/30 of the monthly rate. Extra charges carry none.
+ */
+export function calculateLateCharges(
+    payment: Pick<Payment, 'type' | 'due_date' | 'lease'>,
+    amount: number,
+    paidOn: string,
+): LateCharges {
+    const daysLate = Math.max(
+        0,
+        Math.round(
+            (Date.parse(`${paidOn}T00:00:00`) -
+                Date.parse(`${payment.due_date}T00:00:00`)) /
+                86_400_000,
+        ),
+    );
+
+    if (
+        payment.type === 'extra' ||
+        daysLate === 0 ||
+        !(amount > 0) ||
+        Number.isNaN(daysLate)
+    ) {
+        return { days_late: daysLate || 0, late_fee: 0, interest: 0 };
+    }
+
+    const round = (value: number) => Math.round(value * 100) / 100;
+
+    return {
+        days_late: daysLate,
+        late_fee: round(
+            (amount * Number(payment.lease.late_fee_percent)) / 100,
+        ),
+        interest: round(
+            ((amount * Number(payment.lease.monthly_interest_percent)) /
+                100 /
+                30) *
+                daysLate,
+        ),
+    };
+}
+
+/**
+ * Get the late fee plus interest on the open rent if it were paid today, as sent on the payments list.
+ */
+export function lateChargesTodayTotal(
+    payment: Pick<Payment, 'late_charges_today'>,
+): number {
+    return (
+        (payment.late_charges_today?.late_fee ?? 0) +
+        (payment.late_charges_today?.interest ?? 0)
+    );
+}
+
+/**
+ * Get the total received in a receipt: the rent part plus the late fee and interest.
+ */
+export function receiptTotalAmount(
+    receipt: Pick<Receipt, 'amount' | 'late_fee_amount' | 'interest_amount'>,
+): number {
+    return (
+        Math.round(
+            (Number(receipt.amount) +
+                Number(receipt.late_fee_amount) +
+                Number(receipt.interest_amount)) *
+                100,
+        ) / 100
     );
 }
 

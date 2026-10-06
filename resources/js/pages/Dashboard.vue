@@ -287,15 +287,41 @@ const paymentToRegister = computed(
                 >
                     {{ formatCurrency(stats.netIncome) }}
                 </p>
-                <p class="text-sm text-muted-foreground tabular-nums">
-                    {{ formatCurrency(stats.expensesPaid) }} em despesas pagas
-                </p>
-                <p
-                    v-if="stats.expensesPending > 0"
-                    class="text-xs text-muted-foreground tabular-nums"
-                >
-                    + {{ formatCurrency(stats.expensesPending) }} a pagar
-                </p>
+                <dl class="mt-3 space-y-1 border-t pt-3 text-xs tabular-nums">
+                    <div class="flex items-center justify-between gap-2">
+                        <dt class="text-muted-foreground">Aluguéis</dt>
+                        <dd class="font-medium text-primary">
+                            + {{ formatCurrency(stats.received) }}
+                        </dd>
+                    </div>
+                    <div
+                        v-if="stats.charges > 0"
+                        class="flex items-center justify-between gap-2"
+                    >
+                        <dt class="text-muted-foreground">Multa e juros</dt>
+                        <dd class="font-medium text-primary">
+                            + {{ formatCurrency(stats.charges) }}
+                        </dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <dt class="text-muted-foreground">
+                            Despesas pagas
+                            <span
+                                v-if="stats.expensesPending > 0"
+                                class="text-muted-foreground/70"
+                                :title="`${formatCurrency(stats.expensesPending)} em despesas ainda a pagar neste mês`"
+                            >
+                                ({{ formatCurrency(stats.expensesPending) }} a
+                                pagar)
+                            </span>
+                        </dt>
+                        <dd
+                            class="font-medium text-rose-600 dark:text-rose-400"
+                        >
+                            − {{ formatCurrency(stats.expensesPaid) }}
+                        </dd>
+                    </div>
+                </dl>
             </div>
         </div>
 

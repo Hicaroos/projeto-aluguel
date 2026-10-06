@@ -42,7 +42,7 @@ class ReceiptController extends Controller
     {
         Gate::authorize('registerReceipt', $payment);
 
-        $registerReceipt->handle($payment, $request->validated());
+        $registerReceipt->handle($payment, $request->receiptAttributes());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Pagamento registrado com sucesso.')]);
 

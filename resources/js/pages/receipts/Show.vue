@@ -9,6 +9,7 @@ import { formatDate, formatDocument, formatZipCode } from '@/lib/formatters';
 import {
     paymentMethodLabels,
     paymentReferenceLabel,
+    receiptTotalAmount,
 } from '@/lib/payment-labels';
 import { index as paymentsIndex } from '@/routes/payments';
 import type { Owner, PaymentType, Property, Receipt, Tenant } from '@/types';
@@ -57,8 +58,12 @@ const tenantDocumentClause = computed(() =>
         ? `, inscrito(a) no CPF/CNPJ sob o nº ${formatDocument(tenant.value.cpf_cnpj)}`
         : '',
 );
+const totalAmount = computed(() => receiptTotalAmount(props.receipt));
+const hasLateCharges = computed(
+    () => totalAmount.value > Number(props.receipt.amount),
+);
 const amountText = computed(
-    () => `${formatCurrency(props.receipt.amount)} (${props.amountInWords})`,
+    () => `${formatCurrency(totalAmount.value)} (${props.amountInWords})`,
 );
 const isExtraCharge = computed(() => props.receipt.payment.type === 'extra');
 const paymentDescription = computed(() => {
@@ -149,7 +154,7 @@ function print() {
                         Valor recebido
                     </p>
                     <p class="text-2xl font-semibold tabular-nums">
-                        {{ formatCurrency(receipt.amount) }}
+                        {{ formatCurrency(totalAmount) }}
                     </p>
                 </div>
             </header>
@@ -167,7 +172,11 @@ function print() {
                 <strong class="font-semibold text-zinc-900">{{
                     referenceText
                 }}</strong>
-                do imóvel situado à {{ fullAddress }}.
+                do imóvel situado à {{ fullAddress
+                }}<template v-if="hasLateCharges"
+                    >, acrescido de multa e juros por atraso no
+                    pagamento</template
+                >.
             </p>
 
             <p class="mt-4 text-base leading-relaxed text-zinc-700">
@@ -205,6 +214,32 @@ function print() {
                         }}
                     </dd>
                 </div>
+                <template v-if="hasLateCharges">
+                    <div>
+                        <dt class="text-zinc-500">Aluguel</dt>
+                        <dd class="font-medium tabular-nums">
+                            {{ formatCurrency(receipt.amount) }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500">Multa por atraso</dt>
+                        <dd class="font-medium tabular-nums">
+                            {{ formatCurrency(receipt.late_fee_amount) }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500">Juros</dt>
+                        <dd class="font-medium tabular-nums">
+                            {{ formatCurrency(receipt.interest_amount) }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500">Total recebido</dt>
+                        <dd class="font-semibold tabular-nums">
+                            {{ formatCurrency(totalAmount) }}
+                        </dd>
+                    </div>
+                </template>
                 <div v-if="isPartial" class="col-span-2 sm:col-span-4">
                     <dt class="text-zinc-500">Valor total do aluguel</dt>
                     <dd class="font-medium tabular-nums">

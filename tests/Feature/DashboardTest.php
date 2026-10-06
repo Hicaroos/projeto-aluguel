@@ -44,7 +44,7 @@ test('the dashboard summarizes the account figures', function () {
     $october = Payment::factory()->for($lease)->create(['reference_month' => '2026-10-01', 'due_date' => '2026-10-10']);
     Receipt::factory()->for($september)->create(['amount' => 1000]);
     $september->refreshStatus();
-    Receipt::factory()->for($october)->create(['amount' => 300]);
+    Receipt::factory()->for($october)->create(['amount' => 300, 'late_fee_amount' => 30, 'interest_amount' => 2.5]);
     $october->refreshStatus();
 
     Payment::factory()->create(['due_date' => '2026-10-05']);
@@ -62,7 +62,8 @@ test('the dashboard summarizes the account figures', function () {
             ->where('stats.overdueCount', 1)
             ->where('stats.expensesPaid', 200)
             ->where('stats.expensesPending', 50)
-            ->where('stats.netIncome', 100)
+            ->where('stats.charges', 32.5)
+            ->where('stats.netIncome', 132.5)
             ->where('stats.properties', 3)
             ->where('stats.rentedProperties', 1)
             ->where('stats.activeLeases', 1)

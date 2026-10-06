@@ -63,7 +63,9 @@ import {
     isPaymentOpen,
     paymentDisplayStatus,
     paymentDueHint,
+    lateChargesTodayTotal as lateChargesTotal,
     paymentReceivedAmount,
+    paymentRemainingAmount,
     paymentStatusBadgeClasses,
     paymentStatusDotClasses,
     paymentStatusLabels,
@@ -155,6 +157,10 @@ const summaryCards = computed(() => [
     {
         label: 'Recebido',
         value: props.summary.received,
+        hint:
+            props.summary.charges > 0
+                ? `+ ${formatCurrency(props.summary.charges)} de multa e juros`
+                : null,
         icon: CircleCheck,
         class: 'bg-primary/10 text-primary',
     },
@@ -274,6 +280,12 @@ function openRegisterDialog(paymentId: number) {
                     </p>
                     <p class="truncate text-lg font-semibold tabular-nums">
                         {{ formatCurrency(card.value) }}
+                    </p>
+                    <p
+                        v-if="card.hint"
+                        class="truncate text-xs text-muted-foreground tabular-nums"
+                    >
+                        {{ card.hint }}
                     </p>
                 </div>
             </div>
@@ -449,6 +461,22 @@ function openRegisterDialog(paymentId: number) {
                                         paymentReceivedAmount(payment),
                                     )
                                 }}
+                            </p>
+                            <p
+                                v-if="
+                                    isPaymentOpen(payment) &&
+                                    lateChargesTotal(payment) > 0
+                                "
+                                class="text-sm text-amber-700 tabular-nums dark:text-amber-400"
+                                :title="`Saldo em aberto com multa e juros de ${payment.late_charges_today?.days_late} dias de atraso, se pago hoje`"
+                            >
+                                {{
+                                    formatCurrency(
+                                        paymentRemainingAmount(payment) +
+                                            lateChargesTotal(payment),
+                                    )
+                                }}
+                                com encargos
                             </p>
                         </TableCell>
                         <TableCell class="hidden px-4 py-3 sm:table-cell">
