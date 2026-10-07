@@ -521,7 +521,7 @@ const paymentToRegister = computed(
                         class="flex items-center gap-3 px-5 py-3"
                     >
                         <div
-                            class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
+                            class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-attention text-attention-foreground"
                         >
                             <FileText class="size-4" />
                         </div>

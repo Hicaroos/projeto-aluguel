@@ -185,12 +185,12 @@ watch(lateCharges, () => {
 
                 <div
                     v-if="isLate"
-                    class="grid gap-4 rounded-lg border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900 dark:bg-amber-950/30"
+                    class="grid gap-4 rounded-lg border border-attention-border bg-attention p-4"
                 >
                     <div class="flex items-start justify-between gap-3">
                         <div class="space-y-0.5">
                             <p
-                                class="text-sm font-medium text-amber-800 dark:text-amber-300"
+                                class="text-sm font-medium text-attention-foreground"
                             >
                                 Encargos por atraso —
                                 {{ lateCharges?.days_late }}

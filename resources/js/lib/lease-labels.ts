@@ -17,8 +17,7 @@ export const adjustmentStatusBadgeClasses: Record<
     LeaseAdjustmentStatus,
     string
 > = {
-    available:
-        'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300',
+    available: 'border-attention-border bg-attention text-attention-foreground',
     overdue:
         'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-300',
 };
@@ -129,7 +128,7 @@ export function leaseDeadlineHint(
     if (days <= 60) {
         return {
             label: days === 0 ? 'Termina hoje' : `Termina em ${days} dias`,
-            class: 'text-amber-600 dark:text-amber-400',
+            class: 'text-attention-foreground',
         };
     }
 

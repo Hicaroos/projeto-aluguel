@@ -107,16 +107,26 @@ const formatPercent = (value: string): string =>
                         {{ lease.property.number }} ·
                         {{ lease.property.city }}/{{ lease.property.state }}
                     </DialogDescription>
-                    <Badge
-                        variant="outline"
-                        :class="leaseStatusBadgeClasses[lease.status]"
-                    >
-                        <span
-                            class="size-1.5 rounded-full"
-                            :class="leaseStatusDotClasses[lease.status]"
-                        />
-                        {{ leaseStatusLabels[lease.status] }}
-                    </Badge>
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <Badge
+                            variant="outline"
+                            :class="leaseStatusBadgeClasses[lease.status]"
+                        >
+                            <span
+                                class="size-1.5 rounded-full"
+                                :class="leaseStatusDotClasses[lease.status]"
+                            />
+                            {{ leaseStatusLabels[lease.status] }}
+                        </Badge>
+                        <Badge
+                            v-if="canSettleDeposit(lease)"
+                            variant="outline"
+                            class="border-attention-border bg-attention text-attention-foreground"
+                        >
+                            <PiggyBank class="size-3" />
+                            Caução em aberto
+                        </Badge>
+                    </div>
                 </div>
             </DialogHeader>
 
@@ -237,9 +247,9 @@ const formatPercent = (value: string): string =>
                 </div>
                 <div
                     v-else-if="canSettleDeposit(lease)"
-                    class="flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50/60 p-3 text-sm sm:flex-row sm:items-center dark:border-amber-900 dark:bg-amber-950/30"
+                    class="flex flex-col gap-3 rounded-lg border border-attention-border bg-attention p-3 text-sm sm:flex-row sm:items-center"
                 >
-                    <p class="flex-1 text-amber-800 dark:text-amber-300">
+                    <p class="flex-1 text-attention-foreground">
                         A caução ainda não foi acertada: abata as pendências e
                         registre a devolução ao inquilino.
                     </p>

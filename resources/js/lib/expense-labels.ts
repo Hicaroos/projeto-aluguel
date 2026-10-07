@@ -71,7 +71,7 @@ export function expenseDueHint(
                 days === 0
                     ? 'Vence hoje'
                     : `Vence em ${days} ${days === 1 ? 'dia' : 'dias'}`,
-            class: 'text-amber-600 dark:text-amber-400',
+            class: 'text-attention-foreground',
         };
     }
 

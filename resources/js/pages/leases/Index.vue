@@ -7,6 +7,7 @@ import {
     FileText,
     MoreHorizontal,
     Pencil,
+    PiggyBank,
     Plus,
     SearchX,
     Trash2,
@@ -377,6 +378,14 @@ function confirmDelete() {
                                 >
                                     <TrendingUp class="size-3" />
                                     Reajuste
+                                </Badge>
+                                <Badge
+                                    v-if="canSettleDeposit(lease)"
+                                    variant="outline"
+                                    class="border-attention-border bg-attention text-attention-foreground"
+                                >
+                                    <PiggyBank class="size-3" />
+                                    Caução em aberto
                                 </Badge>
                             </div>
                         </TableCell>

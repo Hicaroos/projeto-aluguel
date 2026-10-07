@@ -27,7 +27,7 @@ export const propertyStatusBadgeClasses: Record<PropertyStatus, string> = {
     available: 'border-primary/25 bg-primary/10 text-primary',
     rented: 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/60 dark:text-sky-300',
     maintenance:
-        'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300',
+        'border-attention-border bg-attention text-attention-foreground',
     inactive:
         'border-zinc-200 bg-zinc-100 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400',
 };
@@ -35,6 +35,6 @@ export const propertyStatusBadgeClasses: Record<PropertyStatus, string> = {
 export const propertyStatusDotClasses: Record<PropertyStatus, string> = {
     available: 'bg-primary',
     rented: 'bg-sky-500',
-    maintenance: 'bg-amber-500',
+    maintenance: 'bg-attention-strong',
     inactive: 'bg-zinc-400',
 };

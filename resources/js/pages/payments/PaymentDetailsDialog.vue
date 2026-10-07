@@ -156,7 +156,7 @@ function confirmDelete() {
 
             <p
                 v-if="isPaymentOpen(payment) && lateChargesTotal(payment) > 0"
-                class="-mt-2 rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300"
+                class="-mt-2 rounded-lg border border-attention-border bg-attention px-3 py-2 text-sm text-attention-foreground"
             >
                 Pago hoje:
                 <span class="font-semibold tabular-nums">{{
@@ -225,7 +225,7 @@ function confirmDelete() {
                                     receiptTotalAmount(receipt) >
                                     Number(receipt.amount)
                                 "
-                                class="text-xs text-amber-700 tabular-nums dark:text-amber-400"
+                                class="text-xs text-attention-foreground tabular-nums"
                             >
                                 {{ formatCurrency(receipt.amount) }} de aluguel
                                 + {{ formatCurrency(receipt.late_fee_amount) }}

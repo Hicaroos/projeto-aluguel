@@ -206,7 +206,7 @@ watch(propertyId, (selectedId) => {
                     <InputError :message="errors.amount" />
                     <p
                         v-if="isChangingActiveRent"
-                        class="text-xs text-amber-700 dark:text-amber-400"
+                        class="text-xs text-attention-foreground"
                     >
                         Para reajustar o aluguel, use "Aplicar reajuste" nos
                         detalhes do contrato: assim fica registrado no

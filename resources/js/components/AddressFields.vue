@@ -93,7 +93,7 @@ watch(zipCode, async (value) => {
             </div>
             <p
                 v-if="zipCodeLookupError"
-                class="text-sm text-amber-600 dark:text-amber-400"
+                class="text-sm text-attention-foreground"
             >
                 {{ zipCodeLookupError }}
             </p>

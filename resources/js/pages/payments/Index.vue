@@ -467,7 +467,7 @@ function openRegisterDialog(paymentId: number) {
                                     isPaymentOpen(payment) &&
                                     lateChargesTotal(payment) > 0
                                 "
-                                class="text-sm text-amber-700 tabular-nums dark:text-amber-400"
+                                class="text-sm text-attention-foreground tabular-nums"
                                 :title="`Saldo em aberto com multa e juros de ${payment.late_charges_today?.days_late} dias de atraso, se pago hoje`"
                             >
                                 {{

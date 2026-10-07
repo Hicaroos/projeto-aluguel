@@ -41,6 +41,11 @@
     --color-destructive: var(--destructive);
     --color-destructive-foreground: var(--destructive-foreground);
 
+    --color-attention: var(--attention);
+    --color-attention-foreground: var(--attention-foreground);
+    --color-attention-border: var(--attention-border);
+    --color-attention-strong: var(--attention-strong);
+
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);
@@ -106,6 +111,10 @@
     --accent-foreground: hsl(222 47% 11%);
     --destructive: hsl(0 72% 51%);
     --destructive-foreground: hsl(0 0% 98%);
+    --attention: var(--color-amber-50);
+    --attention-foreground: var(--color-amber-700);
+    --attention-border: var(--color-amber-200);
+    --attention-strong: var(--color-amber-500);
     --border: hsl(220 13% 90%);
     --input: hsl(220 13% 87%);
     --ring: hsl(168 76% 27%);
@@ -143,6 +152,10 @@
     --accent-foreground: hsl(210 20% 96%);
     --destructive: hsl(0 72% 58%);
     --destructive-foreground: hsl(0 0% 98%);
+    --attention: color-mix(in oklab, var(--color-yellow-950) 40%, transparent);
+    --attention-foreground: var(--color-amber-300);
+    --attention-border: var(--color-amber-900);
+    --attention-strong: var(--color-amber-500);
     --border: hsl(222 14% 18%);
     --input: hsl(222 14% 20%);
     --ring: hsl(166 60% 48%);
