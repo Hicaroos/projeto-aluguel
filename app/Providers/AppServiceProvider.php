@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,25 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureFakeToday();
+    }
+
+    /**
+     * Make the application run on the date set in APP_FAKE_TODAY, keeping the current time of day,
+     * to try out how it behaves on other dates. Never in production nor in the test suite.
+     */
+    protected function configureFakeToday(): void
+    {
+        $fakeToday = config('app.fake_today');
+
+        if (! is_string($fakeToday) || $fakeToday === '' || app()->isProduction() || app()->runningUnitTests()) {
+            return;
+        }
+
+        $now = CarbonImmutable::parse($fakeToday)->setTimeFrom(CarbonImmutable::now());
+
+        CarbonImmutable::setTestNow($now);
+        Carbon::setTestNow($now);
     }
 
     /**

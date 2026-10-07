@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -42,6 +43,8 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user()?->load('account'),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'today' => today()->toDateString(),
+            'isSimulatedToday' => CarbonImmutable::hasTestNow() && ! app()->runningUnitTests(),
         ];
     }
 }

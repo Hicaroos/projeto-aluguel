@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ChevronLeft, ChevronRight } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
-import { formatMonthYear } from '@/lib/formatters';
+import { currentDate, formatMonthYear } from '@/lib/formatters';
 
 const props = defineProps<{
     /** The selected month, as YYYY-MM. */
@@ -16,7 +16,7 @@ function toMonthString(date: Date): string {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
-const currentMonth = toMonthString(new Date());
+const currentMonth = toMonthString(currentDate());
 
 function shift(months: number) {
     const [year, month] = props.month.split('-').map(Number);

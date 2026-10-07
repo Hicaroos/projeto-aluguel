@@ -67,9 +67,25 @@ export function formatDate(value: string): string {
     return new Intl.DateTimeFormat('pt-BR').format(parseDate(value));
 }
 
-export function daysUntil(value: string): number {
-    const today = new Date();
+/** The app's "today" sent by the server, which may be a simulated date (APP_FAKE_TODAY). */
+let serverToday: string | null = null;
+
+export function setServerToday(value: string | null | undefined): void {
+    serverToday = value ?? null;
+}
+
+/**
+ * Get today at midnight, following the server's date so a simulated date also applies in the browser.
+ */
+export function currentDate(): Date {
+    const today = serverToday ? parseDate(serverToday) : new Date();
     today.setHours(0, 0, 0, 0);
+
+    return today;
+}
+
+export function daysUntil(value: string): number {
+    const today = currentDate();
 
     return Math.round(
         (parseDate(value).getTime() - today.getTime()) / 86_400_000,
@@ -88,7 +104,7 @@ export function monthsBetween(start: string, end: string): number {
 }
 
 export function todayIsoDate(): string {
-    const today = new Date();
+    const today = currentDate();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
 

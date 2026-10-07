@@ -2,6 +2,7 @@
 import AppContent from '@/components/AppContent.vue';
 import AppHeader from '@/components/AppHeader.vue';
 import AppShell from '@/components/AppShell.vue';
+import SimulatedDateBanner from '@/components/SimulatedDateBanner.vue';
 import { Toaster } from '@/components/ui/sonner';
 import type { BreadcrumbItem } from '@/types';
 
@@ -16,6 +17,7 @@ withDefaults(defineProps<Props>(), {
 
 <template>
     <AppShell variant="header">
+        <SimulatedDateBanner />
         <AppHeader :breadcrumbs="breadcrumbs" />
         <AppContent variant="header">
             <slot />

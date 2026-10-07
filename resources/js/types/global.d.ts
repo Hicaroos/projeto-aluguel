@@ -19,6 +19,9 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             sidebarOpen: boolean;
+            /** Today's date for the app (Y-m-d), which may be simulated through APP_FAKE_TODAY. */
+            today: string;
+            isSimulatedToday: boolean;
             [key: string]: unknown;
         };
     }

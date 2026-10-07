@@ -69,6 +69,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Simulated Date
+    |--------------------------------------------------------------------------
+    |
+    | Outside production, set APP_FAKE_TODAY (e.g. 2026-12-15) to make the
+    | whole application behave as if that were today: due dates, overdue
+    | payments, payment generation and the dates shown in the browser.
+    |
+    */
+
+    'fake_today' => env('APP_FAKE_TODAY'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |
