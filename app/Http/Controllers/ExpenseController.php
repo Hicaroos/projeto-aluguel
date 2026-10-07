@@ -2,16 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\Expenses\CreateExpense;
 use App\Actions\Expenses\SummarizeExpenses;
 use App\Enums\ExpenseStatus;
 use App\Enums\ExpenseType;
-use App\Enums\LeaseStatus;
 use App\Http\Controllers\Concerns\ResolvesMonthFilter;
+use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
 use App\Http\Controllers\Concerns\SortsTable;
 use App\Http\Requests\ExpenseRequest;
 use App\Models\Expense;
-use App\Models\Lease;
 use App\Models\Property;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Expression;
@@ -24,7 +22,7 @@ use SortDirection;
 
 class ExpenseController extends Controller
 {
-    use ResolvesMonthFilter, SortsTable;
+    use ResolvesMonthFilter, ResolvesSelectedRecord, SortsTable;
 
     /**
      * Display the authenticated account's expenses due in a month.
@@ -38,9 +36,10 @@ class ExpenseController extends Controller
         $type = $request->enum('type', ExpenseType::class);
 
         $monthExpenses = fn (): Builder => Expense::where('account_id', $accountId)->dueInMonth($month);
+        $withDetails = ['property:id,type,street,number,complement,neighborhood,city,state,deleted_at'];
 
         $list = $monthExpenses()
-            ->with('property:id,type,street,number,complement,neighborhood,city,state,deleted_at')
+            ->with($withDetails)
             ->filterByStatus($status)
             ->when($type !== null, fn (Builder $query) => $query->where('type', $type))
             ->search($search);
@@ -62,7 +61,11 @@ class ExpenseController extends Controller
         return Inertia::render('expenses/Index', [
             'expenses' => $list
                 ->paginate(15)
-                ->withQueryString(),
+                ->appends($this->queryWithoutSelection($request)),
+            'selected' => $this->resolveSelectedRecord(
+                $request,
+                Expense::where('account_id', $accountId)->with($withDetails),
+            ),
             'summary' => $summarizeExpenses->handle($monthExpenses()),
             'filters' => [
                 'month' => $month->format('Y-m'),
@@ -74,33 +77,20 @@ class ExpenseController extends Controller
             'properties' => Property::where('account_id', $accountId)
                 ->orderBy('street')
                 ->get(['id', 'street', 'number', 'complement', 'neighborhood', 'city', 'state']),
-            'leaseOptions' => Lease::where('account_id', $accountId)
-                ->with('tenant:id,name,deleted_at')
-                ->orderByRaw('status = ? desc', [LeaseStatus::Active->value])
-                ->latest('start_date')
-                ->get(['id', 'tenant_id', 'property_id', 'status', 'start_date', 'end_date']),
         ]);
     }
 
     /**
-     * Store a newly created expense, optionally charging it to a tenant.
+     * Store a newly created expense.
      */
-    public function store(ExpenseRequest $request, CreateExpense $createExpense): RedirectResponse
+    public function store(ExpenseRequest $request): RedirectResponse
     {
-        $chargeLeaseId = $request->chargeLeaseId();
-
-        $createExpense->handle(
-            $request->user()->account_id,
-            $request->expenseAttributes(),
-            $chargeLeaseId !== null ? Lease::findOrFail($chargeLeaseId) : null,
-        );
-
-        Inertia::flash('toast', [
-            'type' => 'success',
-            'message' => $chargeLeaseId !== null
-                ? __('Despesa cadastrada e cobrança gerada para o inquilino.')
-                : __('Despesa cadastrada com sucesso.'),
+        Expense::create([
+            ...$request->expenseAttributes(),
+            'account_id' => $request->user()->account_id,
         ]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Despesa cadastrada com sucesso.')]);
 
         return back();
     }

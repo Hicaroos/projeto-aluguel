@@ -4,7 +4,6 @@ use App\Actions\Payments\CreateExtraCharge;
 use App\Enums\LeaseStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Account;
-use App\Models\Expense;
 use App\Models\Lease;
 use App\Models\Payment;
 use App\Models\Receipt;
@@ -273,17 +272,15 @@ test('the receipt of an extra charge carries its description', function () {
         );
 });
 
-test('an extra charge without receipts can be deleted, unlinking its expense', function () {
+test('an extra charge without receipts can be deleted', function () {
     ['user' => $user, 'lease' => $lease] = paymentScenario();
     $charge = app(CreateExtraCharge::class)->handle($lease, ['description' => 'Reparo da pintura', 'amount' => 800, 'due_date' => '2026-10-20']);
-    $expense = Expense::factory()->for($lease->account, 'account')->for($lease->property)->create(['payment_id' => $charge->id]);
 
     $this->actingAs($user)
         ->delete(route('payments.destroy', $charge))
         ->assertSessionHasNoErrors();
 
-    expect(Payment::find($charge->id))->toBeNull()
-        ->and($expense->fresh()->payment_id)->toBeNull();
+    expect(Payment::find($charge->id))->toBeNull();
 });
 
 test('rent payments and extra charges with receipts cannot be deleted', function () {

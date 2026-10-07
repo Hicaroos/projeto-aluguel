@@ -2,10 +2,8 @@
 
 use App\Enums\ExpenseStatus;
 use App\Enums\ExpenseType;
-use App\Enums\PaymentType;
 use App\Models\Account;
 use App\Models\Expense;
-use App\Models\Lease;
 use App\Models\Owner;
 use App\Models\Property;
 use App\Models\User;
@@ -162,47 +160,21 @@ test('a user cannot manage expenses from another account', function () {
     expect($otherExpense->fresh()->isPending())->toBeTrue();
 });
 
-test('an expense can be charged to the tenant of a lease of the same property', function () {
+test('index can preselect an expense of the account from any month', function () {
     ['account' => $account, 'user' => $user, 'property' => $property] = expenseScenario();
-    $lease = Lease::factory()->ended()->for($account, 'account')->for($property)->create();
+    $expense = Expense::factory()->for($account, 'account')->for($property)->create(['due_date' => '2026-08-20']);
+    $otherExpense = Expense::factory()->create();
 
     $this->actingAs($user)
-        ->post(route('expenses.store'), validExpensePayload($property, [
-            'type' => 'maintenance',
-            'description' => 'Reparo da pintura',
-            'amount' => '800.00',
-            'charge_tenant' => '1',
-            'charge_lease_id' => $lease->id,
-        ]))
-        ->assertSessionHasNoErrors();
-
-    $expense = Expense::first();
-    $charge = $expense->payment;
-
-    expect($charge)->not->toBeNull()
-        ->and($charge->lease_id)->toBe($lease->id)
-        ->and($charge->type)->toBe(PaymentType::Extra)
-        ->and($charge->description)->toBe('Reparo da pintura')
-        ->and($charge->amount)->toBe('800.00');
-});
-
-test('an expense can only be charged to a lease of its own property', function () {
-    ['account' => $account, 'user' => $user, 'property' => $property] = expenseScenario();
-    $otherPropertyLease = Lease::factory()->for($account, 'account')->create();
+        ->get(route('expenses.index', ['show' => $expense->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('selected.id', $expense->id)
+            ->where('selected.property.id', $property->id)
+        );
 
     $this->actingAs($user)
-        ->post(route('expenses.store'), validExpensePayload($property, [
-            'charge_tenant' => '1',
-            'charge_lease_id' => $otherPropertyLease->id,
-        ]))
-        ->assertSessionHasErrors('charge_lease_id');
-
-    $this->actingAs($user)
-        ->post(route('expenses.store'), validExpensePayload($property, ['charge_tenant' => '0', 'charge_lease_id' => 999]))
-        ->assertSessionHasNoErrors();
-
-    expect(Expense::count())->toBe(1)
-        ->and(Expense::first()->payment_id)->toBeNull();
+        ->get(route('expenses.index', ['show' => $otherExpense->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('selected', null));
 });
 
 test('index sorts expenses by property by default and filters by type', function () {

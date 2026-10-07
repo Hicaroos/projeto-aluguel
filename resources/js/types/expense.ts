@@ -1,7 +1,5 @@
-import type { LeaseStatus } from './lease';
 import type { Paginator } from './pagination';
 import type { Property } from './property';
-import type { Tenant } from './tenant';
 
 export type ExpenseType =
     'property_tax' | 'condo_fee' | 'maintenance' | 'other';
@@ -25,8 +23,6 @@ export type Expense = {
     id: number;
     account_id: number;
     property_id: number;
-    /** Extra charge billing this expense to a tenant. */
-    payment_id: number | null;
     type: ExpenseType;
     description: string | null;
     amount: string;
@@ -46,13 +42,4 @@ export type ExpenseSummary = {
     pending: number;
     overdue: number;
     overdue_count: number;
-};
-
-export type ExpenseLeaseOption = {
-    id: number;
-    property_id: number;
-    status: LeaseStatus;
-    start_date: string;
-    end_date: string;
-    tenant: Pick<Tenant, 'id' | 'name'>;
 };

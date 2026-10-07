@@ -4,6 +4,7 @@ import {
     CircleCheck,
     Clock,
     Coins,
+    Eye,
     MoreHorizontal,
     Pencil,
     Plus,
@@ -52,6 +53,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useOpenSelectedRecord } from '@/composables/useOpenSelectedRecord';
 import { formatCurrency } from '@/lib/currency';
 import {
     expenseDisplayStatus,
@@ -65,6 +67,7 @@ import {
 import { formatDate } from '@/lib/formatters';
 import { nextSort } from '@/lib/table-sort';
 import type { TableSort } from '@/lib/table-sort';
+import ExpenseDetailsDialog from '@/pages/expenses/ExpenseDetailsDialog.vue';
 import ExpenseForm from '@/pages/expenses/ExpenseForm.vue';
 import PayExpenseDialog from '@/pages/expenses/PayExpenseDialog.vue';
 import { destroy, index } from '@/routes/expenses';
@@ -72,7 +75,6 @@ import type {
     Expense,
     ExpenseDisplayStatus,
     ExpensePaginator,
-    ExpenseLeaseOption,
     ExpensePropertyOption,
     ExpenseSummary,
     ExpenseType,
@@ -87,8 +89,8 @@ const props = defineProps<{
         status: ExpenseDisplayStatus | null;
         type: ExpenseType | null;
     };
+    selected: Expense | null;
     properties: ExpensePropertyOption[];
-    leaseOptions: ExpenseLeaseOption[];
 }>();
 
 defineOptions({
@@ -175,6 +177,21 @@ function openCreateDialog() {
 function openEditDialog(expense: Expense) {
     formDialogExpense.value = expense;
     isFormDialogOpen.value = true;
+}
+
+const expenseToShow = ref<Expense | null>(null);
+
+useOpenSelectedRecord(
+    () => props.selected,
+    (expense) => (expenseToShow.value = expense),
+);
+
+/**
+ * Close the details before opening another dialog from it, so they don't stack.
+ */
+function fromDetails(open: (expense: Expense) => void, expense: Expense) {
+    expenseToShow.value = null;
+    open(expense);
 }
 
 const expenseToPay = ref<Expense | null>(null);
@@ -345,6 +362,8 @@ function confirmDelete() {
                     <TableRow
                         v-for="expense in expenses.data"
                         :key="expense.id"
+                        class="cursor-pointer"
+                        @click="expenseToShow = expense"
                     >
                         <TableCell class="px-4 py-3">
                             <div class="flex items-center gap-3">
@@ -357,17 +376,8 @@ function confirmDelete() {
                                     />
                                 </div>
                                 <div class="min-w-0">
-                                    <p
-                                        class="flex items-center gap-2 truncate font-medium"
-                                    >
+                                    <p class="truncate font-medium">
                                         {{ expenseTypeLabels[expense.type] }}
-                                        <Badge
-                                            v-if="expense.payment_id"
-                                            variant="outline"
-                                            class="border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/60 dark:text-violet-300"
-                                        >
-                                            Cobrada do inquilino
-                                        </Badge>
                                     </p>
                                     <p
                                         class="truncate text-sm text-muted-foreground"
@@ -436,7 +446,7 @@ function confirmDelete() {
                                 }}
                             </Badge>
                         </TableCell>
-                        <TableCell class="px-4 py-3">
+                        <TableCell class="px-4 py-3" @click.stop>
                             <div class="flex items-center justify-end gap-1">
                                 <Button
                                     v-if="expense.status === 'pending'"
@@ -459,6 +469,12 @@ function confirmDelete() {
                                         align="end"
                                         class="w-48"
                                     >
+                                        <DropdownMenuItem
+                                            @click="expenseToShow = expense"
+                                        >
+                                            <Eye class="size-4" />
+                                            Ver detalhes
+                                        </DropdownMenuItem>
                                         <DropdownMenuItem
                                             v-if="expense.status === 'pending'"
                                             @click="expenseToPay = expense"
@@ -528,11 +544,18 @@ function confirmDelete() {
                 :key="formDialogExpense?.id ?? 'create'"
                 :expense="formDialogExpense"
                 :properties="properties"
-                :leases="leaseOptions"
                 @success="isFormDialogOpen = false"
             />
         </DialogScrollContent>
     </Dialog>
+
+    <ExpenseDetailsDialog
+        :expense="expenseToShow"
+        @close="expenseToShow = null"
+        @edit="fromDetails(openEditDialog, $event)"
+        @pay="fromDetails((expense) => (expenseToPay = expense), $event)"
+        @delete="fromDetails((expense) => (expenseToDelete = expense), $event)"
+    />
 
     <PayExpenseDialog :expense="expenseToPay" @close="expenseToPay = null" />
 
