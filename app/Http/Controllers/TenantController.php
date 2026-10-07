@@ -81,7 +81,7 @@ class TenantController extends Controller
     }
 
     /**
-     * Remove the given tenant, unless they have an active lease.
+     * Remove the given tenant, unless they have an active lease or still owe payments.
      */
     public function destroy(Tenant $tenant): RedirectResponse
     {
@@ -89,6 +89,12 @@ class TenantController extends Controller
 
         if ($tenant->hasActiveLease()) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __('Este inquilino possui um contrato ativo e não pode ser removido.')]);
+
+            return back();
+        }
+
+        if ($tenant->hasOpenPayments()) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('Este inquilino possui cobranças em aberto e não pode ser removido.')]);
 
             return back();
         }

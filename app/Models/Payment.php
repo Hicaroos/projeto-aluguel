@@ -86,7 +86,7 @@ class Payment extends Model
      */
     public function scopeOpen(Builder $query): void
     {
-        $query->whereIn('status', [PaymentStatus::Pending, PaymentStatus::Partial]);
+        $query->whereIn($query->qualifyColumn('status'), [PaymentStatus::Pending, PaymentStatus::Partial]);
     }
 
     /**

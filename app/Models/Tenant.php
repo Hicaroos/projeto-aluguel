@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -37,6 +38,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read Account $account
  * @property-read Collection<int, Lease> $leases
+ * @property-read Collection<int, Payment> $payments
  */
 #[Fillable([
     'account_id',
@@ -98,6 +100,22 @@ class Tenant extends Model
     public function hasActiveLease(): bool
     {
         return $this->leases()->active()->exists();
+    }
+
+    /**
+     * Determine whether the tenant still owes any payment (rent or extra charge), on any of their leases.
+     */
+    public function hasOpenPayments(): bool
+    {
+        return $this->payments()->open()->exists();
+    }
+
+    /**
+     * @return HasManyThrough<Payment, Lease, $this>
+     */
+    public function payments(): HasManyThrough
+    {
+        return $this->hasManyThrough(Payment::class, Lease::class);
     }
 
     /**

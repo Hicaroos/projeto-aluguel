@@ -5,10 +5,12 @@ use App\Enums\GuaranteeType;
 use App\Enums\LeasePurpose;
 use App\Enums\LeaseStatus;
 use App\Enums\MaritalStatus;
+use App\Enums\PaymentStatus;
 use App\Enums\PropertyStatus;
 use App\Models\Account;
 use App\Models\Lease;
 use App\Models\Owner;
+use App\Models\Payment;
 use App\Models\Property;
 use App\Models\Tenant;
 use App\Models\User;
@@ -270,6 +272,21 @@ test('tenants and properties with only finished leases can be deleted', function
     expect($tenant->fresh()->trashed())->toBeTrue()
         ->and($property->fresh()->trashed())->toBeTrue();
 });
+
+test('tenants who still owe payments cannot be deleted, even with only finished leases', function (PaymentStatus $status, bool $deletable) {
+    ['account' => $account, 'user' => $user, 'property' => $property, 'tenant' => $tenant] = leaseScenario();
+    $lease = Lease::factory()->ended()->for($account, 'account')->for($property, 'property')->for($tenant, 'tenant')->create();
+    Payment::factory()->for($lease)->for($account, 'account')->create(['status' => $status]);
+
+    $this->actingAs($user)->delete(route('tenants.destroy', $tenant));
+
+    expect($tenant->fresh()->trashed())->toBe($deletable);
+})->with([
+    'pendente' => [PaymentStatus::Pending, false],
+    'parcial' => [PaymentStatus::Partial, false],
+    'paga' => [PaymentStatus::Paid, true],
+    'cancelada' => [PaymentStatus::Canceled, true],
+]);
 
 test('index can preselect a lease of the account', function () {
     ['account' => $account, 'user' => $user, 'property' => $property, 'tenant' => $tenant] = leaseScenario();
