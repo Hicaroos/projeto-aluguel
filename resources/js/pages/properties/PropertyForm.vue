@@ -101,7 +101,7 @@ watch(zipCode, async (value) => {
                 Informações gerais
             </h3>
 
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid items-start gap-4 sm:grid-cols-2">
                 <div class="grid gap-2">
                     <Label for="type">Tipo</Label>
                     <Select

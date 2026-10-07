@@ -145,7 +145,7 @@ watch(lateCharges, () => {
                 :options="{ preserveScroll: true }"
                 @success="emit('close')"
             >
-                <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid items-start gap-4 sm:grid-cols-2">
                     <div class="grid gap-2">
                         <Label for="receipt_amount">{{
                             payment.type === 'rent'
@@ -234,7 +234,7 @@ watch(lateCharges, () => {
                         </Button>
                     </div>
 
-                    <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="grid items-start gap-4 sm:grid-cols-2">
                         <div class="grid gap-2">
                             <Label for="receipt_late_fee">Multa</Label>
                             <div class="relative">

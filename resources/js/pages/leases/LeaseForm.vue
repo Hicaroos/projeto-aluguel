@@ -154,7 +154,7 @@ watch(propertyId, (selectedId) => {
                 Vigência e valores
             </h3>
 
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid items-start gap-4 sm:grid-cols-2">
                 <div class="grid gap-2">
                     <Label for="start_date">Início</Label>
                     <Input
@@ -221,7 +221,7 @@ watch(propertyId, (selectedId) => {
                 Termos do contrato
             </h3>
 
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid items-start gap-4 sm:grid-cols-2">
                 <div class="grid gap-2">
                     <Label for="purpose">Finalidade</Label>
                     <Select v-model="purpose" name="purpose">
@@ -336,7 +336,7 @@ watch(propertyId, (selectedId) => {
                 Garantia
             </h3>
 
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid items-start gap-4 sm:grid-cols-2">
                 <div class="grid gap-2">
                     <Label for="guarantee_type">Tipo de garantia</Label>
                     <Select v-model="guaranteeType" name="guarantee_type">
@@ -419,7 +419,7 @@ watch(propertyId, (selectedId) => {
                     <InputError :message="errors['guarantor.name']" />
                 </div>
 
-                <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid items-start gap-4 sm:grid-cols-2">
                     <div class="grid gap-2">
                         <Label for="guarantor_cpf_cnpj">CPF/CNPJ</Label>
                         <Input
@@ -468,7 +468,7 @@ watch(propertyId, (selectedId) => {
                     :errors="errors"
                 />
 
-                <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid items-start gap-4 sm:grid-cols-2">
                     <div class="grid gap-2">
                         <Label for="guarantor_spouse_name"
                             >Nome do cônjuge</Label
