@@ -31,7 +31,7 @@ class SanitizeContractTemplate
             ->allowElement('ol', ['start'])
             ->allowElement('li')
             ->allowElement('br')
-            ->allowElement('hr')
+            ->allowElement('hr', ['data-page-break'])
             ->allowElement('blockquote')
             ->allowElement('span', ['data-variable'])
             ->withMaxInputLength(self::MAX_LENGTH);

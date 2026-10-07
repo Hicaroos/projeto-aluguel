@@ -19,30 +19,40 @@ class ContractTemplateRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'body' => [
-                'required',
-                'string',
-                'max:'.SanitizeContractTemplate::MAX_LENGTH,
-                function (string $attribute, mixed $value, Closure $fail): void {
-                    if (! is_string($value)) {
+            'body' => self::bodyRules(),
+        ];
+    }
+
+    /**
+     * Get the rules for a template body: known variables only and some text left after sanitizing.
+     *
+     * @return array<int, Closure|string>
+     */
+    public static function bodyRules(): array
+    {
+        return [
+            'required',
+            'string',
+            'max:'.SanitizeContractTemplate::MAX_LENGTH,
+            function (string $attribute, mixed $value, Closure $fail): void {
+                if (! is_string($value)) {
+                    return;
+                }
+
+                preg_match_all('/data-variable="([^"]*)"/', $value, $matches);
+
+                foreach ($matches[1] as $key) {
+                    if (ContractVariable::tryFrom($key) === null) {
+                        $fail(__('O modelo usa uma variável desconhecida: :key.', ['key' => $key]));
+
                         return;
                     }
+                }
 
-                    preg_match_all('/data-variable="([^"]*)"/', $value, $matches);
-
-                    foreach ($matches[1] as $key) {
-                        if (ContractVariable::tryFrom($key) === null) {
-                            $fail(__('O modelo usa uma variável desconhecida: :key.', ['key' => $key]));
-
-                            return;
-                        }
-                    }
-
-                    if (trim(strip_tags((new SanitizeContractTemplate)->handle($value))) === '') {
-                        $fail(__('Escreva o texto do contrato.'));
-                    }
-                },
-            ],
+                if (trim(strip_tags((new SanitizeContractTemplate)->handle($value))) === '') {
+                    $fail(__('Escreva o texto do contrato.'));
+                }
+            },
         ];
     }
 

@@ -96,6 +96,12 @@ test('the guarantee clause follows the guarantee type', function (GuaranteeType 
     'seguro-fiança' => [GuaranteeType::SuretyBond, ['surety_insurer' => 'Seguradora X', 'surety_policy_number' => 'AP-1'], 'seguradora Seguradora X, apólice nº AP-1'],
 ]);
 
+test('without a lease the variables show their labels', function () {
+    $html = app(RenderLeaseContract::class)->render('<p>Locatário: <span data-variable="tenant.name"></span></p>', null);
+
+    expect($html)->toBe('<p>Locatário: [Nome do locatário]</p>');
+});
+
 test('the signatures include the guarantor and spouse only when there is a guarantor', function () {
     ['lease' => $lease] = leaseContractScenario();
 

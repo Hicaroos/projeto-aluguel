@@ -131,6 +131,32 @@ test('the last template cannot be deleted and deleting the default promotes anot
         ->and($other->fresh()->is_default)->toBeTrue();
 });
 
+test('a page break is kept when the template is saved', function () {
+    ['account' => $account, 'user' => $user] = contractTemplateScenario();
+
+    $this->actingAs($user)
+        ->post(route('contract-templates.store'), [
+            'name' => 'Com quebra',
+            'body' => '<p>Página 1</p><hr data-page-break="true"><p>Página 2</p>',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($account->contractTemplates()->sole()->body)->toContain('<hr data-page-break="true" />');
+});
+
+test('an unsaved template can be previewed as PDF, with variable labels when there is no lease', function () {
+    ['user' => $user] = contractTemplateScenario();
+
+    $this->actingAs($user)
+        ->post(route('contract-templates.preview'), ['body' => '<p>Locatário: <span data-variable="tenant.name"></span></p>'])
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf');
+
+    $this->actingAs($user)
+        ->post(route('contract-templates.preview'), ['body' => '<p><span data-variable="tenant.salary"></span></p>'])
+        ->assertSessionHasErrors('body');
+});
+
 test('a user cannot manage templates from another account', function () {
     ['user' => $user] = contractTemplateScenario();
     $otherTemplate = ContractTemplate::factory()->create();

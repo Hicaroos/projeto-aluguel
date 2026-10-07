@@ -23,6 +23,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('leases/{lease}/finish', [LeaseController::class, 'finish'])->name('leases.finish');
     Route::get('leases/{lease}/contract', [LeaseContractController::class, 'show'])->name('leases.contract');
 
+    Route::post('contract-templates/preview', [ContractTemplateController::class, 'preview'])->name('contract-templates.preview');
     Route::resource('contract-templates', ContractTemplateController::class)->except('show');
     Route::patch('contract-templates/{contract_template}/default', [ContractTemplateController::class, 'makeDefault'])->name('contract-templates.default');
 

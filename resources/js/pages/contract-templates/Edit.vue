@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, Braces, Info, Search } from '@lucide/vue';
+import { ArrowLeft, Braces, FileSearch, Info, Search } from '@lucide/vue';
 import { computed, ref, useTemplateRef } from 'vue';
 import ContractTemplateController from '@/actions/App/Http/Controllers/ContractTemplateController';
 import ContractEditor from '@/components/contract-editor/ContractEditor.vue';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { index } from '@/routes/contract-templates';
+import { index, preview } from '@/routes/contract-templates';
 import type { ContractTemplate, ContractVariableOption } from '@/types';
 
 const props = defineProps<{
@@ -61,6 +61,64 @@ const variableGroups = computed(() => {
 
     return [...groups.entries()];
 });
+
+const isPreviewing = ref(false);
+const previewError = ref<string | null>(null);
+
+function xsrfToken(): string {
+    const cookie = document.cookie
+        .split('; ')
+        .find((entry) => entry.startsWith('XSRF-TOKEN='));
+
+    return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
+}
+
+/**
+ * Generate the PDF of what is in the editor, saved or not, and open it in a new tab.
+ * The tab opens right away so the browser does not block it as a pop-up.
+ */
+async function previewPdf() {
+    const previewTab = window.open('', '_blank');
+    isPreviewing.value = true;
+    previewError.value = null;
+
+    try {
+        const response = await fetch(preview().url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json, application/pdf',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-XSRF-TOKEN': xsrfToken(),
+            },
+            body: JSON.stringify({ body: body.value }),
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => null);
+            previewError.value =
+                data?.errors?.body?.[0] ??
+                'Não foi possível gerar a pré-visualização.';
+            previewTab?.close();
+
+            return;
+        }
+
+        const pdfUrl = URL.createObjectURL(await response.blob());
+
+        if (previewTab) {
+            previewTab.location.href = pdfUrl;
+        } else {
+            window.open(pdfUrl, '_blank');
+        }
+    } catch {
+        previewError.value = 'Não foi possível gerar a pré-visualização.';
+        previewTab?.close();
+    } finally {
+        isPreviewing.value = false;
+    }
+}
 </script>
 
 <template>
@@ -89,6 +147,16 @@ const variableGroups = computed(() => {
                     Voltar
                 </Link>
             </Button>
+            <Button
+                type="button"
+                variant="outline"
+                :disabled="isPreviewing"
+                @click="previewPdf"
+            >
+                <Spinner v-if="isPreviewing" />
+                <FileSearch v-else class="size-4" />
+                Pré-visualizar PDF
+            </Button>
             <Button type="submit" :disabled="processing">
                 <Spinner v-if="processing" />
                 {{ template ? 'Salvar alterações' : 'Cadastrar modelo' }}
@@ -114,7 +182,16 @@ const variableGroups = computed(() => {
                     v-model="body"
                     :labels="variableLabels"
                 />
-                <InputError :message="errors.body" />
+                <InputError
+                    :message="errors.body ?? previewError ?? undefined"
+                />
+                <p class="flex gap-2 text-xs text-muted-foreground">
+                    <Info class="mt-0.5 size-3.5 shrink-0" />
+                    O texto tem a mesma largura e fonte do PDF, então as linhas
+                    quebram no mesmo lugar. As marcas nas laterais indicam
+                    aproximadamente o fim de cada página; para o resultado
+                    exato, use "Pré-visualizar PDF".
+                </p>
             </div>
 
             <aside

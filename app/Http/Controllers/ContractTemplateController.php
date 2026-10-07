@@ -3,16 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Actions\ContractTemplates\EnsureDefaultContractTemplate;
+use App\Actions\ContractTemplates\RenderLeaseContract;
 use App\Actions\ContractTemplates\SanitizeContractTemplate;
 use App\Enums\ContractVariable;
+use App\Enums\LeaseStatus;
 use App\Http\Requests\ContractTemplateRequest;
 use App\Models\ContractTemplate;
+use App\Models\Lease;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class ContractTemplateController extends Controller
 {
@@ -89,6 +94,30 @@ class ContractTemplateController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Modelo de contrato atualizado com sucesso.')]);
 
         return to_route('contract-templates.index');
+    }
+
+    /**
+     * Preview a template body as PDF before saving it, filled with the account's most recent lease,
+     * or with the variable labels when there is no lease yet.
+     */
+    public function preview(
+        Request $request,
+        SanitizeContractTemplate $sanitizeContractTemplate,
+        RenderLeaseContract $renderLeaseContract,
+    ): SymfonyResponse {
+        $validated = $request->validate(['body' => ContractTemplateRequest::bodyRules()]);
+
+        $lease = Lease::where('account_id', $request->user()->account_id)
+            ->orderByRaw('status = ? desc', [LeaseStatus::Active->value])
+            ->latest('start_date')
+            ->first();
+
+        return Pdf::loadView('pdf.lease-contract', [
+            'title' => 'Pré-visualização do contrato',
+            'body' => $renderLeaseContract->render($sanitizeContractTemplate->handle($validated['body']), $lease),
+        ])
+            ->setPaper('a4')
+            ->stream('pre-visualizacao-contrato.pdf');
     }
 
     /**

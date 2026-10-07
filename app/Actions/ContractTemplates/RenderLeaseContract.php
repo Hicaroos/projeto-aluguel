@@ -2,6 +2,7 @@
 
 namespace App\Actions\ContractTemplates;
 
+use App\Enums\ContractVariable;
 use App\Models\ContractTemplate;
 use App\Models\Lease;
 use DOMDocument;
@@ -19,11 +20,24 @@ class RenderLeaseContract
      */
     public function handle(ContractTemplate $template, Lease $lease): string
     {
-        $values = $this->resolveContractVariables->handle($lease);
+        return $this->render($template->body, $lease);
+    }
+
+    /**
+     * Fill the variables of a template body. Without a lease, each variable shows its label in brackets,
+     * e.g. "[Nome do locatário]", so a template can be previewed before any lease exists.
+     */
+    public function render(string $body, ?Lease $lease): string
+    {
+        $values = $lease !== null
+            ? $this->resolveContractVariables->handle($lease)
+            : collect(ContractVariable::cases())->mapWithKeys(
+                fn (ContractVariable $variable): array => [$variable->value => "[{$variable->label()}]"],
+            )->all();
 
         $document = new DOMDocument('1.0', 'UTF-8');
         $document->loadHTML(
-            '<?xml encoding="UTF-8"><div id="contract">'.$template->body.'</div>',
+            '<?xml encoding="UTF-8"><div id="contract">'.$body.'</div>',
             LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NOERROR | LIBXML_NOWARNING,
         );
 

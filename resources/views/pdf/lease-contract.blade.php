@@ -72,6 +72,13 @@
             border-top: 1px solid #999;
             margin: 12pt 0;
         }
+
+        hr[data-page-break] {
+            border: 0;
+            margin: 0;
+            height: 0;
+            page-break-after: always;
+        }
     </style>
 </head>
 <body>
