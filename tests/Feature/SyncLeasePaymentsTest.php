@@ -48,12 +48,34 @@ test('it is safe to run many times', function () {
     expect($lease->payments()->count())->toBe(2);
 });
 
-test('the first payment is due on or after the lease start', function () {
-    $lease = Lease::factory()->create(['start_date' => '2026-11-20', 'end_date' => '2027-11-19', 'due_day' => 10]);
+test('the first payment is due on the lease start when the due day comes before it', function () {
+    $lease = Lease::factory()->create(['start_date' => '2026-10-12', 'end_date' => '2027-10-11', 'due_day' => 10]);
 
     app(SyncLeasePayments::class)->handle($lease);
 
-    expect(scheduleOf($lease))->toBe(['2026-11-01' => '2026-12-10']);
+    expect(scheduleOf($lease))->toBe([
+        '2026-10-01' => '2026-10-12',
+        '2026-11-01' => '2026-11-10',
+    ]);
+});
+
+test('changing the due day keeps each payment in its own month', function () {
+    $lease = Lease::factory()->create(['start_date' => '2026-07-15', 'end_date' => '2027-07-14', 'due_day' => 20]);
+    $lease->forceFill(['created_at' => '2026-10-01'])->saveQuietly();
+    app(SyncLeasePayments::class)->handle($lease);
+
+    expect(scheduleOf($lease))->toBe([
+        '2026-10-01' => '2026-10-20',
+        '2026-11-01' => '2026-11-20',
+    ]);
+
+    $lease->update(['due_day' => 5]);
+    app(SyncLeasePayments::class)->handle($lease);
+
+    expect(scheduleOf($lease))->toBe([
+        '2026-10-01' => '2026-10-05',
+        '2026-11-01' => '2026-11-05',
+    ]);
 });
 
 test('the due day is capped to the last day of short months', function () {

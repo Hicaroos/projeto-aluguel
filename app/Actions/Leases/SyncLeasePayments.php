@@ -103,8 +103,9 @@ class SyncLeasePayments
     /**
      * Build the full payment schedule of the lease, keyed by reference month.
      *
-     * Each monthly period starts on the lease start day; its payment is due on the
-     * lease due day, on or after the period start.
+     * Each month's payment is due on the lease due day of that same month, so changing
+     * the due day never moves a payment to another month. The only exception is the
+     * first month: when the due day comes before the lease start, it is due on the start date.
      *
      * @return array<string, string>
      */
@@ -115,24 +116,12 @@ class SyncLeasePayments
         $schedule = [];
 
         for ($month = 0; ($periodStart = $start->addMonthsNoOverflow($month))->lte($end); $month++) {
-            $schedule[$periodStart->startOfMonth()->toDateString()] = $this->dueDateFor($periodStart, $lease->due_day)->toDateString();
+            $dueDate = $this->dayOfMonth($periodStart->startOfMonth(), $lease->due_day);
+
+            $schedule[$periodStart->startOfMonth()->toDateString()] = $dueDate->max($start)->toDateString();
         }
 
         return $schedule;
-    }
-
-    /**
-     * Get the first date on or after the period start that falls on the due day.
-     */
-    private function dueDateFor(CarbonImmutable $periodStart, int $dueDay): CarbonImmutable
-    {
-        $dueDate = $this->dayOfMonth($periodStart->startOfMonth(), $dueDay);
-
-        if ($dueDate->lt($periodStart)) {
-            $dueDate = $this->dayOfMonth($periodStart->startOfMonth()->addMonthNoOverflow(), $dueDay);
-        }
-
-        return $dueDate;
     }
 
     /**
