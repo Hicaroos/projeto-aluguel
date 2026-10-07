@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import {
     FileText,
     HandCoins,
@@ -37,6 +37,7 @@ import {
     paymentStatusLabels,
     receiptTotalAmount,
 } from '@/lib/payment-labels';
+import { index as leasesIndex } from '@/routes/leases';
 import { destroy, show } from '@/routes/receipts';
 import type { Payment, Receipt } from '@/types';
 
@@ -256,6 +257,19 @@ function confirmDelete() {
                         </Button>
                     </li>
                 </ul>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" as-child>
+                    <Link
+                        :href="
+                            leasesIndex({ query: { show: payment.lease_id } })
+                        "
+                    >
+                        <FileText class="size-4" />
+                        Ver contrato
+                    </Link>
+                </Button>
             </div>
 
             <DialogFooter class="border-t pt-6">
