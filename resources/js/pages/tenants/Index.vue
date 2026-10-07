@@ -184,7 +184,7 @@ function confirmDelete() {
                         />
                         <TableHead
                             class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase sm:table-cell"
-                            >Telefone</TableHead
+                            >Celular</TableHead
                         >
                         <SortableTableHead
                             column="created_at"

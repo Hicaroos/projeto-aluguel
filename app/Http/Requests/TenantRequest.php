@@ -25,7 +25,7 @@ class TenantRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'cpf_cnpj' => [
-                'nullable',
+                'required',
                 'string',
                 'max:20',
                 Rule::unique('tenants', 'cpf_cnpj')
@@ -33,8 +33,20 @@ class TenantRequest extends FormRequest
                     ->ignore($tenant?->id),
             ],
             'email' => ['nullable', 'string', 'email', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:20'],
+            'phone' => ['required', 'string', 'max:20'],
             ...$this->qualificationRules(),
+        ];
+    }
+
+    /**
+     * Get custom attributes for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'phone' => __('celular'),
         ];
     }
 

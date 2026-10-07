@@ -93,7 +93,7 @@ const emit = defineEmits<{
                 <li class="flex items-center gap-3 p-3">
                     <Phone class="size-4 shrink-0 text-muted-foreground" />
                     <div class="min-w-0">
-                        <p class="text-xs text-muted-foreground">Telefone</p>
+                        <p class="text-xs text-muted-foreground">Celular</p>
                         <a
                             v-if="tenant.phone"
                             :href="`tel:${tenant.phone}`"

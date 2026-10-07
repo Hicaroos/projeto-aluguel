@@ -51,17 +51,22 @@ test('a tenant can be created for the authenticated account', function () {
     ]);
 });
 
-test('only the name is required to create a tenant', function () {
+test('name, cpf/cnpj and mobile phone are required to create a tenant', function () {
     $account = Account::factory()->create();
     $user = User::factory()->for($account, 'account')->create();
 
     $this->actingAs($user)
-        ->post(route('tenants.store'), ['name' => 'João Souza'])
+        ->post(route('tenants.store'), ['name' => 'João Souza', 'cpf_cnpj' => '98765432100', 'phone' => '11988887777'])
         ->assertSessionHasNoErrors();
 
     $this->actingAs($user)
-        ->post(route('tenants.store'), validTenantPayload(['name' => '', 'email' => 'invalid']))
-        ->assertSessionHasErrors(['name', 'email']);
+        ->post(route('tenants.store'), validTenantPayload(['name' => '', 'cpf_cnpj' => '', 'phone' => '', 'email' => 'invalid']))
+        ->assertSessionHasErrors([
+            'name',
+            'cpf_cnpj',
+            'phone' => 'O campo celular é obrigatório.',
+            'email',
+        ]);
 });
 
 test('cpf_cnpj must be unique within the same account', function () {

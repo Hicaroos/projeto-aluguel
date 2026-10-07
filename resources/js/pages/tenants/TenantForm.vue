@@ -53,14 +53,9 @@ const formAction = computed(() =>
                 <InputError :message="errors.name" />
             </div>
 
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid items-start gap-4 sm:grid-cols-2">
                 <div class="grid gap-2">
-                    <Label for="cpf_cnpj">
-                        CPF/CNPJ
-                        <span class="font-normal text-muted-foreground"
-                            >(opcional)</span
-                        >
-                    </Label>
+                    <Label for="cpf_cnpj">CPF/CNPJ</Label>
                     <Input
                         id="cpf_cnpj"
                         name="cpf_cnpj"
@@ -71,12 +66,7 @@ const formAction = computed(() =>
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="phone">
-                        Telefone
-                        <span class="font-normal text-muted-foreground"
-                            >(opcional)</span
-                        >
-                    </Label>
+                    <Label for="phone">Celular</Label>
                     <Input
                         id="phone"
                         name="phone"
