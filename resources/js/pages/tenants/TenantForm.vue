@@ -4,6 +4,7 @@ import { computed } from 'vue';
 import TenantController from '@/actions/App/Http/Controllers/TenantController';
 import AddressFields from '@/components/AddressFields.vue';
 import InputError from '@/components/InputError.vue';
+import MaskedInput from '@/components/MaskedInput.vue';
 import PersonQualificationFields from '@/components/PersonQualificationFields.vue';
 import { Button } from '@/components/ui/button';
 import { DialogClose, DialogFooter } from '@/components/ui/dialog';
@@ -56,23 +57,25 @@ const formAction = computed(() =>
             <div class="grid items-start gap-4 sm:grid-cols-2">
                 <div class="grid gap-2">
                     <Label for="cpf_cnpj">CPF/CNPJ</Label>
-                    <Input
+                    <MaskedInput
                         id="cpf_cnpj"
+                        mask="document"
                         name="cpf_cnpj"
                         placeholder="000.000.000-00"
-                        :default-value="tenant?.cpf_cnpj ?? ''"
+                        :default-value="tenant?.cpf_cnpj"
                     />
                     <InputError :message="errors.cpf_cnpj" />
                 </div>
 
                 <div class="grid gap-2">
                     <Label for="phone">Celular</Label>
-                    <Input
+                    <MaskedInput
                         id="phone"
+                        mask="phone"
                         name="phone"
                         type="tel"
                         placeholder="(00) 00000-0000"
-                        :default-value="tenant?.phone ?? ''"
+                        :default-value="tenant?.phone"
                     />
                     <InputError :message="errors.phone" />
                 </div>

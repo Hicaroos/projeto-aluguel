@@ -6,9 +6,11 @@ import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileCo
 import DeleteUser from '@/components/DeleteUser.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
+import MaskedInput from '@/components/MaskedInput.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { formatDocument } from '@/lib/formatters';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
 import type { Account } from '@/types';
@@ -97,11 +99,13 @@ const isSingleOwner = computed(() => props.account?.type === 'single_owner');
 
             <div v-if="owner" class="grid gap-2">
                 <Label for="owner_phone">Telefone</Label>
-                <Input
+                <MaskedInput
                     id="owner_phone"
+                    mask="phone"
                     class="mt-1 block w-full"
                     name="owner_phone"
-                    :default-value="owner.phone ?? ''"
+                    type="tel"
+                    :default-value="owner.phone"
                     placeholder="(00) 00000-0000"
                 />
                 <InputError class="mt-2" :message="errors.owner_phone" />
@@ -112,7 +116,9 @@ const isSingleOwner = computed(() => props.account?.type === 'single_owner');
                 <Input
                     id="owner_cpf_cnpj"
                     class="mt-1 block w-full"
-                    :default-value="owner.cpf_cnpj ?? ''"
+                    :default-value="
+                        owner.cpf_cnpj ? formatDocument(owner.cpf_cnpj) : ''
+                    "
                     disabled
                 />
             </div>

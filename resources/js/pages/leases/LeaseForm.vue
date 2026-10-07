@@ -4,6 +4,7 @@ import { computed, ref, watch } from 'vue';
 import LeaseController from '@/actions/App/Http/Controllers/LeaseController';
 import AddressFields from '@/components/AddressFields.vue';
 import InputError from '@/components/InputError.vue';
+import MaskedInput from '@/components/MaskedInput.vue';
 import PersonQualificationFields from '@/components/PersonQualificationFields.vue';
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import type { SearchableSelectOption } from '@/components/SearchableSelect.vue';
@@ -438,23 +439,25 @@ watch(propertyId, (selectedId) => {
                 <div class="grid items-start gap-4 sm:grid-cols-2">
                     <div class="grid gap-2">
                         <Label for="guarantor_cpf_cnpj">CPF/CNPJ</Label>
-                        <Input
+                        <MaskedInput
                             id="guarantor_cpf_cnpj"
+                            mask="document"
                             name="guarantor[cpf_cnpj]"
                             placeholder="000.000.000-00"
-                            :default-value="lease?.guarantor?.cpf_cnpj ?? ''"
+                            :default-value="lease?.guarantor?.cpf_cnpj"
                         />
                         <InputError :message="errors['guarantor.cpf_cnpj']" />
                     </div>
 
                     <div class="grid gap-2">
                         <Label for="guarantor_phone">Telefone</Label>
-                        <Input
+                        <MaskedInput
                             id="guarantor_phone"
+                            mask="phone"
                             name="guarantor[phone]"
                             type="tel"
                             placeholder="(00) 00000-0000"
-                            :default-value="lease?.guarantor?.phone ?? ''"
+                            :default-value="lease?.guarantor?.phone"
                         />
                         <InputError :message="errors['guarantor.phone']" />
                     </div>
@@ -501,11 +504,12 @@ watch(propertyId, (selectedId) => {
 
                     <div class="grid gap-2">
                         <Label for="guarantor_spouse_cpf">CPF do cônjuge</Label>
-                        <Input
+                        <MaskedInput
                             id="guarantor_spouse_cpf"
+                            mask="cpf"
                             name="guarantor[spouse_cpf]"
                             placeholder="000.000.000-00"
-                            :default-value="lease?.guarantor?.spouse_cpf ?? ''"
+                            :default-value="lease?.guarantor?.spouse_cpf"
                         />
                         <InputError :message="errors['guarantor.spouse_cpf']" />
                     </div>

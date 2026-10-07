@@ -123,6 +123,54 @@ export function formatMonthYear(
     return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 
+/**
+ * Mask a CPF while it is typed: 000.000.000-00.
+ */
+export function maskCpf(value: string): string {
+    const digits = onlyDigits(value).slice(0, 11);
+
+    return digits
+        .replace(/^(\d{3})(\d)/, '$1.$2')
+        .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+        .replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2');
+}
+
+/**
+ * Mask a CPF or CNPJ while it is typed, switching to 00.000.000/0000-00 after 11 digits.
+ */
+export function maskDocument(value: string): string {
+    const digits = onlyDigits(value).slice(0, 14);
+
+    if (digits.length <= 11) {
+        return maskCpf(digits);
+    }
+
+    return digits
+        .replace(/^(\d{2})(\d)/, '$1.$2')
+        .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+        .replace(/\.(\d{3})(\d)/, '.$1/$2')
+        .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+}
+
+/**
+ * Mask a phone with area code while it is typed: (00) 0000-0000, or (00) 00000-0000 for mobiles.
+ */
+export function maskPhone(value: string): string {
+    const digits = onlyDigits(value).slice(0, 11);
+
+    if (digits.length <= 2) {
+        return digits.length ? `(${digits}` : '';
+    }
+
+    const area = digits.slice(0, 2);
+    const number = digits.slice(2);
+    const split = number.length > 8 ? 5 : 4;
+
+    return number.length > split
+        ? `(${area}) ${number.slice(0, split)}-${number.slice(split)}`
+        : `(${area}) ${number}`;
+}
+
 export function maskZipCode(value: string): string {
     const digits = onlyDigits(value).slice(0, 8);
 

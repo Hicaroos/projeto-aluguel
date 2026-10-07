@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Concerns\NormalizesBrazilianNumbers;
 use App\Concerns\PersonQualificationRules;
 use App\Models\Tenant;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -10,7 +11,18 @@ use Illuminate\Validation\Rule;
 
 class TenantRequest extends FormRequest
 {
-    use PersonQualificationRules;
+    use NormalizesBrazilianNumbers, PersonQualificationRules;
+
+    /**
+     * Store the document and phone as digits only, however they were typed.
+     */
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'cpf_cnpj' => $this->digitsOnly($this->input('cpf_cnpj')),
+            'phone' => $this->digitsOnly($this->input('phone')),
+        ]);
+    }
 
     /**
      * Get the validation rules that apply to the request.
@@ -27,13 +39,13 @@ class TenantRequest extends FormRequest
             'cpf_cnpj' => [
                 'required',
                 'string',
-                'max:20',
+                self::DOCUMENT_RULE,
                 Rule::unique('tenants', 'cpf_cnpj')
                     ->where('account_id', $this->user()->account_id)
                     ->ignore($tenant?->id),
             ],
             'email' => ['nullable', 'string', 'email', 'max:255'],
-            'phone' => ['required', 'string', 'max:20'],
+            'phone' => ['required', 'string', self::PHONE_RULE],
             ...$this->qualificationRules(),
         ];
     }
@@ -59,6 +71,7 @@ class TenantRequest extends FormRequest
     {
         return [
             'cpf_cnpj.unique' => __('Já existe um inquilino com este CPF/CNPJ.'),
+            ...$this->brazilianNumberMessages(documents: ['cpf_cnpj'], phones: ['phone']),
         ];
     }
 }

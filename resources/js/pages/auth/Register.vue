@@ -2,6 +2,7 @@
 import { Form, Head } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import MaskedInput from '@/components/MaskedInput.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
@@ -133,14 +134,14 @@ function handleError(errors: Record<string, string>) {
         <div v-if="accountType === 'single_owner'" class="grid gap-6" v-show="step === 2">
             <div class="grid gap-2">
                 <Label for="owner_cpf_cnpj">CPF ou CNPJ</Label>
-                <Input id="owner_cpf_cnpj" type="text" required :tabindex="8" name="owner_cpf_cnpj"
+                <MaskedInput id="owner_cpf_cnpj" mask="document" type="text" required :tabindex="8" name="owner_cpf_cnpj"
                     placeholder="000.000.000-00 ou 00.000.000/0000-00" />
                 <InputError :message="errors.owner_cpf_cnpj" />
             </div>
 
             <div class="grid gap-2">
                 <Label for="owner_phone">Telefone (opcional)</Label>
-                <Input id="owner_phone" type="text" :tabindex="9" name="owner_phone" placeholder="(00) 00000-0000" />
+                <MaskedInput id="owner_phone" mask="phone" type="tel" :tabindex="9" name="owner_phone" placeholder="(00) 00000-0000" />
                 <InputError :message="errors.owner_phone" />
             </div>
 

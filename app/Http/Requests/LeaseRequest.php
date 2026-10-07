@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Concerns\NormalizesBrazilianNumbers;
 use App\Concerns\PersonQualificationRules;
 use App\Enums\AdjustmentIndex;
 use App\Enums\GuaranteeType;
@@ -16,7 +17,27 @@ use Illuminate\Validation\Rule;
 
 class LeaseRequest extends FormRequest
 {
-    use PersonQualificationRules;
+    use NormalizesBrazilianNumbers, PersonQualificationRules;
+
+    /**
+     * Store the guarantor's documents and phone as digits only, however they were typed.
+     */
+    protected function prepareForValidation(): void
+    {
+        $guarantor = $this->input('guarantor');
+
+        if (! is_array($guarantor)) {
+            return;
+        }
+
+        foreach (['cpf_cnpj', 'phone', 'spouse_cpf'] as $field) {
+            if (array_key_exists($field, $guarantor)) {
+                $guarantor[$field] = $this->digitsOnly($guarantor[$field]);
+            }
+        }
+
+        $this->merge(['guarantor' => $guarantor]);
+    }
 
     /**
      * Get the validation rules that apply to the request.
@@ -84,12 +105,12 @@ class LeaseRequest extends FormRequest
         $rules = [
             'guarantor' => ['required', 'array'],
             'guarantor.name' => ['required', 'string', 'max:255'],
-            'guarantor.cpf_cnpj' => ['nullable', 'string', 'max:20'],
+            'guarantor.cpf_cnpj' => ['nullable', 'string', self::DOCUMENT_RULE],
             'guarantor.email' => ['nullable', 'string', 'email', 'max:255'],
-            'guarantor.phone' => ['nullable', 'string', 'max:20'],
+            'guarantor.phone' => ['nullable', 'string', self::PHONE_RULE],
             ...$this->qualificationRules('guarantor.'),
             'guarantor.spouse_name' => ['nullable', 'string', 'max:255'],
-            'guarantor.spouse_cpf' => ['nullable', 'string', 'max:20'],
+            'guarantor.spouse_cpf' => ['nullable', 'string', self::CPF_RULE],
             'guarantor.property_registration' => ['nullable', 'string', 'max:255'],
         ];
 
@@ -130,6 +151,11 @@ class LeaseRequest extends FormRequest
     public function messages(): array
     {
         return [
+            ...$this->brazilianNumberMessages(
+                documents: ['guarantor.cpf_cnpj'],
+                cpfs: ['guarantor.spouse_cpf'],
+                phones: ['guarantor.phone'],
+            ),
             'end_date.after' => __('O término deve ser depois do início do contrato.'),
             'deposit_amount.required' => __('Informe o valor da caução.'),
         ];

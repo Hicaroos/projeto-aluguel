@@ -233,3 +233,39 @@ test('a tenant rejects an invalid marital status and state', function () {
 
     expect(Tenant::count())->toBe(0);
 });
+
+test('a masked cpf/cnpj and phone are stored as digits only', function () {
+    $account = Account::factory()->create();
+    $user = User::factory()->for($account, 'account')->create();
+
+    $this->actingAs($user)
+        ->post(route('tenants.store'), validTenantPayload(['cpf_cnpj' => '123.456.789-00', 'phone' => '(11) 99999-8888']))
+        ->assertSessionHasNoErrors();
+
+    $tenant = Tenant::sole();
+
+    expect($tenant->cpf_cnpj)->toBe('12345678900')
+        ->and($tenant->phone)->toBe('11999998888');
+
+    $this->actingAs($user)
+        ->post(route('tenants.store'), validTenantPayload(['cpf_cnpj' => '12345678900']))
+        ->assertSessionHasErrors(['cpf_cnpj' => 'Já existe um inquilino com este CPF/CNPJ.']);
+});
+
+test('a cpf/cnpj and phone must have a valid number of digits', function () {
+    $account = Account::factory()->create();
+    $user = User::factory()->for($account, 'account')->create();
+
+    $this->actingAs($user)
+        ->post(route('tenants.store'), validTenantPayload(['cpf_cnpj' => '123.456.789', 'phone' => '9999-8888']))
+        ->assertSessionHasErrors([
+            'cpf_cnpj' => 'Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.',
+            'phone' => 'Informe o número com DDD (10 ou 11 dígitos).',
+        ]);
+
+    $this->actingAs($user)
+        ->post(route('tenants.store'), validTenantPayload(['cpf_cnpj' => '11.222.333/0001-81', 'phone' => '(41) 3333-4444']))
+        ->assertSessionHasNoErrors();
+
+    expect(Tenant::sole()->cpf_cnpj)->toBe('11222333000181');
+});

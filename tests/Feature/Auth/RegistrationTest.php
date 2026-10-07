@@ -43,7 +43,7 @@ test('new users can register', function () {
         'account_id' => $user->account_id,
         'name' => 'Test User',
         'email' => 'test@example.com',
-        'cpf_cnpj' => '123.456.789-00',
+        'cpf_cnpj' => '12345678900',
     ]);
 });
 
