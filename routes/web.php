@@ -3,8 +3,10 @@
 use App\Http\Controllers\ContractTemplateController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\LeaseAdjustmentController;
 use App\Http\Controllers\LeaseContractController;
 use App\Http\Controllers\LeaseController;
+use App\Http\Controllers\LeaseDepositController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\ReceiptController;
@@ -22,6 +24,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('leases', LeaseController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::patch('leases/{lease}/finish', [LeaseController::class, 'finish'])->name('leases.finish');
     Route::get('leases/{lease}/contract', [LeaseContractController::class, 'show'])->name('leases.contract');
+    Route::post('leases/{lease}/adjustments', [LeaseAdjustmentController::class, 'store'])->name('leases.adjustments.store');
+    Route::post('leases/{lease}/deposit-settlement', [LeaseDepositController::class, 'store'])->name('leases.deposit-settlement.store');
 
     Route::post('contract-templates/preview', [ContractTemplateController::class, 'preview'])->name('contract-templates.preview');
     Route::resource('contract-templates', ContractTemplateController::class)->except('show');

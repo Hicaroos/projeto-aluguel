@@ -9,6 +9,7 @@ import {
     KeyRound,
     PartyPopper,
     Scale,
+    TrendingUp,
     TriangleAlert,
     Users,
     Wallet,
@@ -18,11 +19,17 @@ import DashboardPanel from '@/components/DashboardPanel.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import RevenueChart from '@/components/RevenueChart.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getInitials } from '@/composables/useInitials';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate, formatMonthYear } from '@/lib/formatters';
-import { leaseDeadlineHint } from '@/lib/lease-labels';
+import {
+    adjustmentIndexLabels,
+    adjustmentStatusBadgeClasses,
+    adjustmentStatusLabels,
+    leaseDeadlineHint,
+} from '@/lib/lease-labels';
 import {
     paymentDueHint,
     paymentReferenceLabel,
@@ -36,6 +43,7 @@ import { index as paymentsIndex } from '@/routes/payments';
 import { index as propertiesIndex } from '@/routes/properties';
 import { index as tenantsIndex } from '@/routes/tenants';
 import type {
+    DashboardAdjustmentLease,
     DashboardEndingLease,
     DashboardStats,
     DashboardVacantProperty,
@@ -50,6 +58,7 @@ const props = defineProps<{
     attentionPayments: Payment[];
     formerTenantDebts: Payment[];
     endingLeases: DashboardEndingLease[];
+    adjustmentLeases: DashboardAdjustmentLease[];
     vacantProperties: DashboardVacantProperty[];
     vacantPropertiesCount: number;
 }>();
@@ -411,6 +420,78 @@ const paymentToRegister = computed(
                 </ul>
             </DashboardPanel>
         </div>
+
+        <DashboardPanel
+            v-if="adjustmentLeases.length > 0"
+            title="Reajustes disponíveis"
+            description="Contratos que completam (ou já completaram) mais um ano e podem ter o aluguel reajustado."
+        >
+            <ul class="divide-y">
+                <li
+                    v-for="lease in adjustmentLeases"
+                    :key="lease.id"
+                    class="flex flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center"
+                >
+                    <div class="flex min-w-0 flex-1 items-center gap-3">
+                        <div
+                            class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                        >
+                            <TrendingUp class="size-4" />
+                        </div>
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-medium">
+                                {{ lease.tenant.name }}
+                            </p>
+                            <p class="truncate text-xs text-muted-foreground">
+                                {{ lease.property.street }},
+                                {{ lease.property.number }} ·
+                                {{ formatCurrency(lease.amount) }} ·
+                                {{
+                                    adjustmentIndexLabels[
+                                        lease.adjustment_index
+                                    ]
+                                }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right">
+                            <p class="text-sm tabular-nums">
+                                {{
+                                    lease.next_adjustment_date
+                                        ? formatDate(lease.next_adjustment_date)
+                                        : '—'
+                                }}
+                            </p>
+                            <Badge
+                                v-if="lease.adjustment_status"
+                                variant="outline"
+                                :class="
+                                    adjustmentStatusBadgeClasses[
+                                        lease.adjustment_status
+                                    ]
+                                "
+                            >
+                                {{
+                                    adjustmentStatusLabels[
+                                        lease.adjustment_status
+                                    ]
+                                }}
+                            </Badge>
+                        </div>
+                        <Button variant="outline" size="sm" as-child>
+                            <Link
+                                :href="
+                                    leasesIndex({ query: { show: lease.id } })
+                                "
+                            >
+                                Ver contrato
+                            </Link>
+                        </Button>
+                    </div>
+                </li>
+            </ul>
+        </DashboardPanel>
 
         <div class="grid gap-6 lg:grid-cols-2">
             <DashboardPanel

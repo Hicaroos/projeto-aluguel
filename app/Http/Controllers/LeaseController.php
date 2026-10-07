@@ -41,7 +41,12 @@ class LeaseController extends Controller
                 'property:id,type,street,number,complement,neighborhood,city,state,rent_amount,status,deleted_at',
                 'tenant:id,name,email,phone,deleted_at',
                 'guarantor',
+                'adjustments',
+                'openPayments' => fn ($query) => $query
+                    ->select(['id', 'lease_id', 'type', 'description', 'reference_month', 'due_date', 'amount', 'status'])
+                    ->withSum('receipts as received_amount', 'amount'),
             ]);
+        $withAdjustmentInfo = fn (?Lease $lease): ?Lease => $lease?->append(['next_adjustment_date', 'adjustment_status']);
 
         $list = $leases()
             ->when($status !== null, fn (Builder $query) => $query->where('status', $status))
@@ -58,10 +63,11 @@ class LeaseController extends Controller
         ], default: 'tenant');
 
         return Inertia::render('leases/Index', [
-            'selected' => $this->resolveSelectedRecord($request, $leases()),
+            'selected' => $withAdjustmentInfo($this->resolveSelectedRecord($request, $leases())),
             'leases' => $list
                 ->paginate(10)
-                ->appends($this->queryWithoutSelection($request)),
+                ->appends($this->queryWithoutSelection($request))
+                ->through($withAdjustmentInfo),
             'filters' => [
                 'search' => $search,
                 'status' => $status?->value,

@@ -28,7 +28,7 @@ import { formatCurrency } from '@/lib/currency';
 import { todayIsoDate } from '@/lib/formatters';
 import {
     calculateLateCharges,
-    paymentMethodLabels,
+    manualPaymentMethodLabels,
     paymentReferenceLabel,
     paymentRemainingAmount,
 } from '@/lib/payment-labels';
@@ -297,7 +297,9 @@ watch(lateCharges, () => {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem
-                                v-for="(label, key) in paymentMethodLabels"
+                                v-for="(
+                                    label, key
+                                ) in manualPaymentMethodLabels"
                                 :key="key"
                                 :value="key"
                             >

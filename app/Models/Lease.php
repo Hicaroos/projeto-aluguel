@@ -6,9 +6,12 @@ use App\Enums\AdjustmentIndex;
 use App\Enums\GuaranteeType;
 use App\Enums\LeasePurpose;
 use App\Enums\LeaseStatus;
+use App\Enums\PaymentStatus;
+use Carbon\CarbonImmutable;
 use Database\Factories\LeaseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -34,6 +37,8 @@ use Illuminate\Support\Carbon;
  * @property int $termination_fee_months
  * @property GuaranteeType $guarantee_type
  * @property string|null $deposit_amount
+ * @property Carbon|null $deposit_settled_on When the deposit was settled, after the lease ended.
+ * @property string|null $deposit_refunded_amount What was left of the deposit and given back to the tenant.
  * @property string|null $surety_insurer
  * @property string|null $surety_policy_number
  * @property LeaseStatus $status
@@ -46,6 +51,11 @@ use Illuminate\Support\Carbon;
  * @property-read Tenant $tenant
  * @property-read Guarantor|null $guarantor
  * @property-read Collection<int, Payment> $payments
+ * @property-read Collection<int, Payment> $openPayments
+ * @property-read Collection<int, LeaseAdjustment> $adjustments
+ * @property-read int|null $adjustments_count
+ * @property-read string|null $next_adjustment_date The next anniversary the rent can be adjusted on, as Y-m-d.
+ * @property-read string|null $adjustment_status 'available' within 30 days of the anniversary, 'overdue' after it.
  */
 #[Fillable([
     'account_id',
@@ -62,6 +72,8 @@ use Illuminate\Support\Carbon;
     'termination_fee_months',
     'guarantee_type',
     'deposit_amount',
+    'deposit_settled_on',
+    'deposit_refunded_amount',
     'surety_insurer',
     'surety_policy_number',
     'status',
@@ -126,6 +138,102 @@ class Lease extends Model
     }
 
     /**
+     * The payments the tenant still owes on this lease, oldest due first.
+     *
+     * @return HasMany<Payment, $this>
+     */
+    public function openPayments(): HasMany
+    {
+        return $this->payments()
+            ->whereIn('status', [PaymentStatus::Pending, PaymentStatus::Partial])
+            ->orderBy('due_date')
+            ->orderBy('id');
+    }
+
+    /**
+     * Determine whether the deposit was already settled.
+     */
+    public function isDepositSettled(): bool
+    {
+        return $this->deposit_settled_on !== null;
+    }
+
+    /**
+     * Determine whether the deposit can be settled: a lease guaranteed by a deposit that has
+     * already finished and whose deposit was not settled yet.
+     */
+    public function canSettleDeposit(): bool
+    {
+        return $this->guarantee_type === GuaranteeType::Deposit
+            && (float) $this->deposit_amount > 0
+            && ! $this->isActive()
+            && ! $this->isDepositSettled();
+    }
+
+    /**
+     * @return HasMany<LeaseAdjustment, $this>
+     */
+    public function adjustments(): HasMany
+    {
+        return $this->hasMany(LeaseAdjustment::class)->orderBy('effective_on');
+    }
+
+    /**
+     * Get the next anniversary on which the rent can be adjusted: one year after the start for every
+     * adjustment already applied. Null when the lease is not active or ends before it.
+     */
+    public function nextAdjustmentAnniversary(): ?CarbonImmutable
+    {
+        if (! $this->isActive()) {
+            return null;
+        }
+
+        $applied = $this->relationLoaded('adjustments')
+            ? $this->adjustments->count()
+            : ($this->adjustments_count ?? $this->adjustments()->count());
+        $anniversary = CarbonImmutable::parse($this->start_date)->addYearsNoOverflow($applied + 1);
+
+        return $anniversary->gt($this->end_date) ? null : $anniversary;
+    }
+
+    /**
+     * Determine whether the next adjustment can be applied: from 30 days before the anniversary on.
+     */
+    public function canBeAdjusted(): bool
+    {
+        return $this->adjustment_status !== null;
+    }
+
+    /**
+     * @return Attribute<string|null, never>
+     */
+    protected function nextAdjustmentDate(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?string => $this->nextAdjustmentAnniversary()?->toDateString(),
+        );
+    }
+
+    /**
+     * @return Attribute<string|null, never>
+     */
+    protected function adjustmentStatus(): Attribute
+    {
+        return Attribute::make(
+            get: function (): ?string {
+                $anniversary = $this->nextAdjustmentAnniversary();
+
+                return match (true) {
+                    $anniversary === null => null,
+                    $anniversary->lt(today()) => 'overdue',
+                    $anniversary->lte(today()->addDays(30)) => 'available',
+                    default => null,
+                };
+            },
+        );
+    }
+
+    /**
      * Scope the query to active leases only.
      *
      * @param  Builder<Lease>  $query
@@ -182,6 +290,8 @@ class Lease extends Model
             'end_date' => 'date:Y-m-d',
             'amount' => 'decimal:2',
             'deposit_amount' => 'decimal:2',
+            'deposit_settled_on' => 'date:Y-m-d',
+            'deposit_refunded_amount' => 'decimal:2',
             'guarantee_type' => GuaranteeType::class,
             'purpose' => LeasePurpose::class,
             'adjustment_index' => AdjustmentIndex::class,

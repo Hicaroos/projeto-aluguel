@@ -9,10 +9,12 @@ import {
     House,
     NotebookPen,
     Pencil,
+    PiggyBank,
     ReceiptText,
     Scale,
     ShieldCheck,
     Star,
+    TrendingUp,
     UserRound,
     Wallet,
 } from '@lucide/vue';
@@ -43,6 +45,10 @@ import {
 } from '@/lib/formatters';
 import {
     adjustmentIndexLabels,
+    adjustmentStatusBadgeClasses,
+    adjustmentStatusLabels,
+    canSettleDeposit,
+    depositUsed,
     guaranteeTypeLabels,
     leaseDeadlineHint,
     leaseStatusBadgeClasses,
@@ -72,6 +78,8 @@ const emit = defineEmits<{
     close: [];
     edit: [lease: Lease];
     finish: [lease: Lease];
+    adjust: [lease: Lease];
+    'settle-deposit': [lease: Lease];
 }>();
 
 const formatPercent = (value: string): string =>
@@ -209,6 +217,43 @@ const formatPercent = (value: string): string =>
                 </dl>
 
                 <div
+                    v-if="lease.deposit_settled_on"
+                    class="flex gap-2 rounded-lg border bg-muted/40 p-3 text-sm"
+                >
+                    <PiggyBank class="mt-0.5 size-4 shrink-0 text-primary" />
+                    <p>
+                        Caução acertada em
+                        {{ formatDate(lease.deposit_settled_on) }}:
+                        <span class="font-medium tabular-nums">{{
+                            formatCurrency(lease.deposit_refunded_amount ?? 0)
+                        }}</span>
+                        devolvidos ao inquilino<template
+                            v-if="depositUsed(lease) > 0"
+                        >
+                            ({{ formatCurrency(depositUsed(lease)) }} abatidos
+                            de pendências)</template
+                        >.
+                    </p>
+                </div>
+                <div
+                    v-else-if="canSettleDeposit(lease)"
+                    class="flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50/60 p-3 text-sm sm:flex-row sm:items-center dark:border-amber-900 dark:bg-amber-950/30"
+                >
+                    <p class="flex-1 text-amber-800 dark:text-amber-300">
+                        A caução ainda não foi acertada: abata as pendências e
+                        registre a devolução ao inquilino.
+                    </p>
+                    <Button
+                        size="sm"
+                        class="self-start sm:self-center"
+                        @click="emit('settle-deposit', lease)"
+                    >
+                        <PiggyBank class="size-4" />
+                        Acertar caução
+                    </Button>
+                </div>
+
+                <div
                     v-if="lease.guarantor"
                     class="space-y-1 rounded-lg border bg-muted/40 p-3 text-sm"
                 >
@@ -299,6 +344,95 @@ const formatPercent = (value: string): string =>
                         </dd>
                     </div>
                 </dl>
+            </div>
+
+            <div
+                v-if="lease.next_adjustment_date || lease.adjustments.length"
+                class="space-y-3"
+            >
+                <h3
+                    class="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                >
+                    <TrendingUp class="size-3.5" />
+                    Reajuste anual
+                </h3>
+
+                <div
+                    v-if="lease.next_adjustment_date"
+                    class="flex flex-col gap-3 rounded-lg border bg-muted/40 p-3 sm:flex-row sm:items-center"
+                >
+                    <div class="min-w-0 flex-1 space-y-1">
+                        <p class="text-sm">
+                            Próximo reajuste
+                            {{
+                                lease.adjustment_index === 'negotiated'
+                                    ? '(livre negociação)'
+                                    : `pelo ${adjustmentIndexLabels[lease.adjustment_index]}`
+                            }}
+                            em
+                            <span class="font-medium">{{
+                                formatDate(lease.next_adjustment_date)
+                            }}</span>
+                        </p>
+                        <Badge
+                            v-if="lease.adjustment_status"
+                            variant="outline"
+                            :class="
+                                adjustmentStatusBadgeClasses[
+                                    lease.adjustment_status
+                                ]
+                            "
+                        >
+                            {{
+                                adjustmentStatusLabels[lease.adjustment_status]
+                            }}
+                        </Badge>
+                    </div>
+                    <Button
+                        v-if="lease.adjustment_status"
+                        size="sm"
+                        class="self-start sm:self-center"
+                        @click="emit('adjust', lease)"
+                    >
+                        <TrendingUp class="size-4" />
+                        Aplicar reajuste
+                    </Button>
+                </div>
+
+                <ul
+                    v-if="lease.adjustments.length"
+                    class="divide-y rounded-lg border"
+                >
+                    <li
+                        v-for="adjustment in lease.adjustments"
+                        :key="adjustment.id"
+                        class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 p-3 text-sm"
+                    >
+                        <div>
+                            <p class="font-medium">
+                                {{ formatDate(adjustment.effective_on) }} ·
+                                {{
+                                    adjustmentIndexLabels[
+                                        adjustment.adjustment_index
+                                    ]
+                                }}
+                                {{ formatPercent(adjustment.percent) }}
+                            </p>
+                            <p
+                                v-if="adjustment.notes"
+                                class="text-xs text-muted-foreground"
+                            >
+                                {{ adjustment.notes }}
+                            </p>
+                        </div>
+                        <p class="text-muted-foreground tabular-nums">
+                            {{ formatCurrency(adjustment.previous_amount) }} →
+                            <span class="font-medium text-foreground">{{
+                                formatCurrency(adjustment.new_amount)
+                            }}</span>
+                        </p>
+                    </li>
+                </ul>
             </div>
 
             <div v-if="lease.notes" class="space-y-3">

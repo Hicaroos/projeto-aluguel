@@ -25,7 +25,7 @@ class ReceiptRequest extends FormRequest
             'late_fee_amount' => ['nullable', 'numeric', 'min:0'],
             'interest_amount' => ['nullable', 'numeric', 'min:0'],
             'date' => ['required', 'date', 'before_or_equal:today'],
-            'payment_method' => ['required', Rule::enum(PaymentMethod::class)],
+            'payment_method' => ['required', Rule::enum(PaymentMethod::class)->except([PaymentMethod::Deposit])],
             'notes' => ['nullable', 'string', 'max:255'],
         ];
     }

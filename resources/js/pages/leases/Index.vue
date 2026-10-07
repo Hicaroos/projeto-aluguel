@@ -10,6 +10,7 @@ import {
     Plus,
     SearchX,
     Trash2,
+    TrendingUp,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { ref, watch } from 'vue';
@@ -56,6 +57,8 @@ import { useOpenSelectedRecord } from '@/composables/useOpenSelectedRecord';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate } from '@/lib/formatters';
 import {
+    adjustmentStatusBadgeClasses,
+    canSettleDeposit,
     leaseDeadlineHint,
     leaseStatusBadgeClasses,
     leaseStatusDotClasses,
@@ -63,6 +66,8 @@ import {
 } from '@/lib/lease-labels';
 import { nextSort } from '@/lib/table-sort';
 import type { TableSort } from '@/lib/table-sort';
+import LeaseAdjustmentDialog from '@/pages/leases/LeaseAdjustmentDialog.vue';
+import LeaseDepositSettlementDialog from '@/pages/leases/LeaseDepositSettlementDialog.vue';
 import LeaseDetailsDialog from '@/pages/leases/LeaseDetailsDialog.vue';
 import LeaseFinishDialog from '@/pages/leases/LeaseFinishDialog.vue';
 import LeaseForm from '@/pages/leases/LeaseForm.vue';
@@ -147,6 +152,34 @@ useOpenSelectedRecord(
 );
 
 const leaseToFinish = ref<Lease | null>(null);
+
+const leaseToAdjust = ref<Lease | null>(null);
+
+function openAdjustmentDialog(lease: Lease) {
+    leaseToShow.value = null;
+    leaseToAdjust.value = lease;
+}
+
+const leaseToSettle = ref<Lease | null>(null);
+
+function openDepositSettlement(lease: Lease) {
+    leaseToShow.value = null;
+    leaseToSettle.value = lease;
+}
+
+/**
+ * Right after finishing a lease guaranteed by a deposit, offer to settle it, using the
+ * refreshed lease (now finished, with its open payments) from the reloaded page.
+ */
+function settleDepositAfterFinishing(leaseId: number) {
+    const lease =
+        props.leases.data.find((candidate) => candidate.id === leaseId) ??
+        (props.selected?.id === leaseId ? props.selected : null);
+
+    if (lease && canSettleDeposit(lease)) {
+        leaseToSettle.value = lease;
+    }
+}
 
 function openFinishDialog(lease: Lease) {
     leaseToShow.value = null;
@@ -318,16 +351,34 @@ function confirmDelete() {
                             </p>
                         </TableCell>
                         <TableCell class="hidden px-4 py-3 sm:table-cell">
-                            <Badge
-                                variant="outline"
-                                :class="leaseStatusBadgeClasses[lease.status]"
-                            >
-                                <span
-                                    class="size-1.5 rounded-full"
-                                    :class="leaseStatusDotClasses[lease.status]"
-                                />
-                                {{ leaseStatusLabels[lease.status] }}
-                            </Badge>
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <Badge
+                                    variant="outline"
+                                    :class="
+                                        leaseStatusBadgeClasses[lease.status]
+                                    "
+                                >
+                                    <span
+                                        class="size-1.5 rounded-full"
+                                        :class="
+                                            leaseStatusDotClasses[lease.status]
+                                        "
+                                    />
+                                    {{ leaseStatusLabels[lease.status] }}
+                                </Badge>
+                                <Badge
+                                    v-if="lease.adjustment_status"
+                                    variant="outline"
+                                    :class="
+                                        adjustmentStatusBadgeClasses[
+                                            lease.adjustment_status
+                                        ]
+                                    "
+                                >
+                                    <TrendingUp class="size-3" />
+                                    Reajuste
+                                </Badge>
+                            </div>
                         </TableCell>
                         <TableCell class="px-4 py-3" @click.stop>
                             <DropdownMenu>
@@ -425,9 +476,25 @@ function confirmDelete() {
         @close="leaseToShow = null"
         @edit="openEditDialog"
         @finish="openFinishDialog"
+        @adjust="openAdjustmentDialog"
+        @settle-deposit="openDepositSettlement"
     />
 
-    <LeaseFinishDialog :lease="leaseToFinish" @close="leaseToFinish = null" />
+    <LeaseFinishDialog
+        :lease="leaseToFinish"
+        @close="leaseToFinish = null"
+        @finished="settleDepositAfterFinishing"
+    />
+
+    <LeaseDepositSettlementDialog
+        :lease="leaseToSettle"
+        @close="leaseToSettle = null"
+    />
+
+    <LeaseAdjustmentDialog
+        :lease="leaseToAdjust"
+        @close="leaseToAdjust = null"
+    />
 
     <ConfirmDeleteDialog
         :open="!!leaseToDelete"

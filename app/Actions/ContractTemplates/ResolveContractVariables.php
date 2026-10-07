@@ -71,6 +71,7 @@ class ResolveContractVariables
             ContractVariable::LeaseDurationMonths->value => (string) (int) round($lease->start_date->diffInMonths($lease->end_date)),
             ContractVariable::LeasePurpose->value => $lease->purpose->label(),
             ContractVariable::LeaseAdjustmentIndex->value => $lease->adjustment_index->label(),
+            ContractVariable::LeaseAdjustmentClause->value => $lease->adjustment_index->clause(),
             ContractVariable::LeaseLateFee->value => $this->percent($lease->late_fee_percent),
             ContractVariable::LeaseMonthlyInterest->value => $this->percent($lease->monthly_interest_percent),
             ContractVariable::LeaseTerminationFeeMonths->value => (string) $lease->termination_fee_months,

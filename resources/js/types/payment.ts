@@ -10,7 +10,7 @@ export type PaymentDisplayStatus = PaymentStatus | 'overdue';
 export type PaymentType = 'rent' | 'extra';
 
 export type PaymentMethod =
-    'pix' | 'cash' | 'bank_transfer' | 'bank_slip' | 'card';
+    'pix' | 'cash' | 'bank_transfer' | 'bank_slip' | 'card' | 'deposit';
 
 export type Receipt = {
     id: number;

@@ -44,6 +44,39 @@ class LeasePolicy
     }
 
     /**
+     * Determine whether the user can apply the annual rent adjustment: only active leases, from
+     * 30 days before the anniversary on.
+     */
+    public function adjust(User $user, Lease $lease): Response
+    {
+        $ownership = $this->belongsToUserAccount($user, $lease);
+
+        if ($ownership->denied()) {
+            return $ownership;
+        }
+
+        return $lease->canBeAdjusted()
+            ? Response::allow()
+            : Response::deny(__('O reajuste deste contrato ainda não está disponível.'));
+    }
+
+    /**
+     * Determine whether the user can settle the deposit: only once, after the lease ended.
+     */
+    public function settleDeposit(User $user, Lease $lease): Response
+    {
+        $ownership = $this->belongsToUserAccount($user, $lease);
+
+        if ($ownership->denied()) {
+            return $ownership;
+        }
+
+        return $lease->canSettleDeposit()
+            ? Response::allow()
+            : Response::deny(__('A caução deste contrato não pode ser acertada.'));
+    }
+
+    /**
      * Determine whether the user can delete the lease.
      */
     public function delete(User $user, Lease $lease): Response

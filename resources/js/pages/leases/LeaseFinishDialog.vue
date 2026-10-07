@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { CalendarCheck, CircleX, FileCheck } from '@lucide/vue';
+import { CalendarCheck, CircleX, FileCheck, PiggyBank } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,6 +13,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
+import { formatCurrency } from '@/lib/currency';
 import { daysUntil } from '@/lib/formatters';
 import { finish } from '@/routes/leases';
 import type { Lease } from '@/types';
@@ -23,6 +24,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     close: [];
+    finished: [leaseId: number];
 }>();
 
 const selectedStatus = ref<'ended' | 'terminated'>('ended');
@@ -65,7 +67,15 @@ function confirm() {
         { status: selectedStatus.value },
         {
             preserveScroll: true,
-            onSuccess: () => emit('close'),
+            onSuccess: () => {
+                const leaseId = props.lease?.id;
+
+                emit('close');
+
+                if (leaseId !== undefined) {
+                    emit('finished', leaseId);
+                }
+            },
             onFinish: () => {
                 processing.value = false;
             },
@@ -124,6 +134,20 @@ function confirm() {
                     </div>
                 </button>
             </div>
+
+            <p
+                v-if="
+                    lease.guarantee_type === 'deposit' &&
+                    Number(lease.deposit_amount) > 0
+                "
+                class="flex gap-2 rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground"
+            >
+                <PiggyBank class="mt-0.5 size-4 shrink-0" />
+                Este contrato tem caução de
+                {{ formatCurrency(lease.deposit_amount ?? 0) }}. Em seguida você
+                poderá fazer o acerto: abater pendências e registrar a
+                devolução.
+            </p>
 
             <DialogFooter>
                 <DialogClose as-child>

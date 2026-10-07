@@ -42,6 +42,7 @@ enum ContractVariable: string
     case LeaseDurationMonths = 'lease.duration_months';
     case LeasePurpose = 'lease.purpose';
     case LeaseAdjustmentIndex = 'lease.adjustment_index';
+    case LeaseAdjustmentClause = 'lease.adjustment_clause';
     case LeaseLateFee = 'lease.late_fee';
     case LeaseMonthlyInterest = 'lease.monthly_interest';
     case LeaseTerminationFeeMonths = 'lease.termination_fee_months';
@@ -95,6 +96,7 @@ enum ContractVariable: string
             self::LeaseDurationMonths => 'Prazo em meses',
             self::LeasePurpose => 'Finalidade',
             self::LeaseAdjustmentIndex => 'Índice de reajuste',
+            self::LeaseAdjustmentClause => 'Cláusula de reajuste',
             self::LeaseLateFee => 'Multa por atraso',
             self::LeaseMonthlyInterest => 'Juros ao mês',
             self::LeaseTerminationFeeMonths => 'Multa rescisória (aluguéis)',

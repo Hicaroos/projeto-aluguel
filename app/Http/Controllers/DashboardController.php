@@ -82,6 +82,16 @@ class DashboardController extends Controller
                 ->orderBy('end_date')
                 ->limit(5)
                 ->get(['id', 'tenant_id', 'property_id', 'end_date', 'amount', 'status']),
+            'adjustmentLeases' => Lease::where('account_id', $accountId)
+                ->active()
+                ->with(['tenant:id,name,deleted_at', 'property:id,street,number,deleted_at'])
+                ->withCount('adjustments')
+                ->get(['id', 'tenant_id', 'property_id', 'start_date', 'end_date', 'amount', 'adjustment_index', 'status'])
+                ->filter(fn (Lease $lease): bool => $lease->canBeAdjusted())
+                ->sortBy(fn (Lease $lease): string => (string) $lease->next_adjustment_date)
+                ->take(5)
+                ->map(fn (Lease $lease): Lease => $lease->append(['next_adjustment_date', 'adjustment_status']))
+                ->values(),
             'vacantProperties' => $properties()
                 ->where('status', PropertyStatus::Available)
                 ->orderBy('street')

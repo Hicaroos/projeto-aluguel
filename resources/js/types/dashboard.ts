@@ -32,6 +32,18 @@ export type DashboardEndingLease = Pick<
     property: Pick<Property, 'id' | 'street' | 'number'>;
 };
 
+export type DashboardAdjustmentLease = Pick<
+    Lease,
+    | 'id'
+    | 'amount'
+    | 'adjustment_index'
+    | 'next_adjustment_date'
+    | 'adjustment_status'
+> & {
+    tenant: Pick<Tenant, 'id' | 'name'>;
+    property: Pick<Property, 'id' | 'street' | 'number'>;
+};
+
 export type DashboardVacantProperty = Pick<
     Property,
     | 'id'

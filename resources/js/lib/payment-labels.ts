@@ -41,6 +41,19 @@ export const paymentMethodLabels: Record<PaymentMethod, string> = {
     bank_transfer: 'Transferência',
     bank_slip: 'Boleto',
     card: 'Cartão',
+    deposit: 'Caução',
+};
+
+/** The payment methods offered when registering a payment by hand: the deposit is only used when settling it. */
+export const manualPaymentMethodLabels: Record<
+    Exclude<PaymentMethod, 'deposit'>,
+    string
+> = {
+    pix: paymentMethodLabels.pix,
+    cash: paymentMethodLabels.cash,
+    bank_transfer: paymentMethodLabels.bank_transfer,
+    bank_slip: paymentMethodLabels.bank_slip,
+    card: paymentMethodLabels.card,
 };
 
 export function isPaymentOpen(payment: Pick<Payment, 'status'>): boolean {

@@ -76,6 +76,14 @@ const tenantOptions = computed<SearchableSelectOption[]>(() =>
 const propertyId = ref(props.lease ? String(props.lease.property_id) : '');
 const tenantId = ref(props.lease ? String(props.lease.tenant_id) : '');
 const amount = ref(props.lease?.amount ?? '');
+
+/** An active lease's rent being edited directly, instead of through an adjustment. */
+const isChangingActiveRent = computed(
+    () =>
+        props.lease?.status === 'active' &&
+        amount.value !== '' &&
+        Number(amount.value) !== Number(props.lease.amount),
+);
 const guaranteeType = ref<GuaranteeType>(props.lease?.guarantee_type ?? 'none');
 const purpose = ref<LeasePurpose>(props.lease?.purpose ?? 'residential');
 const adjustmentIndex = ref<AdjustmentIndex>(
@@ -196,6 +204,14 @@ watch(propertyId, (selectedId) => {
                         />
                     </div>
                     <InputError :message="errors.amount" />
+                    <p
+                        v-if="isChangingActiveRent"
+                        class="text-xs text-amber-700 dark:text-amber-400"
+                    >
+                        Para reajustar o aluguel, use "Aplicar reajuste" nos
+                        detalhes do contrato: assim fica registrado no
+                        histórico. Altere aqui apenas para corrigir o valor.
+                    </p>
                 </div>
 
                 <div class="grid gap-2">
