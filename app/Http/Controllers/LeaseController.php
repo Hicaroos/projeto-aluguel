@@ -36,19 +36,8 @@ class LeaseController extends Controller
         $accountId = $request->user()->account_id;
         $search = $request->string('search')->trim()->toString();
         $status = $request->enum('status', LeaseStatus::class);
-        $leases = fn (): Builder => Lease::where('account_id', $accountId)
-            ->with([
-                'property:id,type,street,number,complement,neighborhood,city,state,rent_amount,status,deleted_at',
-                'tenant:id,name,email,phone,deleted_at',
-                'guarantor',
-                'adjustments',
-                'documents',
-                'renewals',
-                'openPayments' => fn ($query) => $query
-                    ->select(['id', 'lease_id', 'type', 'description', 'reference_month', 'due_date', 'amount', 'status'])
-                    ->withSum('receipts as received_amount', 'amount'),
-            ]);
-        $withAdjustmentInfo = fn (?Lease $lease): ?Lease => $lease?->append(['next_adjustment_date', 'adjustment_status']);
+        $leases = fn (): Builder => Lease::where('account_id', $accountId)->withDetails();
+        $withAdjustmentInfo = fn (?Lease $lease): ?Lease => $lease?->withAdjustmentInfo();
 
         $list = $leases()
             ->when($status !== null, fn (Builder $query) => $query->where('status', $status))

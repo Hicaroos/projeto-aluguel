@@ -120,6 +120,20 @@ class Property extends Model
     }
 
     /**
+     * Load everything the property details show: the current lease and the photos.
+     *
+     * @param  Builder<Property>  $query
+     */
+    public function scopeWithDetails(Builder $query): void
+    {
+        $query->with([
+            'activeLease:id,property_id,tenant_id,start_date,end_date,amount,due_day,status',
+            'activeLease.tenant:id,name,deleted_at',
+            'photos:id,property_id,sort_order',
+        ]);
+    }
+
+    /**
      * Scope the query to properties whose address matches the given term.
      *
      * @param  Builder<Property>  $query

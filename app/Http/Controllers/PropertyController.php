@@ -30,12 +30,7 @@ class PropertyController extends Controller
         $type = $request->enum('type', PropertyType::class);
         $status = $request->enum('status', PropertyStatus::class);
         $account = $request->user()->account;
-        $properties = fn (): Builder => Property::where('account_id', $request->user()->account_id)
-            ->with([
-                'activeLease:id,property_id,tenant_id,start_date,end_date,amount,due_day,status',
-                'activeLease.tenant:id,name,deleted_at',
-                'photos:id,property_id,sort_order',
-            ]);
+        $properties = fn (): Builder => Property::where('account_id', $request->user()->account_id)->withDetails();
 
         $list = $properties()
             ->search($search)

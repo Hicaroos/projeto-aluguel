@@ -274,6 +274,34 @@ class Lease extends Model
     }
 
     /**
+     * Load everything the lease details show: parties, guarantee, history, documents and open payments.
+     *
+     * @param  Builder<Lease>  $query
+     */
+    public function scopeWithDetails(Builder $query): void
+    {
+        $query->with([
+            'property:id,type,street,number,complement,neighborhood,city,state,rent_amount,status,deleted_at',
+            'tenant:id,name,email,phone,deleted_at',
+            'guarantor',
+            'adjustments',
+            'documents',
+            'renewals',
+            'openPayments' => fn ($query) => $query
+                ->select(['id', 'lease_id', 'type', 'description', 'reference_month', 'due_date', 'amount', 'status'])
+                ->withSum('receipts as received_amount', 'amount'),
+        ]);
+    }
+
+    /**
+     * Add the annual adjustment details the lease details show.
+     */
+    public function withAdjustmentInfo(): static
+    {
+        return $this->append(['next_adjustment_date', 'adjustment_status']);
+    }
+
+    /**
      * Scope the query to leases whose tenant name or property address matches the given term.
      *
      * @param  Builder<Lease>  $query

@@ -3,6 +3,7 @@
 use App\Actions\Payments\CreateExtraCharge;
 use App\Enums\PropertyStatus;
 use App\Models\Account;
+use App\Models\ContractTemplate;
 use App\Models\Expense;
 use App\Models\Lease;
 use App\Models\Owner;
@@ -76,6 +77,35 @@ test('the dashboard summarizes the account figures', function () {
             ->has('endingLeases', 1)
             ->has('vacantProperties', 2)
             ->where('vacantPropertiesCount', 2)
+        );
+});
+
+test('the dashboard items carry what their details show, so they open right there', function () {
+    $this->travelTo('2026-10-15 09:00:00');
+
+    $account = Account::factory()->create();
+    $user = User::factory()->for($account, 'account')->create();
+    $lease = Lease::factory()->for($account, 'account')->create([
+        'start_date' => '2025-11-01',
+        'end_date' => '2026-10-31',
+    ]);
+    $vacant = Property::factory()->for($account, 'account')->create(['status' => PropertyStatus::Available]);
+    ContractTemplate::factory()->for($account, 'account')->create(['name' => 'Residencial']);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('endingLeases.0.id', $lease->id)
+            ->has('endingLeases.0.tenant')
+            ->has('endingLeases.0.property')
+            ->has('endingLeases.0.documents')
+            ->has('endingLeases.0.renewals')
+            ->has('endingLeases.0.open_payments')
+            ->has('endingLeases.0.adjustment_status')
+            ->where('vacantProperties.0.id', $vacant->id)
+            ->has('vacantProperties.0.photos')
+            ->has('vacantProperties.0.active_lease')
+            ->where('contractTemplates.0.name', 'Residencial')
         );
 });
 

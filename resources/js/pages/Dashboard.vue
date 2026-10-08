@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     ArrowRight,
     CalendarPlus,
@@ -16,6 +16,7 @@ import {
     Wallet,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue';
 import DashboardPanel from '@/components/DashboardPanel.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import RevenueChart from '@/components/RevenueChart.vue';
@@ -37,19 +38,28 @@ import {
     paymentRemainingAmount,
 } from '@/lib/payment-labels';
 import { propertyTypeIcons } from '@/lib/property-labels';
+import LeaseDetailsDialog from '@/pages/leases/LeaseDetailsDialog.vue';
+import PaymentDetailsDialog from '@/pages/payments/PaymentDetailsDialog.vue';
 import ReceiptFormDialog from '@/pages/payments/ReceiptFormDialog.vue';
+import PropertyDetailsDialog from '@/pages/properties/PropertyDetailsDialog.vue';
 import { dashboard } from '@/routes';
 import { index as leasesIndex } from '@/routes/leases';
-import { index as paymentsIndex } from '@/routes/payments';
+import {
+    destroy as destroyPayment,
+    index as paymentsIndex,
+} from '@/routes/payments';
 import { index as propertiesIndex } from '@/routes/properties';
 import { index as tenantsIndex } from '@/routes/tenants';
 import type {
+    ContractTemplateOption,
     DashboardAdjustmentLease,
     DashboardEndingLease,
     DashboardStats,
     DashboardVacantProperty,
+    Lease,
     MonthlyRevenue,
     Payment,
+    Property,
 } from '@/types';
 
 const props = defineProps<{
@@ -62,6 +72,7 @@ const props = defineProps<{
     adjustmentLeases: DashboardAdjustmentLease[];
     vacantProperties: DashboardVacantProperty[];
     vacantPropertiesCount: number;
+    contractTemplates: ContractTemplateOption[];
 }>();
 
 defineOptions({
@@ -109,13 +120,89 @@ const showOnboarding = computed(() =>
     onboardingSteps.value.some((step) => !step.done),
 );
 
+const payments = computed(() => [
+    ...props.attentionPayments,
+    ...props.formerTenantDebts,
+]);
+const leases = computed(() => [
+    ...props.endingLeases,
+    ...props.adjustmentLeases,
+]);
+
+/*
+ * The details open right on the dashboard, from the panel items. They are looked up by id
+ * so they show the reloaded data after a change (a photo, a document, a receipt…), and
+ * close by themselves when the item leaves its panel.
+ */
+const shownPaymentId = ref<number | null>(null);
+const paymentToShow = computed(
+    () =>
+        payments.value.find((payment) => payment.id === shownPaymentId.value) ??
+        null,
+);
+const shownLeaseId = ref<number | null>(null);
+const leaseToShow = computed(
+    () => leases.value.find((lease) => lease.id === shownLeaseId.value) ?? null,
+);
+const shownPropertyId = ref<number | null>(null);
+const propertyToShow = computed(
+    () =>
+        props.vacantProperties.find(
+            (property) => property.id === shownPropertyId.value,
+        ) ?? null,
+);
+
 const registeringPaymentId = ref<number | null>(null);
 const paymentToRegister = computed(
     () =>
-        [...props.attentionPayments, ...props.formerTenantDebts].find(
+        payments.value.find(
             (payment) => payment.id === registeringPaymentId.value,
         ) ?? null,
 );
+
+function registerPayment(payment: Payment) {
+    shownPaymentId.value = null;
+    registeringPaymentId.value = payment.id;
+}
+
+const chargeToDelete = ref<Payment | null>(null);
+const isDeletingCharge = ref(false);
+
+function openDeleteCharge(payment: Payment) {
+    shownPaymentId.value = null;
+    chargeToDelete.value = payment;
+}
+
+function confirmDeleteCharge() {
+    if (!chargeToDelete.value) {
+        return;
+    }
+
+    isDeletingCharge.value = true;
+
+    router.delete(destroyPayment(chargeToDelete.value).url, {
+        preserveScroll: true,
+        onFinish: () => {
+            isDeletingCharge.value = false;
+            chargeToDelete.value = null;
+        },
+    });
+}
+
+/** Lease actions that need the leases page forms open there, right on the chosen dialog. */
+function openLeaseAction(lease: Lease, action: string) {
+    router.visit(leasesIndex({ query: { show: lease.id, action } }).url);
+}
+
+function editProperty(property: Property) {
+    router.visit(
+        propertiesIndex({ query: { show: property.id, action: 'edit' } }).url,
+    );
+}
+
+/** Panel items open their details when clicked or activated with the keyboard. */
+const clickableRow =
+    'cursor-pointer transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none';
 </script>
 
 <template>
@@ -375,7 +462,12 @@ const paymentToRegister = computed(
                     <li
                         v-for="payment in attentionPayments"
                         :key="payment.id"
+                        role="button"
+                        tabindex="0"
                         class="flex items-center gap-3 px-5 py-3"
+                        :class="clickableRow"
+                        @click="shownPaymentId = payment.id"
+                        @keydown.enter="shownPaymentId = payment.id"
                     >
                         <Avatar class="size-9">
                             <AvatarFallback
@@ -412,7 +504,8 @@ const paymentToRegister = computed(
                             <button
                                 type="button"
                                 class="text-xs font-medium text-primary hover:underline"
-                                @click="registeringPaymentId = payment.id"
+                                @click.stop="registerPayment(payment)"
+                                @keydown.enter.stop
                             >
                                 Receber
                             </button>
@@ -431,7 +524,12 @@ const paymentToRegister = computed(
                 <li
                     v-for="lease in adjustmentLeases"
                     :key="lease.id"
+                    role="button"
+                    tabindex="0"
                     class="flex flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center"
+                    :class="clickableRow"
+                    @click="shownLeaseId = lease.id"
+                    @keydown.enter="shownLeaseId = lease.id"
                 >
                     <div class="flex min-w-0 flex-1 items-center gap-3">
                         <div
@@ -480,14 +578,14 @@ const paymentToRegister = computed(
                                 }}
                             </Badge>
                         </div>
-                        <Button variant="outline" size="sm" as-child>
-                            <Link
-                                :href="
-                                    leasesIndex({ query: { show: lease.id } })
-                                "
-                            >
-                                Ver contrato
-                            </Link>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            @click.stop="openLeaseAction(lease, 'adjust')"
+                            @keydown.enter.stop
+                        >
+                            <TrendingUp class="size-4" />
+                            Reajustar
                         </Button>
                     </div>
                 </li>
@@ -519,7 +617,12 @@ const paymentToRegister = computed(
                     <li
                         v-for="lease in endingLeases"
                         :key="lease.id"
+                        role="button"
+                        tabindex="0"
                         class="flex items-center gap-3 px-5 py-3"
+                        :class="clickableRow"
+                        @click="shownLeaseId = lease.id"
+                        @keydown.enter="shownLeaseId = lease.id"
                     >
                         <div
                             class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-attention text-attention-foreground"
@@ -546,20 +649,14 @@ const paymentToRegister = computed(
                                 {{ leaseDeadlineHint(lease)?.label }}
                             </p>
                         </div>
-                        <Button variant="outline" size="sm" as-child>
-                            <Link
-                                :href="
-                                    leasesIndex({
-                                        query: {
-                                            show: lease.id,
-                                            action: 'renew',
-                                        },
-                                    })
-                                "
-                            >
-                                <CalendarPlus class="size-4" />
-                                <span class="max-sm:sr-only">Renovar</span>
-                            </Link>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            @click.stop="openLeaseAction(lease, 'renew')"
+                            @keydown.enter.stop
+                        >
+                            <CalendarPlus class="size-4" />
+                            <span class="max-sm:sr-only">Renovar</span>
                         </Button>
                     </li>
                 </ul>
@@ -593,9 +690,22 @@ const paymentToRegister = computed(
                     <li
                         v-for="property in vacantProperties"
                         :key="property.id"
+                        role="button"
+                        tabindex="0"
                         class="flex items-center gap-3 px-5 py-3"
+                        :class="clickableRow"
+                        @click="shownPropertyId = property.id"
+                        @keydown.enter="shownPropertyId = property.id"
                     >
+                        <img
+                            v-if="property.photos?.length"
+                            :src="property.photos[0].thumbnail_url"
+                            alt=""
+                            loading="lazy"
+                            class="size-9 shrink-0 rounded-lg border object-cover"
+                        />
                         <div
+                            v-else
                             class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
                         >
                             <component
@@ -629,7 +739,12 @@ const paymentToRegister = computed(
                 <li
                     v-for="payment in formerTenantDebts"
                     :key="payment.id"
+                    role="button"
+                    tabindex="0"
                     class="flex items-center gap-3 px-5 py-3"
+                    :class="clickableRow"
+                    @click="shownPaymentId = payment.id"
+                    @keydown.enter="shownPaymentId = payment.id"
                 >
                     <Avatar class="size-9">
                         <AvatarFallback
@@ -658,7 +773,8 @@ const paymentToRegister = computed(
                         <button
                             type="button"
                             class="text-xs font-medium text-primary hover:underline"
-                            @click="registeringPaymentId = payment.id"
+                            @click.stop="registerPayment(payment)"
+                            @keydown.enter.stop
                         >
                             Receber
                         </button>
@@ -672,4 +788,43 @@ const paymentToRegister = computed(
         :payment="paymentToRegister"
         @close="registeringPaymentId = null"
     />
+
+    <PaymentDetailsDialog
+        :payment="paymentToShow"
+        @close="shownPaymentId = null"
+        @register="registerPayment"
+        @delete="openDeleteCharge"
+    />
+
+    <LeaseDetailsDialog
+        :lease="leaseToShow"
+        :contract-templates="contractTemplates"
+        @close="shownLeaseId = null"
+        @edit="(lease) => openLeaseAction(lease, 'edit')"
+        @finish="(lease) => openLeaseAction(lease, 'finish')"
+        @adjust="(lease) => openLeaseAction(lease, 'adjust')"
+        @renew="(lease) => openLeaseAction(lease, 'renew')"
+        @settle-deposit="(lease) => openLeaseAction(lease, 'settle-deposit')"
+    />
+
+    <PropertyDetailsDialog
+        :property="propertyToShow"
+        @close="shownPropertyId = null"
+        @edit="editProperty"
+    />
+
+    <ConfirmDeleteDialog
+        :open="!!chargeToDelete"
+        title="Excluir cobrança avulsa?"
+        :processing="isDeletingCharge"
+        @close="chargeToDelete = null"
+        @confirm="confirmDeleteCharge"
+    >
+        A cobrança
+        <span class="font-medium text-foreground">{{
+            chargeToDelete?.description
+        }}</span>
+        de {{ chargeToDelete?.lease.tenant.name }} será removida. Esta ação não
+        pode ser desfeita.
+    </ConfirmDeleteDialog>
 </template>

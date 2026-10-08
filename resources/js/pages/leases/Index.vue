@@ -149,6 +149,39 @@ function openEditDialog(lease: Lease) {
 
 const leaseToShow = ref<Lease | null>(null);
 const leaseToRenew = ref<Lease | null>(null);
+const leaseToFinish = ref<Lease | null>(null);
+const leaseToAdjust = ref<Lease | null>(null);
+const leaseToSettle = ref<Lease | null>(null);
+
+/**
+ * Actions other pages can ask for through `?show={id}&action=…`, e.g. "Renovar" on the
+ * dashboard, each opening its dialog when the lease allows it.
+ */
+const linkedActions: Record<
+    string,
+    { allowed: (lease: Lease) => boolean; open: (lease: Lease) => void }
+> = {
+    edit: {
+        allowed: (lease) => lease.status === 'active',
+        open: (lease) => openEditDialog(lease),
+    },
+    finish: {
+        allowed: (lease) => lease.status === 'active',
+        open: (lease) => openFinishDialog(lease),
+    },
+    renew: {
+        allowed: (lease) => lease.status === 'active',
+        open: (lease) => openRenewalDialog(lease),
+    },
+    adjust: {
+        allowed: (lease) => !!lease.adjustment_status,
+        open: (lease) => openAdjustmentDialog(lease),
+    },
+    'settle-deposit': {
+        allowed: (lease) => canSettleDeposit(lease),
+        open: (lease) => openDepositSettlement(lease),
+    },
+};
 
 useOpenSelectedRecord(
     () => props.selected,
@@ -158,17 +191,16 @@ useOpenSelectedRecord(
             return;
         }
 
-        // Links such as "Renovar" on the dashboard ask for an action instead of the details.
         const url = new URL(window.location.href);
-        const action = url.searchParams.get('action');
+        const action = linkedActions[url.searchParams.get('action') ?? ''];
 
-        if (action) {
+        if (url.searchParams.has('action')) {
             url.searchParams.delete('action');
             window.history.replaceState(window.history.state, '', url);
         }
 
-        if (action === 'renew' && lease.status === 'active') {
-            leaseToRenew.value = lease;
+        if (action?.allowed(lease)) {
+            action.open(lease);
 
             return;
         }
@@ -193,8 +225,6 @@ watch(
     },
 );
 
-const leaseToFinish = ref<Lease | null>(null);
-
 function openRenewalDialog(lease: Lease) {
     leaseToShow.value = null;
     leaseToRenew.value = lease;
@@ -216,14 +246,10 @@ function adjustAfterRenewing(leaseId: number) {
     }
 }
 
-const leaseToAdjust = ref<Lease | null>(null);
-
 function openAdjustmentDialog(lease: Lease) {
     leaseToShow.value = null;
     leaseToAdjust.value = lease;
 }
-
-const leaseToSettle = ref<Lease | null>(null);
 
 function openDepositSettlement(lease: Lease) {
     leaseToShow.value = null;

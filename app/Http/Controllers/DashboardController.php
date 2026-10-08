@@ -8,6 +8,7 @@ use App\Actions\Leases\SyncLeasePayments;
 use App\Actions\Payments\SummarizePayments;
 use App\Enums\LeaseStatus;
 use App\Enums\PropertyStatus;
+use App\Models\ContractTemplate;
 use App\Models\Expense;
 use App\Models\Lease;
 use App\Models\Payment;
@@ -78,26 +79,31 @@ class DashboardController extends Controller
                 ->get(),
             'endingLeases' => Lease::where('account_id', $accountId)
                 ->endingWithin(60)
-                ->with(['tenant:id,name,deleted_at', 'property:id,street,number,deleted_at'])
+                ->withDetails()
                 ->orderBy('end_date')
                 ->limit(5)
-                ->get(['id', 'tenant_id', 'property_id', 'end_date', 'amount', 'status']),
+                ->get()
+                ->each->withAdjustmentInfo(),
             'adjustmentLeases' => Lease::where('account_id', $accountId)
                 ->active()
-                ->with(['tenant:id,name,deleted_at', 'property:id,street,number,deleted_at'])
-                ->withCount('adjustments')
-                ->get(['id', 'tenant_id', 'property_id', 'start_date', 'end_date', 'amount', 'adjustment_index', 'status'])
+                ->withDetails()
+                ->get()
                 ->filter(fn (Lease $lease): bool => $lease->canBeAdjusted())
                 ->sortBy(fn (Lease $lease): string => (string) $lease->next_adjustment_date)
                 ->take(5)
-                ->map(fn (Lease $lease): Lease => $lease->append(['next_adjustment_date', 'adjustment_status']))
+                ->each->withAdjustmentInfo()
                 ->values(),
             'vacantProperties' => $properties()
                 ->where('status', PropertyStatus::Available)
+                ->withDetails()
                 ->orderBy('street')
                 ->limit(5)
-                ->get(['id', 'type', 'street', 'number', 'neighborhood', 'city', 'state', 'rent_amount']),
+                ->get(),
             'vacantPropertiesCount' => $properties()->where('status', PropertyStatus::Available)->count(),
+            'contractTemplates' => ContractTemplate::where('account_id', $accountId)
+                ->orderByDesc('is_default')
+                ->orderBy('name')
+                ->get(['id', 'name', 'is_default']),
         ]);
     }
 }

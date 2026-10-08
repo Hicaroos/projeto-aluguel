@@ -1,6 +1,5 @@
 import type { Lease } from './lease';
 import type { Property } from './property';
-import type { Tenant } from './tenant';
 
 export type DashboardStats = {
     expected: number;
@@ -24,34 +23,10 @@ export type MonthlyRevenue = {
     received: number;
 };
 
-export type DashboardEndingLease = Pick<
-    Lease,
-    'id' | 'end_date' | 'amount' | 'status'
-> & {
-    tenant: Pick<Tenant, 'id' | 'name'>;
-    property: Pick<Property, 'id' | 'street' | 'number'>;
-};
+/** Dashboard leases carry everything their details show, so they open right on the dashboard. */
+export type DashboardEndingLease = Lease;
 
-export type DashboardAdjustmentLease = Pick<
-    Lease,
-    | 'id'
-    | 'amount'
-    | 'adjustment_index'
-    | 'next_adjustment_date'
-    | 'adjustment_status'
-> & {
-    tenant: Pick<Tenant, 'id' | 'name'>;
-    property: Pick<Property, 'id' | 'street' | 'number'>;
-};
+export type DashboardAdjustmentLease = Lease;
 
-export type DashboardVacantProperty = Pick<
-    Property,
-    | 'id'
-    | 'type'
-    | 'street'
-    | 'number'
-    | 'neighborhood'
-    | 'city'
-    | 'state'
-    | 'rent_amount'
->;
+/** Dashboard properties carry everything their details show, so they open right on the dashboard. */
+export type DashboardVacantProperty = Property;

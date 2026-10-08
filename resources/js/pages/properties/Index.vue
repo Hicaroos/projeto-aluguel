@@ -143,7 +143,24 @@ const propertyToShow = ref<Property | null>(null);
 
 useOpenSelectedRecord(
     () => props.selected,
-    (property) => (propertyToShow.value = property),
+    (property) => {
+        // Links such as "Editar imóvel" on the dashboard ask for the form instead of the details.
+        const url = new URL(window.location.href);
+        const action = url.searchParams.get('action');
+
+        if (action) {
+            url.searchParams.delete('action');
+            window.history.replaceState(window.history.state, '', url);
+        }
+
+        if (action === 'edit') {
+            openEditDialog(property);
+
+            return;
+        }
+
+        propertyToShow.value = property;
+    },
 );
 
 /** Keep the open details in sync with the reloaded page, e.g. after adding photos. */
