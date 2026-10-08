@@ -3,6 +3,7 @@
 use App\Actions\Payments\CreateExtraCharge;
 use App\Enums\LeaseStatus;
 use App\Enums\PaymentStatus;
+use App\Enums\PaymentType;
 use App\Models\Account;
 use App\Models\Lease;
 use App\Models\Payment;
@@ -205,14 +206,15 @@ test('a receipt from another account cannot be displayed', function () {
 
 test('a receipt can be generated as a PDF to share, only for its own account', function () {
     ['user' => $user, 'lease' => $lease] = paymentScenario();
-    $receipt = Receipt::factory()->for(Payment::factory()->for($lease))->create(['amount' => 1550.2]);
+    $payment = Payment::factory()->for($lease)->create(['type' => PaymentType::Rent, 'reference_month' => '2026-10-01']);
+    $receipt = Receipt::factory()->for($payment)->create(['amount' => 1550.2]);
     $lease->tenant->update(['name' => 'Ana Paula Ribeiro']);
 
     $this->actingAs($user)
         ->get(route('receipts.pdf', $receipt))
         ->assertOk()
         ->assertHeader('content-type', 'application/pdf')
-        ->assertHeader('content-disposition', "inline; filename=recibo-{$receipt->id}-ana-paula-ribeiro.pdf");
+        ->assertHeader('content-disposition', 'inline; filename=recibo-outubro-de-2026-ana-paula-ribeiro.pdf');
 
     $this->actingAs($user)
         ->get(route('receipts.pdf', Receipt::factory()->create()))

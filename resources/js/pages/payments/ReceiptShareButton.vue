@@ -31,33 +31,47 @@ const { supportsSharing, isPreparing, share, download } = useFileSharing({
     downloadedMessage: () => 'Recibo baixado em PDF.',
 });
 
-const number = computed(() => String(props.receipt.id).padStart(6, '0'));
 const label = computed(() =>
     supportsSharing ? 'Compartilhar recibo' : 'Baixar recibo (PDF)',
+);
+
+/** What the receipt is for, e.g. "Recibo de aluguel — Outubro de 2026". */
+const title = computed(
+    () =>
+        `${props.payment.type === 'extra' ? 'Recibo' : 'Recibo de aluguel'} — ${paymentReferenceLabel(props.payment)}`,
 );
 
 /** Message sent along with the PDF, e.g. to the tenant on WhatsApp. */
 const shareText = computed(() =>
     [
-        `Recibo de aluguel nº ${number.value}`,
-        `Referência: ${paymentReferenceLabel(props.payment)}`,
+        title.value,
         `Valor recebido: ${formatCurrency(receiptTotalAmount(props.receipt))} em ${formatDate(props.receipt.date)}`,
     ].join('\n'),
 );
 
+/** File name from the reference, e.g. "recibo-outubro-de-2026". */
+const fileName = computed(
+    () =>
+        `recibo-${paymentReferenceLabel(props.payment)}`
+            .normalize('NFD')
+            .replace(/[̀-ͯ]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '') || 'recibo',
+);
+
 function shareReceipt() {
     const file = { id: props.receipt.id, url: pdf(props.receipt).url };
-    const fileName = `recibo-${number.value}`;
 
     if (!supportsSharing) {
-        download([file], fileName);
+        download([file], fileName.value);
 
         return;
     }
 
     share([file], {
-        fileName,
-        title: `Recibo ${number.value}`,
+        fileName: fileName.value,
+        title: title.value,
         text: shareText.value,
     });
 }

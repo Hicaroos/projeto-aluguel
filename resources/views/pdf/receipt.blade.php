@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Recibo {{ $number }} — {{ $tenant->name }}</title>
+    <title>Recibo — {{ $tenant->name }}</title>
     <style>
         @page {
             margin: 2cm;
@@ -118,7 +118,6 @@
             <td>
                 <p class="app-name muted">{{ $appName }}</p>
                 <h1>Recibo de aluguel</h1>
-                <p class="muted">Nº {{ $number }}</p>
             </td>
             <td style="width: 38%;">
                 <div class="amount-box">

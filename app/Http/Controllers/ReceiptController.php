@@ -64,7 +64,6 @@ class ReceiptController extends Controller
 
         return Pdf::loadView('pdf.receipt', [
             'receipt' => $receipt,
-            'number' => str_pad((string) $receipt->id, 6, '0', STR_PAD_LEFT),
             'appName' => config('app.name'),
             'tenant' => $tenant,
             'tenantDocument' => $this->formatDocument($tenant->cpf_cnpj),
@@ -87,7 +86,7 @@ class ReceiptController extends Controller
             'issuedOn' => $this->translatedDate($receipt->date, 'j \d\e F \d\e Y'),
         ])
             ->setPaper('a4')
-            ->stream("recibo-{$receipt->id}-".Str::slug($tenant->name).'.pdf');
+            ->stream('recibo-'.Str::slug($reference).'-'.Str::slug($tenant->name).'.pdf');
     }
 
     /**

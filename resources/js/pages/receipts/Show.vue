@@ -46,7 +46,6 @@ const props = defineProps<{
 
 const page = usePage();
 
-const receiptNumber = computed(() => String(props.receipt.id).padStart(6, '0'));
 const tenant = computed(() => props.receipt.payment.lease.tenant);
 const property = computed(() => props.receipt.payment.lease.property);
 const owner = computed(() => property.value.owner);
@@ -104,7 +103,7 @@ function print() {
 </script>
 
 <template>
-    <Head :title="`Recibo ${receiptNumber} - ${tenant.name}`" />
+    <Head :title="`Recibo - ${tenant.name}`" />
 
     <div
         class="min-h-svh bg-muted/50 px-4 py-8 print:min-h-0 print:bg-white print:p-0"
@@ -143,14 +142,9 @@ function print() {
                             page.props.name
                         }}</span>
                     </div>
-                    <div>
-                        <h1 class="text-2xl font-semibold tracking-tight">
-                            Recibo de aluguel
-                        </h1>
-                        <p class="text-sm text-zinc-500">
-                            Nº {{ receiptNumber }}
-                        </p>
-                    </div>
+                    <h1 class="text-2xl font-semibold tracking-tight">
+                        Recibo de aluguel
+                    </h1>
                 </div>
                 <div
                     class="rounded-lg border border-zinc-200 bg-zinc-50 px-5 py-3 sm:text-right"
