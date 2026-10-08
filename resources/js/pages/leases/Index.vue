@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import {
+    CalendarPlus,
     Eye,
     FileCheck,
     FilePlus,
@@ -72,6 +73,7 @@ import LeaseDepositSettlementDialog from '@/pages/leases/LeaseDepositSettlementD
 import LeaseDetailsDialog from '@/pages/leases/LeaseDetailsDialog.vue';
 import LeaseFinishDialog from '@/pages/leases/LeaseFinishDialog.vue';
 import LeaseForm from '@/pages/leases/LeaseForm.vue';
+import LeaseRenewalDialog from '@/pages/leases/LeaseRenewalDialog.vue';
 import { destroy, index } from '@/routes/leases';
 import type {
     ContractTemplateOption,
@@ -146,10 +148,33 @@ function openEditDialog(lease: Lease) {
 }
 
 const leaseToShow = ref<Lease | null>(null);
+const leaseToRenew = ref<Lease | null>(null);
 
 useOpenSelectedRecord(
     () => props.selected,
-    (lease) => (leaseToShow.value = lease),
+    (lease) => {
+        // The renewal answers with the lease selected: keep the flow in the renewal dialog.
+        if (leaseToRenew.value?.id === lease.id) {
+            return;
+        }
+
+        // Links such as "Renovar" on the dashboard ask for an action instead of the details.
+        const url = new URL(window.location.href);
+        const action = url.searchParams.get('action');
+
+        if (action) {
+            url.searchParams.delete('action');
+            window.history.replaceState(window.history.state, '', url);
+        }
+
+        if (action === 'renew' && lease.status === 'active') {
+            leaseToRenew.value = lease;
+
+            return;
+        }
+
+        leaseToShow.value = lease;
+    },
 );
 
 /** Keep the open details in sync with the reloaded page, e.g. after attaching documents. */
@@ -169,6 +194,27 @@ watch(
 );
 
 const leaseToFinish = ref<Lease | null>(null);
+
+function openRenewalDialog(lease: Lease) {
+    leaseToShow.value = null;
+    leaseToRenew.value = lease;
+}
+
+/**
+ * Right after a renewal, offer the annual adjustment when the new term brought the
+ * anniversary in, using the refreshed lease from the reloaded page.
+ */
+function adjustAfterRenewing(leaseId: number) {
+    leaseToRenew.value = null;
+
+    const lease =
+        props.leases.data.find((candidate) => candidate.id === leaseId) ??
+        (props.selected?.id === leaseId ? props.selected : null);
+
+    if (lease?.adjustment_status) {
+        leaseToAdjust.value = lease;
+    }
+}
 
 const leaseToAdjust = ref<Lease | null>(null);
 
@@ -428,6 +474,12 @@ function confirmDelete() {
                                             Editar
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
+                                            @click="openRenewalDialog(lease)"
+                                        >
+                                            <CalendarPlus class="size-4" />
+                                            Renovar
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
                                             @click="openFinishDialog(lease)"
                                         >
                                             <FileCheck class="size-4" />
@@ -502,7 +554,14 @@ function confirmDelete() {
         @edit="openEditDialog"
         @finish="openFinishDialog"
         @adjust="openAdjustmentDialog"
+        @renew="openRenewalDialog"
         @settle-deposit="openDepositSettlement"
+    />
+
+    <LeaseRenewalDialog
+        :lease="leaseToRenew"
+        @close="leaseToRenew = null"
+        @renewed="adjustAfterRenewing"
     />
 
     <LeaseFinishDialog

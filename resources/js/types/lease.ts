@@ -73,6 +73,8 @@ export type Lease = {
     adjustments: LeaseAdjustment[];
     /** Files attached to the lease, newest first. */
     documents: LeaseDocument[];
+    /** Extensions of the lease term, oldest first. */
+    renewals: LeaseRenewal[];
     /** The next anniversary the rent can be adjusted on, if any. */
     next_adjustment_date: string | null;
     adjustment_status: LeaseAdjustmentStatus | null;
@@ -82,6 +84,15 @@ export type LeasePaginator = Paginator<Lease>;
 
 /** 'available' within 30 days of the anniversary, 'overdue' after it. */
 export type LeaseAdjustmentStatus = 'available' | 'overdue';
+
+export type LeaseRenewal = {
+    id: number;
+    lease_id: number;
+    previous_end_date: string;
+    new_end_date: string;
+    notes: string | null;
+    created_at: string;
+};
 
 export type LeaseDocumentType =
     | 'signed_contract'

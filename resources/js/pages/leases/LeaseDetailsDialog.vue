@@ -2,6 +2,7 @@
 import { Link } from '@inertiajs/vue3';
 import {
     CalendarDays,
+    CalendarPlus,
     ChevronDown,
     FileCheck,
     FileDown,
@@ -62,6 +63,7 @@ import {
 } from '@/lib/person-labels';
 import LeaseDocuments from '@/pages/leases/LeaseDocuments.vue';
 import { contract } from '@/routes/leases';
+import { amendment as renewalAmendment } from '@/routes/leases/renewals';
 import { index as paymentsIndex } from '@/routes/payments';
 import { index as propertiesIndex } from '@/routes/properties';
 import { index as tenantsIndex } from '@/routes/tenants';
@@ -80,6 +82,7 @@ const emit = defineEmits<{
     edit: [lease: Lease];
     finish: [lease: Lease];
     adjust: [lease: Lease];
+    renew: [lease: Lease];
     'settle-deposit': [lease: Lease];
 }>();
 
@@ -189,6 +192,43 @@ const formatPercent = (value: string): string =>
                         </dd>
                     </div>
                 </dl>
+
+                <ul
+                    v-if="lease.renewals.length"
+                    class="divide-y rounded-lg border"
+                >
+                    <li
+                        v-for="renewal in lease.renewals"
+                        :key="renewal.id"
+                        class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 p-3 text-sm"
+                    >
+                        <div class="min-w-0">
+                            <p class="font-medium">
+                                Renovado em
+                                {{ formatDate(renewal.created_at) }}
+                            </p>
+                            <p
+                                class="text-xs text-muted-foreground tabular-nums"
+                            >
+                                Término
+                                {{ formatDate(renewal.previous_end_date) }} →
+                                {{ formatDate(renewal.new_end_date) }}
+                                <template v-if="renewal.notes">
+                                    · {{ renewal.notes }}
+                                </template>
+                            </p>
+                        </div>
+                        <Button variant="outline" size="sm" as-child>
+                            <a
+                                :href="renewalAmendment([lease, renewal]).url"
+                                target="_blank"
+                            >
+                                <FileDown class="size-4" />
+                                Termo aditivo (PDF)
+                            </a>
+                        </Button>
+                    </li>
+                </ul>
             </div>
 
             <div class="space-y-3">
@@ -543,6 +583,10 @@ const formatPercent = (value: string): string =>
                     <Button variant="outline" @click="emit('finish', lease)">
                         <FileCheck class="size-4" />
                         Finalizar contrato
+                    </Button>
+                    <Button variant="outline" @click="emit('renew', lease)">
+                        <CalendarPlus class="size-4" />
+                        Renovar
                     </Button>
                     <Button @click="emit('edit', lease)">
                         <Pencil class="size-4" />

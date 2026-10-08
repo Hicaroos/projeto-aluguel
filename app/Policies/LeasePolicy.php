@@ -44,6 +44,22 @@ class LeasePolicy
     }
 
     /**
+     * Determine whether the user can extend the lease term: only active leases, even after their end date.
+     */
+    public function renew(User $user, Lease $lease): Response
+    {
+        $ownership = $this->belongsToUserAccount($user, $lease);
+
+        if ($ownership->denied()) {
+            return $ownership;
+        }
+
+        return $lease->isActive()
+            ? Response::allow()
+            : Response::deny(__('Apenas contratos ativos podem ser renovados.'));
+    }
+
+    /**
      * Determine whether the user can apply the annual rent adjustment: only active leases, from
      * 30 days before the anniversary on.
      */

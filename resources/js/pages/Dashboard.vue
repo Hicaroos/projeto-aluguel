@@ -2,6 +2,7 @@
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import {
     ArrowRight,
+    CalendarPlus,
     CircleCheck,
     FileText,
     HandCoins,
@@ -545,6 +546,21 @@ const paymentToRegister = computed(
                                 {{ leaseDeadlineHint(lease)?.label }}
                             </p>
                         </div>
+                        <Button variant="outline" size="sm" as-child>
+                            <Link
+                                :href="
+                                    leasesIndex({
+                                        query: {
+                                            show: lease.id,
+                                            action: 'renew',
+                                        },
+                                    })
+                                "
+                            >
+                                <CalendarPlus class="size-4" />
+                                <span class="max-sm:sr-only">Renovar</span>
+                            </Link>
+                        </Button>
                     </li>
                 </ul>
             </DashboardPanel>

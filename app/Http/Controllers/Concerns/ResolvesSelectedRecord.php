@@ -28,7 +28,8 @@ trait ResolvesSelectedRecord
     }
 
     /**
-     * Get the current query string without `show`, for the pagination links.
+     * Get the current query string without `show` (and the `action` that goes with it),
+     * for the pagination links.
      *
      * Keeping `show` there would reopen the selected record on every page change.
      *
@@ -36,7 +37,7 @@ trait ResolvesSelectedRecord
      */
     protected function queryWithoutSelection(Request $request): array
     {
-        return Arr::except($request->query(), ['show', 'page']);
+        return Arr::except($request->query(), ['show', 'action', 'page']);
     }
 
     /**
