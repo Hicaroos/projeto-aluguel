@@ -203,6 +203,22 @@ test('a receipt from another account cannot be displayed', function () {
         ->assertNotFound();
 });
 
+test('a receipt can be generated as a PDF to share, only for its own account', function () {
+    ['user' => $user, 'lease' => $lease] = paymentScenario();
+    $receipt = Receipt::factory()->for(Payment::factory()->for($lease))->create(['amount' => 1550.2]);
+    $lease->tenant->update(['name' => 'Ana Paula Ribeiro']);
+
+    $this->actingAs($user)
+        ->get(route('receipts.pdf', $receipt))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf')
+        ->assertHeader('content-disposition', "inline; filename=recibo-{$receipt->id}-ana-paula-ribeiro.pdf");
+
+    $this->actingAs($user)
+        ->get(route('receipts.pdf', Receipt::factory()->create()))
+        ->assertNotFound();
+});
+
 test('receipt amounts are written in words', function (float $amount, string $words) {
     expect((new Receipt(['amount' => $amount]))->amountInWords())->toBe($words);
 })->with([

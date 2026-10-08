@@ -2,6 +2,7 @@
 
 namespace App\Actions\ContractTemplates;
 
+use App\Concerns\FormatsBrazilianNumbers;
 use App\Concerns\SpellsMoney;
 use App\Enums\ContractVariable;
 use App\Enums\GuaranteeType;
@@ -14,7 +15,7 @@ use Carbon\CarbonInterface;
 
 class ResolveContractVariables
 {
-    use SpellsMoney;
+    use FormatsBrazilianNumbers, SpellsMoney;
 
     /**
      * Placeholder printed for every detail that was not filled in, so it can be completed by hand.
@@ -38,26 +39,26 @@ class ResolveContractVariables
         $values = [
             ContractVariable::OwnerQualification->value => $this->qualification($owner),
             ContractVariable::OwnerName->value => $owner->name,
-            ContractVariable::OwnerDocument->value => $this->document($owner->cpf_cnpj),
+            ContractVariable::OwnerDocument->value => $this->formatDocument($owner->cpf_cnpj),
             ContractVariable::OwnerRg->value => $owner->rg,
             ContractVariable::OwnerNationality->value => $owner->nationality,
             ContractVariable::OwnerMaritalStatus->value => $owner->marital_status?->label(),
             ContractVariable::OwnerProfession->value => $owner->profession,
             ContractVariable::OwnerAddress->value => $this->address($owner),
             ContractVariable::OwnerEmail->value => $owner->email,
-            ContractVariable::OwnerPhone->value => $this->phone($owner->phone),
+            ContractVariable::OwnerPhone->value => $this->formatPhone($owner->phone),
             ContractVariable::OwnerPixKey->value => $owner->pix_key,
 
             ContractVariable::TenantQualification->value => $this->qualification($tenant),
             ContractVariable::TenantName->value => $tenant->name,
-            ContractVariable::TenantDocument->value => $this->document($tenant->cpf_cnpj),
+            ContractVariable::TenantDocument->value => $this->formatDocument($tenant->cpf_cnpj),
             ContractVariable::TenantRg->value => $tenant->rg,
             ContractVariable::TenantNationality->value => $tenant->nationality,
             ContractVariable::TenantMaritalStatus->value => $tenant->marital_status?->label(),
             ContractVariable::TenantProfession->value => $tenant->profession,
             ContractVariable::TenantAddress->value => $this->address($tenant),
             ContractVariable::TenantEmail->value => $tenant->email,
-            ContractVariable::TenantPhone->value => $this->phone($tenant->phone),
+            ContractVariable::TenantPhone->value => $this->formatPhone($tenant->phone),
 
             ContractVariable::PropertyAddress->value => $this->address($property),
             ContractVariable::PropertyType->value => $property->type->label(),
@@ -99,7 +100,7 @@ class ResolveContractVariables
     private function qualification(Owner|Tenant|Guarantor $person): string
     {
         $address = $this->address($person);
-        $document = $this->document($person->cpf_cnpj);
+        $document = $this->formatDocument($person->cpf_cnpj);
         $documentType = strlen((string) preg_replace('/\D/', '', (string) $person->cpf_cnpj)) === 14 ? 'CNPJ' : 'CPF';
 
         return collect([
@@ -146,7 +147,7 @@ class ResolveContractVariables
 
         if ($guarantor?->spouse_name) {
             $clause .= ", com a anuência de seu cônjuge, {$guarantor->spouse_name}";
-            $clause .= $guarantor->spouse_cpf ? ", inscrito(a) no CPF sob o nº {$this->document($guarantor->spouse_cpf)}" : '';
+            $clause .= $guarantor->spouse_cpf ? ", inscrito(a) no CPF sob o nº {$this->formatDocument($guarantor->spouse_cpf)}" : '';
         }
 
         if ($guarantor?->property_registration) {
@@ -208,28 +209,6 @@ class ResolveContractVariables
         ])->filter();
 
         return $parts->isEmpty() ? null : $parts->implode(', ');
-    }
-
-    private function document(?string $value): ?string
-    {
-        $digits = (string) preg_replace('/\D/', '', (string) $value);
-
-        return match (strlen($digits)) {
-            11 => preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $digits),
-            14 => preg_replace('/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/', '$1.$2.$3/$4-$5', $digits),
-            default => $value,
-        };
-    }
-
-    private function phone(?string $value): ?string
-    {
-        $digits = (string) preg_replace('/\D/', '', (string) $value);
-
-        return match (strlen($digits)) {
-            11 => preg_replace('/(\d{2})(\d{5})(\d{4})/', '($1) $2-$3', $digits),
-            10 => preg_replace('/(\d{2})(\d{4})(\d{4})/', '($1) $2-$3', $digits),
-            default => $value,
-        };
     }
 
     private function money(string $amount): string

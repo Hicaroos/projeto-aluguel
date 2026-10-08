@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 import { toast } from 'vue-sonner';
 
-type SharedPhoto = { id: number; url: string };
+type SharedFile = { id: number; url: string };
 
 /**
  * Most files Chrome and Edge accept in a single share: above it they refuse the share
@@ -9,11 +9,24 @@ type SharedPhoto = { id: number; url: string };
  */
 export const MAX_SHARED_FILES = 10;
 
+type SharingOptions = {
+    /** The kind of file shared, used to tell whether the browser can share it. */
+    mimeType: string;
+    /** Confirmation shown after downloading, e.g. "3 fotos baixadas." */
+    downloadedMessage: (count: number) => string;
+};
+
 type ShareOptions = {
-    /** Base name of the shared files, numbered from 1. */
+    /** Base name of the shared files, numbered from 1 when there are several. */
     fileName: string;
     title: string;
     text: string;
+};
+
+const extensions: Record<string, string> = {
+    'application/pdf': 'pdf',
+    'image/png': 'png',
+    'image/webp': 'webp',
 };
 
 /**
@@ -29,48 +42,56 @@ function canShareFiles(files: File[]): boolean {
 }
 
 /**
- * Share photos through the system share sheet (WhatsApp, e-mail…), falling back to
- * downloading them where the browser cannot share files.
+ * Share files such as photos or receipts through the system share sheet (WhatsApp,
+ * e-mail…), falling back to downloading them where the browser cannot share files.
  */
-export function usePhotoSharing() {
+export function useFileSharing({
+    mimeType,
+    downloadedMessage,
+}: SharingOptions) {
     const supportsSharing = canShareFiles([
-        new File([''], 'foto.jpg', { type: 'image/jpeg' }),
+        new File([''], `arquivo.${extensions[mimeType] ?? 'jpg'}`, {
+            type: mimeType,
+        }),
     ]);
     const isPreparing = ref(false);
 
     /**
      * Files already downloaded for the last share. Some browsers (Safari) only open the
-     * share sheet right after a tap: when downloading the photos takes that moment away,
+     * share sheet right after a tap: when downloading the files takes that moment away,
      * the next tap shares these at once.
      */
     let prepared: { key: string; files: File[] } | null = null;
 
     async function filesFor(
-        photos: SharedPhoto[],
+        sharedFiles: SharedFile[],
         fileName: string,
     ): Promise<File[]> {
-        const key = photos.map((photo) => photo.id).join(',');
+        const key = sharedFiles.map((file) => file.id).join(',');
 
         if (prepared?.key === key) {
             return prepared.files;
         }
 
         const files = await Promise.all(
-            photos.map(async (photo, index) => {
-                const response = await fetch(photo.url, {
+            sharedFiles.map(async (file, index) => {
+                const response = await fetch(file.url, {
                     credentials: 'same-origin',
                 });
 
                 if (!response.ok) {
-                    throw new Error(`Photo ${photo.id} could not be loaded.`);
+                    throw new Error(`File ${file.id} could not be loaded.`);
                 }
 
                 const blob = await response.blob();
-                const suffix = photos.length > 1 ? `-${index + 1}` : '';
+                const type = blob.type || mimeType;
+                const suffix = sharedFiles.length > 1 ? `-${index + 1}` : '';
 
-                return new File([blob], `${fileName}${suffix}.jpg`, {
-                    type: blob.type || 'image/jpeg',
-                });
+                return new File(
+                    [blob],
+                    `${fileName}${suffix}.${extensions[type] ?? 'jpg'}`,
+                    { type },
+                );
             }),
         );
 
@@ -103,26 +124,22 @@ export function usePhotoSharing() {
             isPreparing.value = false;
         }
 
-        toast.success(
-            files.length === 1
-                ? 'Foto baixada.'
-                : `${files.length} fotos baixadas.`,
-        );
+        toast.success(downloadedMessage(files.length));
     }
 
     /**
-     * Download the photos in full size, with no limit on how many.
+     * Download the files, with no limit on how many.
      */
-    async function download(photos: SharedPhoto[], fileName: string) {
-        const files = await load(photos, fileName);
+    async function download(sharedFiles: SharedFile[], fileName: string) {
+        const files = await load(sharedFiles, fileName);
 
         if (files) {
             await saveFiles(files);
         }
     }
 
-    async function share(photos: SharedPhoto[], options: ShareOptions) {
-        const files = await load(photos, options.fileName);
+    async function share(sharedFiles: SharedFile[], options: ShareOptions) {
+        const files = await load(sharedFiles, options.fileName);
 
         if (!files) {
             return;
@@ -149,32 +166,34 @@ export function usePhotoSharing() {
                 error instanceof DOMException &&
                 error.name === 'NotAllowedError'
             ) {
-                toast.info('Fotos prontas. Toque em compartilhar novamente.');
+                toast.info('Pronto. Toque em compartilhar novamente.');
 
                 return;
             }
 
-            toast.error('Não foi possível compartilhar as fotos.');
+            toast.error('Não foi possível compartilhar.');
         }
     }
 
     /**
-     * Load the photos as files, telling the user when they could not be loaded.
+     * Load the files, telling the user when they could not be loaded.
      */
     async function load(
-        photos: SharedPhoto[],
+        sharedFiles: SharedFile[],
         fileName: string,
     ): Promise<File[] | null> {
-        if (photos.length === 0 || isPreparing.value) {
+        if (sharedFiles.length === 0 || isPreparing.value) {
             return null;
         }
 
         isPreparing.value = true;
 
         try {
-            return await filesFor(photos, fileName);
+            return await filesFor(sharedFiles, fileName);
         } catch {
-            toast.error('Não foi possível carregar as fotos. Tente novamente.');
+            toast.error(
+                'Não foi possível carregar os arquivos. Tente novamente.',
+            );
 
             return null;
         } finally {

@@ -11,6 +11,7 @@ import {
     paymentReferenceLabel,
     receiptTotalAmount,
 } from '@/lib/payment-labels';
+import ReceiptShareButton from '@/pages/payments/ReceiptShareButton.vue';
 import { index as paymentsIndex } from '@/routes/payments';
 import type { Owner, PaymentType, Property, Receipt, Tenant } from '@/types';
 
@@ -117,10 +118,16 @@ function print() {
                     Voltar para cobranças
                 </Link>
             </Button>
-            <Button @click="print">
-                <Printer class="size-4" />
-                Imprimir ou salvar PDF
-            </Button>
+            <div class="flex gap-2">
+                <ReceiptShareButton
+                    :receipt="receipt"
+                    :payment="receipt.payment"
+                />
+                <Button @click="print">
+                    <Printer class="size-4" />
+                    <span class="max-sm:sr-only">Imprimir ou salvar PDF</span>
+                </Button>
+            </div>
         </div>
 
         <article

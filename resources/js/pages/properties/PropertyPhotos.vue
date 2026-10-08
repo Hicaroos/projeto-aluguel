@@ -31,10 +31,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
-import {
-    MAX_SHARED_FILES,
-    usePhotoSharing,
-} from '@/composables/usePhotoSharing';
+import { MAX_SHARED_FILES, useFileSharing } from '@/composables/useFileSharing';
 import { formatCurrency } from '@/lib/currency';
 import { resizeImage } from '@/lib/image-resize';
 import { propertyTypeLabels } from '@/lib/property-labels';
@@ -58,7 +55,11 @@ const {
     isPreparing: isPreparingShare,
     share,
     download,
-} = usePhotoSharing();
+} = useFileSharing({
+    mimeType: 'image/jpeg',
+    downloadedMessage: (count) =>
+        count === 1 ? 'Foto baixada.' : `${count} fotos baixadas.`,
+});
 
 /** Short description sent along with the photos, e.g. to a client on WhatsApp. */
 const shareText = computed(() => {

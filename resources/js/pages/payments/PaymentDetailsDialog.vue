@@ -37,6 +37,7 @@ import {
     paymentStatusLabels,
     receiptTotalAmount,
 } from '@/lib/payment-labels';
+import ReceiptShareButton from '@/pages/payments/ReceiptShareButton.vue';
 import { index as leasesIndex } from '@/routes/leases';
 import { destroy, show } from '@/routes/receipts';
 import type { Payment, Receipt } from '@/types';
@@ -246,6 +247,11 @@ function confirmDelete() {
                                 Recibo
                             </a>
                         </Button>
+                        <ReceiptShareButton
+                            :receipt="receipt"
+                            :payment="payment"
+                            icon-only
+                        />
                         <Button
                             variant="ghost"
                             size="icon-sm"
