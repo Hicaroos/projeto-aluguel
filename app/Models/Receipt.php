@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\BelongsToAccount;
 use App\Concerns\SpellsMoney;
 use App\Enums\PaymentMethod;
 use Database\Factories\ReceiptFactory;
@@ -30,15 +31,7 @@ use Illuminate\Support\Carbon;
 class Receipt extends Model
 {
     /** @use HasFactory<ReceiptFactory> */
-    use HasFactory, SpellsMoney;
-
-    /**
-     * @return BelongsTo<Account, $this>
-     */
-    public function account(): BelongsTo
-    {
-        return $this->belongsTo(Account::class);
-    }
+    use BelongsToAccount, HasFactory, SpellsMoney;
 
     /**
      * @return BelongsTo<Payment, $this>

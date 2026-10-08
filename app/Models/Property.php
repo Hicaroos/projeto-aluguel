@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\BelongsToAccount;
 use App\Enums\LeaseStatus;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
@@ -58,7 +59,7 @@ use Illuminate\Support\Carbon;
 class Property extends Model
 {
     /** @use HasFactory<PropertyFactory> */
-    use HasFactory, SoftDeletes;
+    use BelongsToAccount, HasFactory, SoftDeletes;
 
     /**
      * @var array<string, string>
@@ -66,14 +67,6 @@ class Property extends Model
     protected $attributes = [
         'status' => 'available',
     ];
-
-    /**
-     * @return BelongsTo<Account, $this>
-     */
-    public function account(): BelongsTo
-    {
-        return $this->belongsTo(Account::class);
-    }
 
     /**
      * @return BelongsTo<Owner, $this>

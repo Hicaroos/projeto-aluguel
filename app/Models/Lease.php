@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\BelongsToAccount;
 use App\Enums\AdjustmentIndex;
 use App\Enums\GuaranteeType;
 use App\Enums\LeasePurpose;
@@ -84,7 +85,7 @@ use Illuminate\Support\Carbon;
 class Lease extends Model
 {
     /** @use HasFactory<LeaseFactory> */
-    use HasFactory, SoftDeletes;
+    use BelongsToAccount, HasFactory, SoftDeletes;
 
     /**
      * @var array<string, string|int>
@@ -98,14 +99,6 @@ class Lease extends Model
         'monthly_interest_percent' => '1.00',
         'termination_fee_months' => 3,
     ];
-
-    /**
-     * @return BelongsTo<Account, $this>
-     */
-    public function account(): BelongsTo
-    {
-        return $this->belongsTo(Account::class);
-    }
 
     /**
      * @return BelongsTo<Property, $this>

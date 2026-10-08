@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\BelongsToAccount;
 use App\Enums\LeaseDocumentType;
 use Database\Factories\LeaseDocumentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -34,7 +35,7 @@ use Illuminate\Support\Facades\Storage;
 class LeaseDocument extends Model
 {
     /** @use HasFactory<LeaseDocumentFactory> */
-    use HasFactory;
+    use BelongsToAccount, HasFactory;
 
     /**
      * The most documents a single lease can have.
@@ -64,14 +65,6 @@ class LeaseDocument extends Model
         static::deleted(function (LeaseDocument $document): void {
             Storage::disk(self::DISK)->delete($document->path);
         });
-    }
-
-    /**
-     * @return BelongsTo<Account, $this>
-     */
-    public function account(): BelongsTo
-    {
-        return $this->belongsTo(Account::class);
     }
 
     /**

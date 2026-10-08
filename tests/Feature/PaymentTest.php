@@ -178,7 +178,7 @@ test('a user cannot manage payments from another account', function () {
         ->assertNotFound();
     $this->actingAs($user)->delete(route('receipts.destroy', $otherReceipt))->assertNotFound();
 
-    expect(Receipt::count())->toBe(1);
+    $this->assertModelExists($otherReceipt);
 });
 
 test('a receipt can be displayed as a printable document', function () {
@@ -319,7 +319,7 @@ test('a user cannot delete an extra charge from another account', function () {
 
     $this->actingAs($user)->delete(route('payments.destroy', $otherCharge))->assertNotFound();
 
-    expect(Payment::find($otherCharge->id))->not->toBeNull();
+    $this->assertModelExists($otherCharge);
 });
 
 test('index sorts payments by due date by default and can sort by amount or filter by type', function () {

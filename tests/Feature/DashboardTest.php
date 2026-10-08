@@ -89,6 +89,7 @@ test('the dashboard items carry what their details show, so they open right ther
         'start_date' => '2025-11-01',
         'end_date' => '2026-10-31',
     ]);
+    $lease->property->update(['status' => PropertyStatus::Rented]);
     $vacant = Property::factory()->for($account, 'account')->create(['status' => PropertyStatus::Available]);
     ContractTemplate::factory()->for($account, 'account')->create(['name' => 'Residencial']);
 

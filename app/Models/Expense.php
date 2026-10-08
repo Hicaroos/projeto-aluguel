@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\BelongsToAccount;
 use App\Enums\ExpenseStatus;
 use App\Enums\ExpenseType;
 use Carbon\CarbonInterface;
@@ -32,7 +33,7 @@ use Illuminate\Support\Carbon;
 class Expense extends Model
 {
     /** @use HasFactory<ExpenseFactory> */
-    use HasFactory;
+    use BelongsToAccount, HasFactory;
 
     /**
      * @var array<string, string>
@@ -40,14 +41,6 @@ class Expense extends Model
     protected $attributes = [
         'status' => 'pending',
     ];
-
-    /**
-     * @return BelongsTo<Account, $this>
-     */
-    public function account(): BelongsTo
-    {
-        return $this->belongsTo(Account::class);
-    }
 
     /**
      * @return BelongsTo<Property, $this>

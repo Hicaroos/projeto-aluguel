@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\BelongsToAccount;
 use App\Enums\PaymentStatus;
 use App\Enums\PaymentType;
 use Carbon\CarbonInterface;
@@ -45,7 +46,7 @@ use Illuminate\Support\Carbon;
 class Payment extends Model
 {
     /** @use HasFactory<PaymentFactory> */
-    use HasFactory;
+    use BelongsToAccount, HasFactory;
 
     /**
      * @var array<string, string>
@@ -54,14 +55,6 @@ class Payment extends Model
         'type' => 'rent',
         'status' => 'pending',
     ];
-
-    /**
-     * @return BelongsTo<Account, $this>
-     */
-    public function account(): BelongsTo
-    {
-        return $this->belongsTo(Account::class);
-    }
 
     /**
      * @return BelongsTo<Lease, $this>

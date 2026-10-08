@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\BelongsToAccount;
 use Database\Factories\PropertyPhotoFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -29,7 +30,7 @@ use Illuminate\Support\Facades\Storage;
 class PropertyPhoto extends Model
 {
     /** @use HasFactory<PropertyPhotoFactory> */
-    use HasFactory;
+    use BelongsToAccount, HasFactory;
 
     /**
      * The most photos a single property can have.
@@ -59,14 +60,6 @@ class PropertyPhoto extends Model
         static::deleted(function (PropertyPhoto $photo): void {
             Storage::disk(self::DISK)->delete(array_filter([$photo->path, $photo->thumbnail_path]));
         });
-    }
-
-    /**
-     * @return BelongsTo<Account, $this>
-     */
-    public function account(): BelongsTo
-    {
-        return $this->belongsTo(Account::class);
     }
 
     /**

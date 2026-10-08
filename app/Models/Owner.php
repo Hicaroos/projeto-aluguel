@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
+use App\Concerns\BelongsToAccount;
 use App\Enums\MaritalStatus;
 use Database\Factories\OwnerFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
@@ -60,15 +60,7 @@ use Illuminate\Support\Carbon;
 class Owner extends Model
 {
     /** @use HasFactory<OwnerFactory> */
-    use HasFactory, SoftDeletes;
-
-    /**
-     * @return BelongsTo<Account, $this>
-     */
-    public function account(): BelongsTo
-    {
-        return $this->belongsTo(Account::class);
-    }
+    use BelongsToAccount, HasFactory, SoftDeletes;
 
     /**
      * @return HasMany<Property, $this>

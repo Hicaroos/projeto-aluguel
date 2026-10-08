@@ -21,8 +21,8 @@ class ReceiptFactory extends Factory
     {
         return [
             'payment_id' => Payment::factory(),
-            'account_id' => fn (array $attributes) => Payment::find($attributes['payment_id'])->account_id,
-            'amount' => fn (array $attributes) => Payment::find($attributes['payment_id'])->amount,
+            'account_id' => fn (array $attributes) => Payment::withoutGlobalScope(Payment::SCOPE)->find($attributes['payment_id'])->account_id,
+            'amount' => fn (array $attributes) => Payment::withoutGlobalScope(Payment::SCOPE)->find($attributes['payment_id'])->amount,
             'date' => today(),
             'payment_method' => PaymentMethod::Pix,
             'notes' => null,
