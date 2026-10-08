@@ -16,12 +16,9 @@ export function useOpenSelectedRecord<T extends { id: number }>(
     watch(
         selected,
         (record) => {
-            if (!record || record.id === lastOpenedId) {
+            if (!record) {
                 return;
             }
-
-            lastOpenedId = record.id;
-            open(record);
 
             const url = new URL(window.location.href);
 
@@ -29,6 +26,13 @@ export function useOpenSelectedRecord<T extends { id: number }>(
                 url.searchParams.delete('show');
                 window.history.replaceState(window.history.state, '', url);
             }
+
+            if (record.id === lastOpenedId) {
+                return;
+            }
+
+            lastOpenedId = record.id;
+            open(record);
         },
         { immediate: true },
     );

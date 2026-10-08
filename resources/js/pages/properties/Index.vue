@@ -146,6 +146,22 @@ useOpenSelectedRecord(
     (property) => (propertyToShow.value = property),
 );
 
+/** Keep the open details in sync with the reloaded page, e.g. after adding photos. */
+watch(
+    () => [props.properties, props.selected],
+    () => {
+        const shown = propertyToShow.value;
+
+        if (!shown) {
+            return;
+        }
+
+        propertyToShow.value =
+            props.properties.data.find((property) => property.id === shown.id) ??
+            (props.selected?.id === shown.id ? props.selected : shown);
+    },
+);
+
 const propertyToDelete = ref<Property | null>(null);
 const isDeleting = ref(false);
 
@@ -236,7 +252,9 @@ function confirmDelete() {
                         @click="propertyToShow = property">
                         <TableCell class="px-4 py-3">
                             <div class="flex items-center gap-3">
-                                <div
+                                <img v-if="property.photos?.length" :src="property.photos[0].thumbnail_url" alt=""
+                                    loading="lazy" class="size-10 shrink-0 rounded-lg border object-cover" />
+                                <div v-else
                                     class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                                     <component :is="propertyTypeIcons[property.type]" class="size-5" />
                                 </div>

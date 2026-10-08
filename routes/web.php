@@ -9,6 +9,7 @@ use App\Http\Controllers\LeaseController;
 use App\Http\Controllers\LeaseDepositController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PropertyController;
+use App\Http\Controllers\PropertyPhotoController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\TenantController;
 use Illuminate\Http\Request;
@@ -20,6 +21,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::resource('properties', PropertyController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::post('properties/{property}/photos', [PropertyPhotoController::class, 'store'])->name('properties.photos.store');
+    Route::get('property-photos/{photo}', [PropertyPhotoController::class, 'show'])->name('property-photos.show');
+    Route::get('property-photos/{photo}/thumbnail', [PropertyPhotoController::class, 'thumbnail'])->name('property-photos.thumbnail');
+    Route::patch('property-photos/{photo}/cover', [PropertyPhotoController::class, 'makeCover'])->name('property-photos.cover');
+    Route::delete('property-photos/{photo}', [PropertyPhotoController::class, 'destroy'])->name('property-photos.destroy');
     Route::resource('tenants', TenantController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('leases', LeaseController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::patch('leases/{lease}/finish', [LeaseController::class, 'finish'])->name('leases.finish');

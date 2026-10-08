@@ -23,6 +23,7 @@ import {
     propertyTypeIcons,
     propertyTypeLabels,
 } from '@/lib/property-labels';
+import PropertyPhotos from '@/pages/properties/PropertyPhotos.vue';
 import { index as leasesIndex } from '@/routes/leases';
 import { index as tenantsIndex } from '@/routes/tenants';
 import type { Property } from '@/types';
@@ -44,7 +45,14 @@ const emit = defineEmits<{
             class="max-h-[90dvh] overflow-y-auto sm:max-w-xl"
         >
             <DialogHeader class="flex-row items-start gap-4 text-left">
+                <img
+                    v-if="property.photos?.length"
+                    :src="property.photos[0].thumbnail_url"
+                    alt=""
+                    class="size-12 shrink-0 rounded-xl border object-cover"
+                />
                 <div
+                    v-else
                     class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
                 >
                     <component
@@ -93,6 +101,8 @@ const emit = defineEmits<{
                     </p>
                 </div>
             </div>
+
+            <PropertyPhotos :property="property" />
 
             <div class="space-y-3">
                 <h3

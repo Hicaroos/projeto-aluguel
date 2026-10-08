@@ -34,6 +34,7 @@ class PropertyController extends Controller
             ->with([
                 'activeLease:id,property_id,tenant_id,start_date,end_date,amount,due_day,status',
                 'activeLease.tenant:id,name,deleted_at',
+                'photos:id,property_id,sort_order',
             ]);
 
         $list = $properties()

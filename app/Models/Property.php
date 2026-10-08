@@ -84,11 +84,13 @@ class Property extends Model
     }
 
     /**
+     * Get the property photos, starting with the cover.
+     *
      * @return HasMany<PropertyPhoto, $this>
      */
     public function photos(): HasMany
     {
-        return $this->hasMany(PropertyPhoto::class);
+        return $this->hasMany(PropertyPhoto::class)->orderBy('sort_order')->orderBy('id');
     }
 
     /**

@@ -28,6 +28,16 @@ export type Property = {
     updated_at: string;
     /** Loaded on the properties list: the lease currently renting the property. */
     active_lease?: PropertyActiveLease | null;
+    /** Loaded on the properties list, starting with the cover. */
+    photos?: PropertyPhoto[];
+};
+
+export type PropertyPhoto = {
+    id: number;
+    property_id: number;
+    sort_order: number;
+    url: string;
+    thumbnail_url: string;
 };
 
 export type PropertyPaginator = Paginator<Property>;
