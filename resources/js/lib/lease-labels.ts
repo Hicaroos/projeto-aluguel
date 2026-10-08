@@ -4,6 +4,7 @@ import type {
     GuaranteeType,
     Lease,
     LeaseAdjustmentStatus,
+    LeaseDocumentType,
     LeasePurpose,
     LeaseStatus,
 } from '@/types';
@@ -97,6 +98,15 @@ export const guaranteeTypeLabels: Record<GuaranteeType, string> = {
     deposit: 'Caução',
     guarantor: 'Fiador',
     surety_bond: 'Seguro-fiança',
+};
+
+export const leaseDocumentTypeLabels: Record<LeaseDocumentType, string> = {
+    signed_contract: 'Contrato assinado',
+    move_in_inspection: 'Vistoria de entrada',
+    move_out_inspection: 'Vistoria de saída',
+    amendment: 'Aditivo',
+    tenant_document: 'Documento do inquilino',
+    other: 'Outro',
 };
 
 export const leasePurposeLabels: Record<LeasePurpose, string> = {

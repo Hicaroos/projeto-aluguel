@@ -152,6 +152,22 @@ useOpenSelectedRecord(
     (lease) => (leaseToShow.value = lease),
 );
 
+/** Keep the open details in sync with the reloaded page, e.g. after attaching documents. */
+watch(
+    () => [props.leases, props.selected],
+    () => {
+        const shown = leaseToShow.value;
+
+        if (!shown) {
+            return;
+        }
+
+        leaseToShow.value =
+            props.leases.data.find((lease) => lease.id === shown.id) ??
+            (props.selected?.id === shown.id ? props.selected : shown);
+    },
+);
+
 const leaseToFinish = ref<Lease | null>(null);
 
 const leaseToAdjust = ref<Lease | null>(null);

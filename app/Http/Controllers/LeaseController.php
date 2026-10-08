@@ -42,6 +42,7 @@ class LeaseController extends Controller
                 'tenant:id,name,email,phone,deleted_at',
                 'guarantor',
                 'adjustments',
+                'documents',
                 'openPayments' => fn ($query) => $query
                     ->select(['id', 'lease_id', 'type', 'description', 'reference_month', 'due_date', 'amount', 'status'])
                     ->withSum('receipts as received_amount', 'amount'),

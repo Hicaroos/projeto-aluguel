@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Concerns;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Uri;
 
 trait ResolvesSelectedRecord
 {
@@ -35,5 +37,14 @@ trait ResolvesSelectedRecord
     protected function queryWithoutSelection(Request $request): array
     {
         return Arr::except($request->query(), ['show', 'page']);
+    }
+
+    /**
+     * Go back to the previous page with the given record selected, so its open details
+     * show the change even when the record is not on the current page of the list.
+     */
+    protected function backWithSelectedRecord(int $id): RedirectResponse
+    {
+        return redirect()->to((string) Uri::of(url()->previous())->withQuery(['show' => $id]));
     }
 }

@@ -7,6 +7,7 @@ use App\Http\Controllers\LeaseAdjustmentController;
 use App\Http\Controllers\LeaseContractController;
 use App\Http\Controllers\LeaseController;
 use App\Http\Controllers\LeaseDepositController;
+use App\Http\Controllers\LeaseDocumentController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\PropertyPhotoController;
@@ -32,6 +33,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('leases/{lease}/contract', [LeaseContractController::class, 'show'])->name('leases.contract');
     Route::post('leases/{lease}/adjustments', [LeaseAdjustmentController::class, 'store'])->name('leases.adjustments.store');
     Route::post('leases/{lease}/deposit-settlement', [LeaseDepositController::class, 'store'])->name('leases.deposit-settlement.store');
+    Route::post('leases/{lease}/documents', [LeaseDocumentController::class, 'store'])->name('leases.documents.store');
+    Route::get('lease-documents/{document}', [LeaseDocumentController::class, 'show'])->name('lease-documents.show');
+    Route::get('lease-documents/{document}/download', [LeaseDocumentController::class, 'download'])->name('lease-documents.download');
+    Route::delete('lease-documents/{document}', [LeaseDocumentController::class, 'destroy'])->name('lease-documents.destroy');
 
     Route::post('contract-templates/preview', [ContractTemplateController::class, 'preview'])->name('contract-templates.preview');
     Route::resource('contract-templates', ContractTemplateController::class)->except('show');

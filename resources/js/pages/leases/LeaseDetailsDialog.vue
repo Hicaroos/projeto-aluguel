@@ -60,6 +60,7 @@ import {
     formatPersonAddress,
     formatPersonQualification,
 } from '@/lib/person-labels';
+import LeaseDocuments from '@/pages/leases/LeaseDocuments.vue';
 import { contract } from '@/routes/leases';
 import { index as paymentsIndex } from '@/routes/payments';
 import { index as propertiesIndex } from '@/routes/properties';
@@ -444,6 +445,8 @@ const formatPercent = (value: string): string =>
                     </li>
                 </ul>
             </div>
+
+            <LeaseDocuments :lease="lease" />
 
             <div v-if="lease.notes" class="space-y-3">
                 <h3

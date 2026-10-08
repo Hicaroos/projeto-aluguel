@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
 use App\Http\Requests\PropertyPhotoRequest;
 use App\Models\Property;
 use App\Models\PropertyPhoto;
@@ -10,12 +11,13 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Uri;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PropertyPhotoController extends Controller
 {
+    use ResolvesSelectedRecord;
+
     /**
      * Serve the photo in full size.
      */
@@ -56,7 +58,7 @@ class PropertyPhotoController extends Controller
             'sort_order' => (int) $property->photos()->max('sort_order') + 1,
         ]);
 
-        return $this->backToProperty($property);
+        return $this->backWithSelectedRecord($property->id);
     }
 
     /**
@@ -78,7 +80,7 @@ class PropertyPhotoController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Foto de capa atualizada.')]);
 
-        return $this->backToProperty($photo->property);
+        return $this->backWithSelectedRecord($photo->property_id);
     }
 
     /**
@@ -92,7 +94,7 @@ class PropertyPhotoController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Foto removida.')]);
 
-        return $this->backToProperty($photo->property);
+        return $this->backWithSelectedRecord($photo->property_id);
     }
 
     private function serve(string $path): StreamedResponse
@@ -102,14 +104,5 @@ class PropertyPhotoController extends Controller
         return Storage::disk(PropertyPhoto::DISK)->response($path, null, [
             'Cache-Control' => 'private, max-age=604800, immutable',
         ]);
-    }
-
-    /**
-     * Go back to the previous page with the property details open, so they show the
-     * updated photos even when the property is not on the current page of the list.
-     */
-    private function backToProperty(Property $property): RedirectResponse
-    {
-        return redirect()->to((string) Uri::of(url()->previous())->withQuery(['show' => $property->id]));
     }
 }

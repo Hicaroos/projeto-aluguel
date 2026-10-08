@@ -53,6 +53,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, Payment> $payments
  * @property-read Collection<int, Payment> $openPayments
  * @property-read Collection<int, LeaseAdjustment> $adjustments
+ * @property-read Collection<int, LeaseDocument> $documents
  * @property-read int|null $adjustments_count
  * @property-read string|null $next_adjustment_date The next anniversary the rent can be adjusted on, as Y-m-d.
  * @property-read string|null $adjustment_status 'available' within 30 days of the anniversary, 'overdue' after it.
@@ -176,6 +177,16 @@ class Lease extends Model
     public function adjustments(): HasMany
     {
         return $this->hasMany(LeaseAdjustment::class)->orderBy('effective_on');
+    }
+
+    /**
+     * Get the files attached to the lease, newest first.
+     *
+     * @return HasMany<LeaseDocument, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(LeaseDocument::class)->latest('id');
     }
 
     /**

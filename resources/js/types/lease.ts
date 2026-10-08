@@ -71,6 +71,8 @@ export type Lease = {
     property: LeasePropertyOption & Pick<Property, 'type'>;
     tenant: Pick<Tenant, 'id' | 'name' | 'email' | 'phone'>;
     adjustments: LeaseAdjustment[];
+    /** Files attached to the lease, newest first. */
+    documents: LeaseDocument[];
     /** The next anniversary the rent can be adjusted on, if any. */
     next_adjustment_date: string | null;
     adjustment_status: LeaseAdjustmentStatus | null;
@@ -80,6 +82,28 @@ export type LeasePaginator = Paginator<Lease>;
 
 /** 'available' within 30 days of the anniversary, 'overdue' after it. */
 export type LeaseAdjustmentStatus = 'available' | 'overdue';
+
+export type LeaseDocumentType =
+    | 'signed_contract'
+    | 'move_in_inspection'
+    | 'move_out_inspection'
+    | 'amendment'
+    | 'tenant_document'
+    | 'other';
+
+export type LeaseDocument = {
+    id: number;
+    lease_id: number;
+    type: LeaseDocumentType;
+    /** The file name as uploaded. */
+    name: string;
+    mime_type: string;
+    /** In bytes. */
+    size: number;
+    created_at: string;
+    url: string;
+    download_url: string;
+};
 
 export type LeaseAdjustment = {
     id: number;

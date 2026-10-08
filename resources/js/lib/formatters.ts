@@ -67,6 +67,15 @@ export function formatDate(value: string): string {
     return new Intl.DateTimeFormat('pt-BR').format(parseDate(value));
 }
 
+/** Format a size in bytes as e.g. "850 KB" or "2,4 MB". */
+export function formatFileSize(bytes: number): string {
+    if (bytes < 1024 * 1024) {
+        return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    }
+
+    return `${(bytes / (1024 * 1024)).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} MB`;
+}
+
 /** The app's "today" sent by the server, which may be a simulated date (APP_FAKE_TODAY). */
 let serverToday: string | null = null;
 
