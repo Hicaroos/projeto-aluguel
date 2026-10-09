@@ -115,7 +115,9 @@ return [
     */
 
     'limiters' => [
-        'login' => 'login',
+        // No route limiter: Fortify then throttles logins itself (five attempts per minute for
+        // each email and IP) and answers with a validation message instead of a bare 429 page.
+        'login' => null,
         'two-factor' => 'two-factor',
     ],
 
