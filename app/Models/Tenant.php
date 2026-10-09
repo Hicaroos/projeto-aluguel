@@ -147,7 +147,7 @@ class Tenant extends Model
      * people it deals with.
      *
      * @param  Builder<static>  $query
-     * @param  list<int>  $branchIds
+     * @param  array<int, int>  $branchIds
      */
     public static function restrictToBranches(Builder $query, array $branchIds): void
     {

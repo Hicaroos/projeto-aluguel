@@ -39,14 +39,14 @@ class DeleteAccount
     private const array LEASE_TABLES = ['guarantors', 'lease_adjustments', 'lease_renewals'];
 
     /**
-     * Remove the user leaving the account. When they are its only user, the whole account
-     * goes with them: every record and every stored file, so nothing is left behind.
+     * Remove the user leaving the account. When they created the account, the whole account
+     * goes with them, team included: every record and every stored file, so nothing is left behind.
      */
     public function handle(User $user): void
     {
         $account = $user->account;
 
-        if ($account === null || $account->users()->whereKeyNot($user->id)->exists()) {
+        if ($account === null || ! $user->isAccountOwner()) {
             $user->delete();
 
             return;
@@ -61,9 +61,11 @@ class DeleteAccount
         $leaseIds = DB::table('leases')->where('account_id', $account->id)->pluck('id');
 
         DB::transaction(function () use ($account, $leaseIds): void {
-            DB::table('branch_tenant')
-                ->whereIn('branch_id', DB::table('branches')->where('account_id', $account->id)->select('id'))
-                ->delete();
+            foreach (['branch_tenant', 'branch_user'] as $pivot) {
+                DB::table($pivot)
+                    ->whereIn('branch_id', DB::table('branches')->where('account_id', $account->id)->select('id'))
+                    ->delete();
+            }
 
             foreach (self::LEASE_TABLES as $table) {
                 DB::table($table)->whereIn('lease_id', $leaseIds)->delete();

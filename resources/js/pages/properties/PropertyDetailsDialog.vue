@@ -14,6 +14,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { getInitials } from '@/composables/useInitials';
+import { usePermissions } from '@/composables/usePermissions';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate, formatZipCode } from '@/lib/formatters';
 import {
@@ -31,6 +32,8 @@ import type { Property } from '@/types';
 defineProps<{
     property: Property | null;
 }>();
+
+const can = usePermissions();
 
 const emit = defineEmits<{
     close: [];
@@ -229,7 +232,10 @@ const emit = defineEmits<{
                 <DialogClose as-child>
                     <Button variant="outline">Fechar</Button>
                 </DialogClose>
-                <Button @click="emit('edit', property)">
+                <Button
+                    v-if="can.manageRentals"
+                    @click="emit('edit', property)"
+                >
                     <Pencil class="size-4" />
                     Editar imóvel
                 </Button>

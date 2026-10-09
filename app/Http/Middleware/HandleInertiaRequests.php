@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\Permission;
 use App\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -45,8 +46,12 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user()?->load('account'),
                 'can' => [
-                    'manageAgency' => $request->user()?->can('manage-agency') ?? false,
+                    'manageAgency' => $request->user()?->can(Permission::ManageAgency->value) ?? false,
+                    'manageRentals' => $request->user()?->can(Permission::ManageRentals->value) ?? false,
+                    'registerReceipts' => $request->user()?->can(Permission::RegisterReceipts->value) ?? false,
+                    'manageFinance' => $request->user()?->can(Permission::ManageFinance->value) ?? false,
                 ],
+                'isAccountOwner' => $request->user()?->isAccountOwner() ?? false,
             ],
             'branchSelector' => fn (): ?array => $this->branchSelector($request),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',

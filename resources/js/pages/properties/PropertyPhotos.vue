@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
 import { MAX_SHARED_FILES, useFileSharing } from '@/composables/useFileSharing';
+import { usePermissions } from '@/composables/usePermissions';
 import { formatCurrency } from '@/lib/currency';
 import { resizeImage } from '@/lib/image-resize';
 import { propertyTypeLabels } from '@/lib/property-labels';
@@ -42,6 +43,8 @@ const MAX_PHOTOS = 20;
 /** Longest side, in pixels, of the uploaded photo and of its thumbnail. */
 const PHOTO_SIZE = 1920;
 const THUMBNAIL_SIZE = 480;
+
+const can = usePermissions();
 
 const props = defineProps<{
     property: Property;
@@ -332,7 +335,7 @@ function showPhoto(offset: number) {
                     Baixar fotos
                 </Button>
                 <Button
-                    v-if="remaining > 0"
+                    v-if="can.manageRentals && remaining > 0"
                     variant="outline"
                     size="sm"
                     :disabled="!!upload"
@@ -353,8 +356,15 @@ function showPhoto(offset: number) {
             @change="uploadFiles"
         />
 
+        <p
+            v-if="photos.length === 0 && !upload && !can.manageRentals"
+            class="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground"
+        >
+            Nenhuma foto cadastrada.
+        </p>
+
         <button
-            v-if="photos.length === 0 && !upload"
+            v-else-if="photos.length === 0 && !upload"
             type="button"
             class="flex w-full flex-col items-center gap-2 rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/40"
             @click="chooseFiles"
@@ -395,7 +405,7 @@ function showPhoto(offset: number) {
                 >
                     <Spinner />
                 </div>
-                <DropdownMenu>
+                <DropdownMenu v-if="can.manageRentals">
                     <DropdownMenuTrigger as-child>
                         <Button
                             variant="secondary"
@@ -507,7 +517,7 @@ function showPhoto(offset: number) {
                             Baixar
                         </Button>
                         <Button
-                            v-if="viewingIndex > 0"
+                            v-if="can.manageRentals && viewingIndex > 0"
                             variant="outline"
                             size="sm"
                             :disabled="processingPhotoId === viewingPhoto.id"
@@ -517,6 +527,7 @@ function showPhoto(offset: number) {
                             Definir como capa
                         </Button>
                         <Button
+                            v-if="can.manageRentals"
                             variant="outline"
                             size="sm"
                             class="text-destructive hover:text-destructive"

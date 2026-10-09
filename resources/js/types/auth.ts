@@ -37,7 +37,15 @@ export type Auth = {
     can: {
         /** Manage the agency: its details, branches and team. */
         manageAgency: boolean;
+        /** Create and change properties, tenants, leases and contract templates. */
+        manageRentals: boolean;
+        /** See the payments and register what tenants paid. */
+        registerReceipts: boolean;
+        /** Extra charges, undoing receipts, deposits, expenses and revenue figures. */
+        manageFinance: boolean;
     };
+    /** Whether the user created the account, and so may delete it. */
+    isAccountOwner: boolean;
 };
 
 /* @chisel-passkeys */

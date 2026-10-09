@@ -92,7 +92,7 @@ class PropertyPhoto extends Model
      * Limit the query to the photos of the properties of the given branches.
      *
      * @param  Builder<static>  $query
-     * @param  list<int>  $branchIds
+     * @param  array<int, int>  $branchIds
      */
     public static function restrictToBranches(Builder $query, array $branchIds): void
     {

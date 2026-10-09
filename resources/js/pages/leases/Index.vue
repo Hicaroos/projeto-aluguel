@@ -56,6 +56,7 @@ import {
 } from '@/components/ui/table';
 import { getInitials } from '@/composables/useInitials';
 import { useOpenSelectedRecord } from '@/composables/useOpenSelectedRecord';
+import { usePermissions } from '@/composables/usePermissions';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate } from '@/lib/formatters';
 import {
@@ -83,6 +84,8 @@ import type {
     LeaseStatus,
     LeaseTenantOption,
 } from '@/types';
+
+const can = usePermissions();
 
 const props = defineProps<{
     leases: LeasePaginator;
@@ -303,7 +306,7 @@ function confirmDelete() {
             title="Contratos"
             description="Acompanhe a vigência e os valores dos contratos de aluguel."
         >
-            <Button @click="openCreateDialog">
+            <Button v-if="can.manageRentals" @click="openCreateDialog">
                 <Plus class="size-4" />
                 Cadastrar contrato
             </Button>
@@ -492,7 +495,12 @@ function confirmDelete() {
                                         <Eye class="size-4" />
                                         Ver detalhes
                                     </DropdownMenuItem>
-                                    <template v-if="lease.status === 'active'">
+                                    <template
+                                        v-if="
+                                            can.manageRentals &&
+                                            lease.status === 'active'
+                                        "
+                                    >
                                         <DropdownMenuItem
                                             @click="openEditDialog(lease)"
                                         >
@@ -512,14 +520,16 @@ function confirmDelete() {
                                             Finalizar contrato
                                         </DropdownMenuItem>
                                     </template>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                        variant="destructive"
-                                        @click="leaseToDelete = lease"
-                                    >
-                                        <Trash2 class="size-4" />
-                                        Excluir
-                                    </DropdownMenuItem>
+                                    <template v-if="can.manageRentals">
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                            variant="destructive"
+                                            @click="leaseToDelete = lease"
+                                        >
+                                            <Trash2 class="size-4" />
+                                            Excluir
+                                        </DropdownMenuItem>
+                                    </template>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </TableCell>

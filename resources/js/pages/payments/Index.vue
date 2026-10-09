@@ -56,6 +56,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { getInitials } from '@/composables/useInitials';
+import { usePermissions } from '@/composables/usePermissions';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate, formatMonthYear } from '@/lib/formatters';
 import {
@@ -85,6 +86,8 @@ import type {
     PaymentSummary,
     PaymentType,
 } from '@/types';
+
+const can = usePermissions();
 
 const props = defineProps<{
     payments: PaymentPaginator;
@@ -241,7 +244,10 @@ function openRegisterDialog(paymentId: number) {
                     Todas as cobranças
                 </Link>
             </Button>
-            <Button @click="isExtraChargeDialogOpen = true">
+            <Button
+                v-if="can.manageFinance"
+                @click="isExtraChargeDialogOpen = true"
+            >
                 <Plus class="size-4" />
                 Cobrança avulsa
             </Button>
@@ -256,7 +262,10 @@ function openRegisterDialog(paymentId: number) {
                 :month="filters.month"
                 @change="(month) => visit({ month })"
             />
-            <Button @click="isExtraChargeDialogOpen = true">
+            <Button
+                v-if="can.manageFinance"
+                @click="isExtraChargeDialogOpen = true"
+            >
                 <Plus class="size-4" />
                 Cobrança avulsa
             </Button>
@@ -553,7 +562,10 @@ function openRegisterDialog(paymentId: number) {
                                             Registrar pagamento
                                         </DropdownMenuItem>
                                         <template
-                                            v-if="isDeletableCharge(payment)"
+                                            v-if="
+                                                can.manageFinance &&
+                                                isDeletableCharge(payment)
+                                            "
                                         >
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem

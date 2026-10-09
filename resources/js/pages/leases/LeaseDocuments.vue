@@ -42,6 +42,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { usePermissions } from '@/composables/usePermissions';
 import { formatDate, formatFileSize } from '@/lib/formatters';
 import { resizeImage } from '@/lib/image-resize';
 import { leaseDocumentTypeLabels } from '@/lib/lease-labels';
@@ -52,6 +53,8 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 /** Longest side, in pixels, of photographed pages: enough to keep the text legible. */
 const PAGE_IMAGE_SIZE = 2400;
+
+const can = usePermissions();
 
 const props = defineProps<{
     lease: Lease;
@@ -203,7 +206,9 @@ function confirmDelete() {
                 Documentos
             </h3>
             <Button
-                v-if="documents.length > 0 && remaining > 0"
+                v-if="
+                    can.manageRentals && documents.length > 0 && remaining > 0
+                "
                 variant="outline"
                 size="sm"
                 @click="openUploadDialog"
@@ -213,8 +218,15 @@ function confirmDelete() {
             </Button>
         </div>
 
+        <p
+            v-if="documents.length === 0 && !can.manageRentals"
+            class="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground"
+        >
+            Nenhum documento anexado.
+        </p>
+
         <button
-            v-if="documents.length === 0"
+            v-else-if="documents.length === 0"
             type="button"
             class="flex w-full flex-col items-center gap-2 rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/40"
             @click="openUploadDialog"
@@ -273,14 +285,16 @@ function confirmDelete() {
                                 Baixar
                             </a>
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            variant="destructive"
-                            @click="documentToDelete = document"
-                        >
-                            <Trash2 class="size-4" />
-                            Remover
-                        </DropdownMenuItem>
+                        <template v-if="can.manageRentals">
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                variant="destructive"
+                                @click="documentToDelete = document"
+                            >
+                                <Trash2 class="size-4" />
+                                Remover
+                            </DropdownMenuItem>
+                        </template>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </li>

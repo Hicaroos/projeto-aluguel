@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Form } from '@inertiajs/vue3';
-import { useTemplateRef } from 'vue';
+import { Form, usePage } from '@inertiajs/vue3';
+import { computed, useTemplateRef } from 'vue';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
@@ -19,6 +19,13 @@ import {
 import { Label } from '@/components/ui/label';
 
 const passwordInput = useTemplateRef('passwordInput');
+
+const page = usePage();
+
+/** Whoever created the account deletes it all; team members only remove their own access. */
+const isAccountOwner = computed(() => page.props.auth.isAccountOwner);
+
+const hasTeam = computed(() => page.props.auth.user.account?.type === 'agency');
 </script>
 
 <template>
@@ -26,7 +33,11 @@ const passwordInput = useTemplateRef('passwordInput');
         <Heading
             variant="small"
             title="Excluir conta"
-            description="Exclua sua conta e todos os seus recursos"
+            :description="
+                isAccountOwner
+                    ? 'Exclua sua conta e todos os seus recursos'
+                    : 'Exclua o seu acesso ao sistema da imobiliária'
+            "
         />
         <div
             class="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10"
@@ -59,18 +70,23 @@ const passwordInput = useTemplateRef('passwordInput');
                                 >Tem certeza que deseja excluir sua
                                 conta?</DialogTitle
                             >
-                            <DialogDescription>
+                            <DialogDescription v-if="isAccountOwner">
                                 Todos os dados da conta serão apagados
-                                definitivamente: imóveis, inquilinos,
-                                contratos, cobranças, recibos, despesas, fotos e
-                                documentos. Digite sua senha para confirmar.
+                                definitivamente: imóveis, inquilinos, contratos,
+                                cobranças, recibos, despesas, fotos e
+                                documentos<template v-if="hasTeam"
+                                    >, além do acesso de toda a equipe</template
+                                >. Digite sua senha para confirmar.
+                            </DialogDescription>
+                            <DialogDescription v-else>
+                                Você perde o acesso ao sistema. Os dados da
+                                imobiliária continuam disponíveis para a equipe.
+                                Digite sua senha para confirmar.
                             </DialogDescription>
                         </DialogHeader>
 
                         <div class="grid gap-2">
-                            <Label for="password" class="sr-only"
-                                >Senha</Label
-                            >
+                            <Label for="password" class="sr-only">Senha</Label>
                             <PasswordInput
                                 id="password"
                                 name="password"

@@ -338,7 +338,7 @@ class Lease extends Model
      * Limit the query to the leases of the properties of the given branches.
      *
      * @param  Builder<static>  $query
-     * @param  list<int>  $branchIds
+     * @param  array<int, int>  $branchIds
      */
     public static function restrictToBranches(Builder $query, array $branchIds): void
     {
@@ -348,7 +348,7 @@ class Lease extends Model
     /**
      * Get a subquery selecting the ids of the leases of the given branches, deleted ones included.
      *
-     * @param  list<int>  $branchIds
+     * @param  array<int, int>  $branchIds
      * @return Builder<Lease>
      */
     public static function idsInBranches(array $branchIds): Builder

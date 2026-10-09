@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
 import {
     Building2,
     Coins,
@@ -8,6 +8,7 @@ import {
     House,
     LayoutGrid,
     ReceiptText,
+    UserCog,
     Users,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -24,6 +25,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { usePermissions } from '@/composables/usePermissions';
 import { dashboard } from '@/routes';
 import { index as branches } from '@/routes/branches';
 import { index as contractTemplates } from '@/routes/contract-templates';
@@ -31,12 +33,13 @@ import { index as expenses } from '@/routes/expenses';
 import { index as leases } from '@/routes/leases';
 import { index as payments } from '@/routes/payments';
 import { index as properties } from '@/routes/properties';
+import { index as team } from '@/routes/team';
 import { index as tenants } from '@/routes/tenants';
 import type { NavItem } from '@/types';
 
-const page = usePage();
+const can = usePermissions();
 
-const mainNavItems: NavItem[] = [
+const mainNavItems = computed<NavItem[]>(() => [
     {
         title: 'Dashboard',
         href: dashboard(),
@@ -57,21 +60,34 @@ const mainNavItems: NavItem[] = [
         href: leases(),
         icon: FileText,
     },
-    {
-        title: 'Cobranças',
-        href: payments(),
-        icon: ReceiptText,
-    },
-    {
-        title: 'Despesas',
-        href: expenses(),
-        icon: Coins,
-    },
-];
+    ...(can.value.registerReceipts
+        ? [
+              {
+                  title: 'Cobranças',
+                  href: payments(),
+                  icon: ReceiptText,
+              },
+          ]
+        : []),
+    ...(can.value.manageFinance
+        ? [
+              {
+                  title: 'Despesas',
+                  href: expenses(),
+                  icon: Coins,
+              },
+          ]
+        : []),
+]);
 
 const managementNavItems = computed<NavItem[]>(() =>
-    page.props.auth.can.manageAgency
+    can.value.manageAgency
         ? [
+              {
+                  title: 'Equipe',
+                  href: team(),
+                  icon: UserCog,
+              },
               {
                   title: 'Unidades',
                   href: branches(),
@@ -81,13 +97,17 @@ const managementNavItems = computed<NavItem[]>(() =>
         : [],
 );
 
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Modelos de contrato',
-        href: contractTemplates(),
-        icon: FileSignature,
-    },
-];
+const footerNavItems = computed<NavItem[]>(() =>
+    can.value.manageRentals
+        ? [
+              {
+                  title: 'Modelos de contrato',
+                  href: contractTemplates(),
+                  icon: FileSignature,
+              },
+          ]
+        : [],
+);
 </script>
 
 <template>
@@ -114,7 +134,10 @@ const footerNavItems: NavItem[] = [
         </SidebarContent>
 
         <SidebarFooter>
-            <NavFooter :items="footerNavItems" />
+            <NavFooter
+                v-if="footerNavItems.length > 0"
+                :items="footerNavItems"
+            />
             <NavUser />
         </SidebarFooter>
     </Sidebar>

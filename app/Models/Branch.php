@@ -125,7 +125,7 @@ class Branch extends Model
      *
      * Remembered for the rest of the request, since every branch scoped query asks for it.
      *
-     * @return list<int>|null
+     * @return array<int, int>|null
      */
     public static function visibleIds(): ?array
     {

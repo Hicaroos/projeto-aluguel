@@ -49,6 +49,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { useOpenSelectedRecord } from '@/composables/useOpenSelectedRecord';
+import { usePermissions } from '@/composables/usePermissions';
 import { formatCurrency } from '@/lib/currency';
 import { formatZipCode } from '@/lib/formatters';
 import {
@@ -84,6 +85,8 @@ const props = defineProps<{
     owners: PropertyOwnerOption[];
     branches: BranchOption[];
 }>();
+
+const can = usePermissions();
 
 defineOptions({
     layout: {
@@ -207,7 +210,7 @@ function confirmDelete() {
 
     <div class="flex flex-1 flex-col gap-6 p-4 md:p-6">
         <PageHeader title="Imóveis" description="Cadastre e acompanhe todos os imóveis da sua carteira.">
-            <Button @click="openCreateDialog">
+            <Button v-if="can.manageRentals" @click="openCreateDialog">
                 <Plus class="size-4" />
                 Cadastrar imóvel
             </Button>
@@ -326,15 +329,17 @@ function confirmDelete() {
                                         <Eye class="size-4" />
                                         Ver detalhes
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem @click="openEditDialog(property)">
-                                        <Pencil class="size-4" />
-                                        Editar
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem variant="destructive" @click="propertyToDelete = property">
-                                        <Trash2 class="size-4" />
-                                        Excluir
-                                    </DropdownMenuItem>
+                                    <template v-if="can.manageRentals">
+                                        <DropdownMenuItem @click="openEditDialog(property)">
+                                            <Pencil class="size-4" />
+                                            Editar
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem variant="destructive" @click="propertyToDelete = property">
+                                            <Trash2 class="size-4" />
+                                            Excluir
+                                        </DropdownMenuItem>
+                                    </template>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </TableCell>

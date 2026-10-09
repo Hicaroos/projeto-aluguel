@@ -6,11 +6,12 @@ export type DashboardStats = {
     received: number;
     overdue: number;
     overdueCount: number;
-    expensesPaid: number;
-    expensesPending: number;
+    /** Only for people who handle the money. */
+    expensesPaid?: number;
+    expensesPending?: number;
     /** Late fees and interest received this month, included in the net income. */
     charges: number;
-    netIncome: number;
+    netIncome?: number;
     properties: number;
     rentedProperties: number;
     activeLeases: number;

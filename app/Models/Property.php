@@ -186,7 +186,7 @@ class Property extends Model
      * Limit the query to the properties of the given branches.
      *
      * @param  Builder<static>  $query
-     * @param  list<int>  $branchIds
+     * @param  array<int, int>  $branchIds
      */
     public static function restrictToBranches(Builder $query, array $branchIds): void
     {
@@ -196,7 +196,7 @@ class Property extends Model
     /**
      * Get a subquery selecting the ids of the properties of the given branches, deleted ones included.
      *
-     * @param  list<int>  $branchIds
+     * @param  array<int, int>  $branchIds
      * @return Builder<Property>
      */
     public static function idsInBranches(array $branchIds): Builder

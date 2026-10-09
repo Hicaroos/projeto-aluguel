@@ -24,6 +24,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getInitials } from '@/composables/useInitials';
+import { usePermissions } from '@/composables/usePermissions';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate, formatMonthYear } from '@/lib/formatters';
 import {
@@ -87,6 +88,7 @@ defineOptions({
 });
 
 const page = usePage();
+const can = usePermissions();
 const firstName = computed(
     () => page.props.auth.user.name.trim().split(/\s+/)[0],
 );
@@ -116,8 +118,10 @@ const onboardingSteps = computed(() => [
     },
 ]);
 
-const showOnboarding = computed(() =>
-    onboardingSteps.value.some((step) => !step.done),
+const showOnboarding = computed(
+    () =>
+        can.value.manageRentals &&
+        onboardingSteps.value.some((step) => !step.done),
 );
 
 const payments = computed(() => [
@@ -267,7 +271,10 @@ const clickableRow =
             </ol>
         </DashboardPanel>
 
-        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div
+            class="grid gap-4 sm:grid-cols-2"
+            :class="can.manageFinance ? 'xl:grid-cols-4' : 'xl:grid-cols-3'"
+        >
             <div class="rounded-xl border bg-card p-5 shadow-xs">
                 <div class="flex items-center justify-between">
                     <p class="text-sm text-muted-foreground">Recebido no mês</p>
@@ -363,7 +370,10 @@ const clickableRow =
                 </div>
             </div>
 
-            <div class="rounded-xl border bg-card p-5 shadow-xs">
+            <div
+                v-if="can.manageFinance"
+                class="rounded-xl border bg-card p-5 shadow-xs"
+            >
                 <div class="flex items-center justify-between">
                     <p class="text-sm text-muted-foreground">
                         Resultado do mês
@@ -377,12 +387,12 @@ const clickableRow =
                 <p
                     class="mt-2 text-2xl font-semibold tabular-nums"
                     :class="
-                        stats.netIncome < 0
+                        (stats.netIncome ?? 0) < 0
                             ? 'text-rose-600 dark:text-rose-400'
                             : ''
                     "
                 >
-                    {{ formatCurrency(stats.netIncome) }}
+                    {{ formatCurrency(stats.netIncome ?? 0) }}
                 </p>
                 <dl class="mt-3 space-y-1 border-t pt-3 text-xs tabular-nums">
                     <div class="flex items-center justify-between gap-2">
@@ -404,18 +414,20 @@ const clickableRow =
                         <dt class="text-muted-foreground">
                             Despesas pagas
                             <span
-                                v-if="stats.expensesPending > 0"
+                                v-if="(stats.expensesPending ?? 0) > 0"
                                 class="text-muted-foreground/70"
-                                :title="`${formatCurrency(stats.expensesPending)} em despesas ainda a pagar neste mês`"
+                                :title="`${formatCurrency(stats.expensesPending ?? 0)} em despesas ainda a pagar neste mês`"
                             >
-                                ({{ formatCurrency(stats.expensesPending) }} a
-                                pagar)
+                                ({{
+                                    formatCurrency(stats.expensesPending ?? 0)
+                                }}
+                                a pagar)
                             </span>
                         </dt>
                         <dd
                             class="font-medium text-rose-600 dark:text-rose-400"
                         >
-                            − {{ formatCurrency(stats.expensesPaid) }}
+                            − {{ formatCurrency(stats.expensesPaid ?? 0) }}
                         </dd>
                     </div>
                 </dl>
@@ -579,6 +591,7 @@ const clickableRow =
                             </Badge>
                         </div>
                         <Button
+                            v-if="can.manageRentals"
                             variant="outline"
                             size="sm"
                             @click.stop="openLeaseAction(lease, 'adjust')"
@@ -650,6 +663,7 @@ const clickableRow =
                             </p>
                         </div>
                         <Button
+                            v-if="can.manageRentals"
                             variant="outline"
                             size="sm"
                             @click.stop="openLeaseAction(lease, 'renew')"

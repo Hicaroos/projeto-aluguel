@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/table';
 import { getInitials } from '@/composables/useInitials';
 import { useOpenSelectedRecord } from '@/composables/useOpenSelectedRecord';
+import { usePermissions } from '@/composables/usePermissions';
 import { formatDate, formatDocument, formatPhone } from '@/lib/formatters';
 import { nextSort } from '@/lib/table-sort';
 import type { TableSort } from '@/lib/table-sort';
@@ -51,6 +52,8 @@ import TenantDetailsDialog from '@/pages/tenants/TenantDetailsDialog.vue';
 import TenantForm from '@/pages/tenants/TenantForm.vue';
 import { destroy, index } from '@/routes/tenants';
 import type { Tenant, TenantPaginator } from '@/types';
+
+const can = usePermissions();
 
 const props = defineProps<{
     tenants: TenantPaginator;
@@ -134,7 +137,7 @@ function confirmDelete() {
             title="Inquilinos"
             description="Mantenha os dados de contato dos seus inquilinos organizados."
         >
-            <Button @click="openCreateDialog">
+            <Button v-if="can.manageRentals" @click="openCreateDialog">
                 <Plus class="size-4" />
                 Cadastrar inquilino
             </Button>
@@ -256,20 +259,22 @@ function confirmDelete() {
                                         <Eye class="size-4" />
                                         Ver detalhes
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        @click="openEditDialog(tenant)"
-                                    >
-                                        <Pencil class="size-4" />
-                                        Editar
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                        variant="destructive"
-                                        @click="tenantToDelete = tenant"
-                                    >
-                                        <Trash2 class="size-4" />
-                                        Excluir
-                                    </DropdownMenuItem>
+                                    <template v-if="can.manageRentals">
+                                        <DropdownMenuItem
+                                            @click="openEditDialog(tenant)"
+                                        >
+                                            <Pencil class="size-4" />
+                                            Editar
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                            variant="destructive"
+                                            @click="tenantToDelete = tenant"
+                                        >
+                                            <Trash2 class="size-4" />
+                                            Excluir
+                                        </DropdownMenuItem>
+                                    </template>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </TableCell>

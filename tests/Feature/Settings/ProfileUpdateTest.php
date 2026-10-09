@@ -214,20 +214,33 @@ test('deleting an agency also removes its branches and logo', function () {
     Storage::disk(Account::LOGO_DISK)->assertMissing("accounts/{$account->id}/logo.png");
 });
 
-test('a user leaving an account with other users only removes themselves', function () {
+test('a team member leaving an account only removes themselves', function () {
     $account = Account::factory()->agency()->create();
-    $user = User::factory()->for($account, 'account')->create();
-    $colleague = User::factory()->for($account, 'account')->create();
+    $owner = User::factory()->for($account, 'account')->create();
+    $member = User::factory()->for($account, 'account')->create();
     $lease = Lease::factory()->for($account, 'account')->create();
 
-    $this->actingAs($user)
+    $this->actingAs($member)
         ->delete(route('profile.destroy'), ['password' => 'password'])
         ->assertRedirect(route('home'));
 
-    $this->assertModelMissing($user);
-    $this->assertModelExists($colleague);
+    $this->assertModelMissing($member);
+    $this->assertModelExists($owner);
     $this->assertModelExists($account);
     $this->assertModelExists($lease);
+});
+
+test('the account owner deleting the account removes the whole team too', function () {
+    $account = Account::factory()->agency()->create();
+    $owner = User::factory()->for($account, 'account')->create();
+    $member = User::factory()->for($account, 'account')->create();
+
+    $this->actingAs($owner)
+        ->delete(route('profile.destroy'), ['password' => 'password'])
+        ->assertRedirect(route('home'));
+
+    $this->assertModelMissing($account);
+    $this->assertModelMissing($member);
 });
 
 test('correct password must be provided to delete account', function () {

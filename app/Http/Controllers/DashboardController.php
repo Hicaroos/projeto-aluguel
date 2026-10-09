@@ -7,6 +7,7 @@ use App\Actions\Expenses\SummarizeExpenses;
 use App\Actions\Leases\SyncLeasePayments;
 use App\Actions\Payments\SummarizePayments;
 use App\Enums\LeaseStatus;
+use App\Enums\Permission;
 use App\Enums\PropertyStatus;
 use App\Models\ContractTemplate;
 use App\Models\Expense;
@@ -52,14 +53,16 @@ class DashboardController extends Controller
                 'received' => $monthSummary['received'],
                 'overdue' => $overdueSummary['overdue'],
                 'overdueCount' => $overdueSummary['overdue_count'],
-                'expensesPaid' => $expensesSummary['paid'],
-                'expensesPending' => $expensesSummary['pending'],
                 'charges' => $monthSummary['charges'],
-                'netIncome' => round($monthSummary['received'] + $monthSummary['charges'] - $expensesSummary['paid'], 2),
                 'properties' => $properties()->count(),
                 'rentedProperties' => $properties()->where('status', PropertyStatus::Rented)->count(),
                 'activeLeases' => Lease::where('account_id', $accountId)->active()->count(),
                 'tenants' => Tenant::where('account_id', $accountId)->count(),
+                ...($request->user()->can(Permission::ManageFinance->value) ? [
+                    'expensesPaid' => $expensesSummary['paid'],
+                    'expensesPending' => $expensesSummary['pending'],
+                    'netIncome' => round($monthSummary['received'] + $monthSummary['charges'] - $expensesSummary['paid'], 2),
+                ] : []),
             ],
             'monthlyRevenue' => $getMonthlyRevenue->handle($accountId, $month),
             'attentionPayments' => $accountPayments()

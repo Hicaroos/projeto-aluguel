@@ -28,7 +28,7 @@ trait BelongsToVisibleBranches
      * Limit the query to the records of the given branches.
      *
      * @param  Builder<static>  $query
-     * @param  list<int>  $branchIds
+     * @param  array<int, int>  $branchIds
      */
     abstract public static function restrictToBranches(Builder $query, array $branchIds): void;
 }

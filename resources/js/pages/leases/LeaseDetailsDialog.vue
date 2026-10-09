@@ -37,6 +37,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { usePermissions } from '@/composables/usePermissions';
 import { formatCurrency } from '@/lib/currency';
 import {
     formatDate,
@@ -76,6 +77,8 @@ withDefaults(
     }>(),
     { contractTemplates: () => [] },
 );
+
+const can = usePermissions();
 
 const emit = defineEmits<{
     close: [];
@@ -295,6 +298,7 @@ const formatPercent = (value: string): string =>
                         registre a devolução ao inquilino.
                     </p>
                     <Button
+                        v-if="can.manageFinance"
                         size="sm"
                         class="self-start sm:self-center"
                         @click="emit('settle-deposit', lease)"
@@ -440,7 +444,7 @@ const formatPercent = (value: string): string =>
                         </Badge>
                     </div>
                     <Button
-                        v-if="lease.adjustment_status"
+                        v-if="lease.adjustment_status && can.manageRentals"
                         size="sm"
                         class="self-start sm:self-center"
                         @click="emit('adjust', lease)"
@@ -579,7 +583,7 @@ const formatPercent = (value: string): string =>
             </div>
 
             <DialogFooter class="border-t pt-6">
-                <template v-if="lease.status === 'active'">
+                <template v-if="lease.status === 'active' && can.manageRentals">
                     <Button variant="outline" @click="emit('finish', lease)">
                         <FileCheck class="size-4" />
                         Finalizar contrato

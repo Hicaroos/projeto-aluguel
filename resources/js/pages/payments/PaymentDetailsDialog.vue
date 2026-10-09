@@ -20,6 +20,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { usePermissions } from '@/composables/usePermissions';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate } from '@/lib/formatters';
 import {
@@ -45,6 +46,8 @@ import type { Payment, Receipt } from '@/types';
 defineProps<{
     payment: Payment | null;
 }>();
+
+const can = usePermissions();
 
 const emit = defineEmits<{
     close: [];
@@ -253,6 +256,7 @@ function confirmDelete() {
                             icon-only
                         />
                         <Button
+                            v-if="can.manageFinance"
                             variant="ghost"
                             size="icon-sm"
                             class="text-muted-foreground hover:text-destructive"
@@ -280,7 +284,7 @@ function confirmDelete() {
 
             <DialogFooter class="border-t pt-6">
                 <Button
-                    v-if="isDeletableCharge(payment)"
+                    v-if="can.manageFinance && isDeletableCharge(payment)"
                     variant="ghost"
                     class="text-destructive hover:bg-destructive/10 hover:text-destructive sm:mr-auto"
                     @click="emit('delete', payment)"
