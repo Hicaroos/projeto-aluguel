@@ -13,6 +13,7 @@ export type PropertyOwnerOption = {
 export type Property = {
     id: number;
     account_id: number;
+    branch_id: number | null;
     owner_id: number;
     type: PropertyType;
     zip_code: string;
@@ -30,6 +31,8 @@ export type Property = {
     active_lease?: PropertyActiveLease | null;
     /** Loaded on the properties list, starting with the cover. */
     photos?: PropertyPhoto[];
+    /** Loaded on the properties list of agencies. */
+    branch?: { id: number; name: string } | null;
 };
 
 export type PropertyPhoto = {

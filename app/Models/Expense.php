@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\BelongsToAccount;
+use App\Concerns\BelongsToVisibleBranches;
 use App\Enums\ExpenseStatus;
 use App\Enums\ExpenseType;
 use Carbon\CarbonInterface;
@@ -33,7 +34,7 @@ use Illuminate\Support\Carbon;
 class Expense extends Model
 {
     /** @use HasFactory<ExpenseFactory> */
-    use BelongsToAccount, HasFactory;
+    use BelongsToAccount, BelongsToVisibleBranches, HasFactory;
 
     /**
      * @var array<string, string>
@@ -107,6 +108,17 @@ class Expense extends Model
     public function isPending(): bool
     {
         return $this->status === ExpenseStatus::Pending;
+    }
+
+    /**
+     * Limit the query to the expenses of the properties of the given branches.
+     *
+     * @param  Builder<static>  $query
+     * @param  list<int>  $branchIds
+     */
+    public static function restrictToBranches(Builder $query, array $branchIds): void
+    {
+        $query->whereIn($query->qualifyColumn('property_id'), Property::idsInBranches($branchIds));
     }
 
     /**

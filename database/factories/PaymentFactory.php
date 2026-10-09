@@ -21,10 +21,10 @@ class PaymentFactory extends Factory
     {
         return [
             'lease_id' => Lease::factory(),
-            'account_id' => fn (array $attributes) => Lease::withoutGlobalScope(Lease::SCOPE)->find($attributes['lease_id'])->account_id,
+            'account_id' => fn (array $attributes) => Lease::withoutGlobalScopes()->find($attributes['lease_id'])->account_id,
             'reference_month' => today()->startOfMonth(),
             'due_date' => today()->startOfMonth()->addDays(9),
-            'amount' => fn (array $attributes) => Lease::withoutGlobalScope(Lease::SCOPE)->find($attributes['lease_id'])->amount,
+            'amount' => fn (array $attributes) => Lease::withoutGlobalScopes()->find($attributes['lease_id'])->amount,
             'status' => PaymentStatus::Pending,
         ];
     }

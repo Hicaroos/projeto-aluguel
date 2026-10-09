@@ -56,14 +56,34 @@ class TenantController extends Controller
      */
     public function store(TenantRequest $request): RedirectResponse
     {
-        Tenant::create([
+        $tenant = Tenant::create([
             ...$request->validated(),
             'account_id' => $request->user()->account_id,
         ]);
 
+        $this->linkToUserBranches($request, $tenant);
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Inquilino cadastrado com sucesso.')]);
 
         return to_route('tenants.index');
+    }
+
+    /**
+     * Bring a tenant registered by another branch to the branches of the user, found by their document.
+     */
+    public function link(Request $request): RedirectResponse
+    {
+        $document = preg_replace('/\D/', '', $request->string('cpf_cnpj')->toString());
+
+        $tenant = Tenant::withoutGlobalScope(Tenant::BRANCH_SCOPE)
+            ->where('cpf_cnpj', $document)
+            ->firstOrFail();
+
+        $this->linkToUserBranches($request, $tenant);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Inquilino adicionado à sua unidade.')]);
+
+        return to_route('tenants.index', ['show' => $tenant->id]);
     }
 
     /**
@@ -104,5 +124,19 @@ class TenantController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Inquilino removido com sucesso.')]);
 
         return to_route('tenants.index');
+    }
+
+    /**
+     * Link the tenant to the branch the user is looking at, or to every branch they work in. Users
+     * who see every branch leave the tenant unlinked, so every branch sees them.
+     */
+    private function linkToUserBranches(Request $request, Tenant $tenant): void
+    {
+        $user = $request->user();
+        $selectedId = $user->selectedBranchId();
+
+        foreach ($selectedId !== null ? [$selectedId] : ($user->accessibleBranchIds() ?? []) as $branchId) {
+            Tenant::linkToBranch([$tenant->id], $branchId);
+        }
     }
 }

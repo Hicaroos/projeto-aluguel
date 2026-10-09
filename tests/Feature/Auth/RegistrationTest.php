@@ -63,7 +63,7 @@ test('single owners must give their document and mobile phone', function (string
     $this->assertDatabaseMissing('users', ['email' => 'test@example.com']);
 })->with(['owner_cpf_cnpj', 'owner_phone']);
 
-test('agencies register with their name, CNPJ, CRECI and phone, without an owner', function () {
+test('agencies register with their name, CNPJ, CRECI and phone, without an owner but with a main branch', function () {
     $response = $this->post(route('register.store'), registrationPayload([
         'name' => 'Agency Admin',
         'email' => 'agency@example.com',
@@ -91,6 +91,13 @@ test('agencies register with their name, CNPJ, CRECI and phone, without an owner
     ]);
 
     expect(Owner::where('account_id', $user->account_id)->count())->toBe(0);
+
+    $this->assertDatabaseHas('branches', [
+        'account_id' => $user->account_id,
+        'name' => 'Matriz',
+        'phone' => '8738741234',
+        'is_active' => true,
+    ]);
 });
 
 test('agencies must give their name, a valid CNPJ and a phone; the CRECI is optional', function (string $field, string $value) {

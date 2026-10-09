@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Lease;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -19,7 +21,8 @@ class ExtraChargeRequest extends FormRequest
             'lease_id' => [
                 'required',
                 'integer',
-                Rule::exists('leases', 'id')->where('account_id', $this->user()->account_id)->withoutTrashed(),
+                Rule::exists('leases', 'id')->where('account_id', $this->user()->account_id)->withoutTrashed()
+                    ->where(fn (QueryBuilder $query) => $query->whereIn('id', Lease::query()->select('id'))),
             ],
             'description' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'gt:0'],

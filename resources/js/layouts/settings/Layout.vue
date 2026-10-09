@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
+import { edit as editAgency } from '@/routes/agency';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editOwner } from '@/routes/owner';
 import { edit as editProfile } from '@/routes/profile';
@@ -21,6 +22,9 @@ const sidebarNavItems = computed<NavItem[]>(() => [
     },
     ...(page.props.auth.user.account?.type === 'single_owner'
         ? [{ title: 'Dados do proprietário', href: editOwner() }]
+        : []),
+    ...(page.props.auth.can.manageAgency
+        ? [{ title: 'Dados da imobiliária', href: editAgency() }]
         : []),
     {
         title: 'Segurança',

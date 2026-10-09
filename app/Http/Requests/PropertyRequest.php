@@ -4,8 +4,10 @@ namespace App\Http\Requests;
 
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
+use App\Models\Branch;
 use App\Models\Property;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,6 +25,9 @@ class PropertyRequest extends FormRequest
 
         return [
             'type' => ['required', Rule::enum(PropertyType::class)],
+            'branch_id' => $isAgency
+                ? ['required', 'integer', Rule::in($this->selectableBranchIds())]
+                : ['exclude'],
             'owner_id' => [
                 Rule::requiredIf($isAgency),
                 'nullable',
@@ -57,6 +62,37 @@ class PropertyRequest extends FormRequest
         }
 
         return $this->property()->owner_id ?? $account?->primaryOwner()?->id;
+    }
+
+    /**
+     * Get the branches the property may be placed in: the active branches the user may access,
+     * plus the branch it is already in.
+     *
+     * @return array<int, int>
+     */
+    public function selectableBranchIds(): array
+    {
+        $currentBranchId = $this->property()?->branch_id;
+
+        return Branch::query()
+            ->accessibleBy($this->user())
+            ->where(fn (Builder $query) => $query->active()->when($currentBranchId, fn (Builder $query, int $id) => $query->orWhere('id', $id)))
+            ->get(['id'])
+            ->map(fn (Branch $branch): int => $branch->id)
+            ->all();
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'branch_id.required' => __('Selecione a unidade do imóvel.'),
+            'branch_id.in' => __('Selecione uma unidade ativa.'),
+        ];
     }
 
     /**

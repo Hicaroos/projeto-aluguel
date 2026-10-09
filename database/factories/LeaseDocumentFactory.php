@@ -21,7 +21,7 @@ class LeaseDocumentFactory extends Factory
     {
         return [
             'lease_id' => Lease::factory(),
-            'account_id' => fn (array $attributes) => Lease::withoutGlobalScope(Lease::SCOPE)->find($attributes['lease_id'])?->account_id,
+            'account_id' => fn (array $attributes) => Lease::withoutGlobalScopes()->find($attributes['lease_id'])?->account_id,
             'type' => LeaseDocumentType::SignedContract,
             'name' => 'contrato-assinado.pdf',
             'path' => fn (array $attributes) => "leases/{$attributes['lease_id']}/".fake()->uuid().'.pdf',

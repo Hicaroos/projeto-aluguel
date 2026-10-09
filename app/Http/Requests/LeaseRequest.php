@@ -10,8 +10,10 @@ use App\Enums\LeasePurpose;
 use App\Enums\PropertyStatus;
 use App\Models\Lease;
 use App\Models\Property;
+use App\Models\Tenant;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -54,7 +56,8 @@ class LeaseRequest extends FormRequest
             'property_id' => [
                 'required',
                 'integer',
-                Rule::exists('properties', 'id')->where('account_id', $accountId)->withoutTrashed(),
+                Rule::exists('properties', 'id')->where('account_id', $accountId)->withoutTrashed()
+                    ->where(fn (QueryBuilder $query) => $query->whereIn('id', Property::query()->select('id'))),
                 function (string $attribute, mixed $value, Closure $fail) use ($lease): void {
                     if ($lease?->property_id === (int) $value) {
                         return;
@@ -70,7 +73,8 @@ class LeaseRequest extends FormRequest
             'tenant_id' => [
                 'required',
                 'integer',
-                Rule::exists('tenants', 'id')->where('account_id', $accountId)->withoutTrashed(),
+                Rule::exists('tenants', 'id')->where('account_id', $accountId)->withoutTrashed()
+                    ->where(fn (QueryBuilder $query) => $query->whereIn('id', Tenant::query()->select('id'))),
             ],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after:start_date'],

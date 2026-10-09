@@ -20,7 +20,7 @@ class PropertyPhotoFactory extends Factory
     {
         return [
             'property_id' => Property::factory(),
-            'account_id' => fn (array $attributes) => Property::withoutGlobalScope(Property::SCOPE)->find($attributes['property_id'])?->account_id,
+            'account_id' => fn (array $attributes) => Property::withoutGlobalScopes()->find($attributes['property_id'])?->account_id,
             'path' => fn (array $attributes) => "properties/{$attributes['property_id']}/".fake()->uuid().'.jpg',
             'thumbnail_path' => null,
             'sort_order' => 0,

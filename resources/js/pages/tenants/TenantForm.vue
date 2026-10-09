@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Form } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { Form, router } from '@inertiajs/vue3';
+import { UserPlus } from '@lucide/vue';
+import { computed, ref } from 'vue';
 import TenantController from '@/actions/App/Http/Controllers/TenantController';
 import AddressFields from '@/components/AddressFields.vue';
 import InputError from '@/components/InputError.vue';
@@ -11,6 +12,7 @@ import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { link } from '@/routes/tenants';
 import type { Tenant } from '@/types';
 
 const props = defineProps<{
@@ -26,6 +28,28 @@ const formAction = computed(() =>
         ? TenantController.update.form(props.tenant)
         : TenantController.store.form(),
 );
+
+const isLinking = ref(false);
+
+/**
+ * Bring the tenant with the typed document, registered by another branch, to the user's branch.
+ */
+function useExistingTenant() {
+    const document = (
+        window.document.getElementById('cpf_cnpj') as HTMLInputElement | null
+    )?.value;
+
+    isLinking.value = true;
+
+    router.post(
+        link().url,
+        { cpf_cnpj: document ?? '' },
+        {
+            onSuccess: () => emit('success'),
+            onFinish: () => (isLinking.value = false),
+        },
+    );
+}
 </script>
 
 <template>
@@ -65,6 +89,19 @@ const formAction = computed(() =>
                         :default-value="tenant?.cpf_cnpj"
                     />
                     <InputError :message="errors.cpf_cnpj" />
+                    <Button
+                        v-if="errors.registered_elsewhere"
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        class="w-fit"
+                        :disabled="isLinking"
+                        @click="useExistingTenant"
+                    >
+                        <Spinner v-if="isLinking" />
+                        <UserPlus v-else class="size-4" />
+                        Usar cadastro existente
+                    </Button>
                 </div>
 
                 <div class="grid gap-2">

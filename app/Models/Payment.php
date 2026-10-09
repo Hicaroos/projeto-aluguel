@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\BelongsToAccount;
+use App\Concerns\BelongsToVisibleBranches;
 use App\Enums\PaymentStatus;
 use App\Enums\PaymentType;
 use Carbon\CarbonInterface;
@@ -46,7 +47,7 @@ use Illuminate\Support\Carbon;
 class Payment extends Model
 {
     /** @use HasFactory<PaymentFactory> */
-    use BelongsToAccount, HasFactory;
+    use BelongsToAccount, BelongsToVisibleBranches, HasFactory;
 
     /**
      * @var array<string, string>
@@ -212,6 +213,17 @@ class Payment extends Model
                 default => PaymentStatus::Pending,
             },
         ]);
+    }
+
+    /**
+     * Limit the query to the payments of the leases of the given branches.
+     *
+     * @param  Builder<static>  $query
+     * @param  list<int>  $branchIds
+     */
+    public static function restrictToBranches(Builder $query, array $branchIds): void
+    {
+        $query->whereIn($query->qualifyColumn('lease_id'), Lease::idsInBranches($branchIds));
     }
 
     /**

@@ -137,6 +137,10 @@ const emit = defineEmits<{
                             {{ property.city }}/{{ property.state }}
                         </dd>
                     </div>
+                    <div v-if="property.branch">
+                        <dt class="text-muted-foreground">Unidade</dt>
+                        <dd class="font-medium">{{ property.branch.name }}</dd>
+                    </div>
                     <div>
                         <dt class="text-muted-foreground">Cadastrado em</dt>
                         <dd class="font-medium">

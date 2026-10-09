@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Concerns\BelongsToAccount;
+use App\Concerns\BelongsToVisibleBranches;
 use App\Enums\LeaseDocumentType;
 use Database\Factories\LeaseDocumentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -35,7 +37,7 @@ use Illuminate\Support\Facades\Storage;
 class LeaseDocument extends Model
 {
     /** @use HasFactory<LeaseDocumentFactory> */
-    use BelongsToAccount, HasFactory;
+    use BelongsToAccount, BelongsToVisibleBranches, HasFactory;
 
     /**
      * The most documents a single lease can have.
@@ -89,6 +91,17 @@ class LeaseDocument extends Model
     protected function downloadUrl(): Attribute
     {
         return Attribute::make(get: fn (): string => route('lease-documents.download', $this));
+    }
+
+    /**
+     * Limit the query to the documents of the leases of the given branches.
+     *
+     * @param  Builder<static>  $query
+     * @param  list<int>  $branchIds
+     */
+    public static function restrictToBranches(Builder $query, array $branchIds): void
+    {
+        $query->whereIn($query->qualifyColumn('lease_id'), Lease::idsInBranches($branchIds));
     }
 
     /**

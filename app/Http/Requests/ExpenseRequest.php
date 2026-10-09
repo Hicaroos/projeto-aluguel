@@ -4,7 +4,9 @@ namespace App\Http\Requests;
 
 use App\Enums\ExpenseStatus;
 use App\Enums\ExpenseType;
+use App\Models\Property;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,7 +23,8 @@ class ExpenseRequest extends FormRequest
             'property_id' => [
                 'required',
                 'integer',
-                Rule::exists('properties', 'id')->where('account_id', $this->user()->account_id)->withoutTrashed(),
+                Rule::exists('properties', 'id')->where('account_id', $this->user()->account_id)->withoutTrashed()
+                    ->where(fn (QueryBuilder $query) => $query->whereIn('id', Property::query()->select('id'))),
             ],
             'type' => ['required', Rule::enum(ExpenseType::class)],
             'description' => [

@@ -24,6 +24,7 @@ class DeleteAccount
         'property_photos',
         'expenses',
         'properties',
+        'branches',
         'tenants',
         'contract_templates',
         'owners',
@@ -60,6 +61,10 @@ class DeleteAccount
         $leaseIds = DB::table('leases')->where('account_id', $account->id)->pluck('id');
 
         DB::transaction(function () use ($account, $leaseIds): void {
+            DB::table('branch_tenant')
+                ->whereIn('branch_id', DB::table('branches')->where('account_id', $account->id)->select('id'))
+                ->delete();
+
             foreach (self::LEASE_TABLES as $table) {
                 DB::table($table)->whereIn('lease_id', $leaseIds)->delete();
             }
@@ -73,5 +78,6 @@ class DeleteAccount
 
         $propertyIds->each(fn (int $id) => Storage::disk(PropertyPhoto::DISK)->deleteDirectory("properties/{$id}"));
         $leaseIds->each(fn (int $id) => Storage::disk(LeaseDocument::DISK)->deleteDirectory("leases/{$id}"));
+        Storage::disk(Account::LOGO_DISK)->deleteDirectory("accounts/{$account->id}");
     }
 }

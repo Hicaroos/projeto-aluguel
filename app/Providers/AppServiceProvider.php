@@ -2,10 +2,13 @@
 
 namespace App\Providers;
 
+use App\Enums\Role;
+use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -26,6 +29,15 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureFakeToday();
+        $this->configureGates();
+    }
+
+    /**
+     * Define the abilities checked by the routes and pages.
+     */
+    protected function configureGates(): void
+    {
+        Gate::define('manage-agency', fn (User $user): bool => ($user->account?->isAgency() ?? false) && $user->role === Role::Admin);
     }
 
     /**

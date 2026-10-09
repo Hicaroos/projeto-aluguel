@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use App\Concerns\BelongsToAccount;
+use App\Concerns\BelongsToVisibleBranches;
 use App\Concerns\SpellsMoney;
 use App\Enums\PaymentMethod;
 use Database\Factories\ReceiptFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -31,7 +33,7 @@ use Illuminate\Support\Carbon;
 class Receipt extends Model
 {
     /** @use HasFactory<ReceiptFactory> */
-    use BelongsToAccount, HasFactory, SpellsMoney;
+    use BelongsToAccount, BelongsToVisibleBranches, HasFactory, SpellsMoney;
 
     /**
      * @return BelongsTo<Payment, $this>
@@ -55,6 +57,20 @@ class Receipt extends Model
     public function amountInWords(): string
     {
         return $this->spellMoney($this->totalAmount());
+    }
+
+    /**
+     * Limit the query to the receipts of the leases of the given branches.
+     *
+     * @param  Builder<static>  $query
+     * @param  list<int>  $branchIds
+     */
+    public static function restrictToBranches(Builder $query, array $branchIds): void
+    {
+        $query->whereIn(
+            $query->qualifyColumn('payment_id'),
+            Payment::withoutGlobalScopes()->whereIn('lease_id', Lease::idsInBranches($branchIds))->select('id'),
+        );
     }
 
     /**

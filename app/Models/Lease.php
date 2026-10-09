@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\BelongsToAccount;
+use App\Concerns\BelongsToVisibleBranches;
 use App\Enums\AdjustmentIndex;
 use App\Enums\GuaranteeType;
 use App\Enums\LeasePurpose;
@@ -85,7 +86,7 @@ use Illuminate\Support\Carbon;
 class Lease extends Model
 {
     /** @use HasFactory<LeaseFactory> */
-    use BelongsToAccount, HasFactory, SoftDeletes;
+    use BelongsToAccount, BelongsToVisibleBranches, HasFactory, SoftDeletes;
 
     /**
      * @var array<string, string|int>
@@ -99,6 +100,18 @@ class Lease extends Model
         'monthly_interest_percent' => '1.00',
         'termination_fee_months' => 3,
     ];
+
+    /**
+     * Link the tenant to the branch of the rented property, so that branch lists them.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (Lease $lease): void {
+            if ($lease->wasRecentlyCreated || $lease->wasChanged(['tenant_id', 'property_id'])) {
+                Tenant::linkToBranch([$lease->tenant_id], Property::withoutGlobalScopes()->whereKey($lease->property_id)->value('branch_id'));
+            }
+        });
+    }
 
     /**
      * @return BelongsTo<Property, $this>
@@ -255,7 +268,7 @@ class Lease extends Model
      */
     public function scopeActive(Builder $query): void
     {
-        $query->where('status', LeaseStatus::Active);
+        $query->where($query->qualifyColumn('status'), LeaseStatus::Active);
     }
 
     /**
@@ -319,6 +332,28 @@ class Lease extends Model
     public function scopeEndingWithin(Builder $query, int $days): void
     {
         $query->active()->whereDate('end_date', '<=', today()->addDays($days));
+    }
+
+    /**
+     * Limit the query to the leases of the properties of the given branches.
+     *
+     * @param  Builder<static>  $query
+     * @param  list<int>  $branchIds
+     */
+    public static function restrictToBranches(Builder $query, array $branchIds): void
+    {
+        $query->whereIn($query->qualifyColumn('property_id'), Property::idsInBranches($branchIds));
+    }
+
+    /**
+     * Get a subquery selecting the ids of the leases of the given branches, deleted ones included.
+     *
+     * @param  list<int>  $branchIds
+     * @return Builder<Lease>
+     */
+    public static function idsInBranches(array $branchIds): Builder
+    {
+        return static::withoutGlobalScopes()->whereIn('property_id', Property::idsInBranches($branchIds))->select('id');
     }
 
     /**

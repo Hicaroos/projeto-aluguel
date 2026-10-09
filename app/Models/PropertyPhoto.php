@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Concerns\BelongsToAccount;
+use App\Concerns\BelongsToVisibleBranches;
 use Database\Factories\PropertyPhotoFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -30,7 +32,7 @@ use Illuminate\Support\Facades\Storage;
 class PropertyPhoto extends Model
 {
     /** @use HasFactory<PropertyPhotoFactory> */
-    use BelongsToAccount, HasFactory;
+    use BelongsToAccount, BelongsToVisibleBranches, HasFactory;
 
     /**
      * The most photos a single property can have.
@@ -84,5 +86,16 @@ class PropertyPhoto extends Model
     protected function thumbnailUrl(): Attribute
     {
         return Attribute::make(get: fn (): string => route('property-photos.thumbnail', $this));
+    }
+
+    /**
+     * Limit the query to the photos of the properties of the given branches.
+     *
+     * @param  Builder<static>  $query
+     * @param  list<int>  $branchIds
+     */
+    public static function restrictToBranches(Builder $query, array $branchIds): void
+    {
+        $query->whereIn($query->qualifyColumn('property_id'), Property::idsInBranches($branchIds));
     }
 }

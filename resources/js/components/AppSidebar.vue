@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import {
+    Building2,
     Coins,
     FileSignature,
     FileText,
@@ -9,6 +10,7 @@ import {
     ReceiptText,
     Users,
 } from '@lucide/vue';
+import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -23,6 +25,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index as branches } from '@/routes/branches';
 import { index as contractTemplates } from '@/routes/contract-templates';
 import { index as expenses } from '@/routes/expenses';
 import { index as leases } from '@/routes/leases';
@@ -30,6 +33,8 @@ import { index as payments } from '@/routes/payments';
 import { index as properties } from '@/routes/properties';
 import { index as tenants } from '@/routes/tenants';
 import type { NavItem } from '@/types';
+
+const page = usePage();
 
 const mainNavItems: NavItem[] = [
     {
@@ -64,6 +69,18 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
+const managementNavItems = computed<NavItem[]>(() =>
+    page.props.auth.can.manageAgency
+        ? [
+              {
+                  title: 'Unidades',
+                  href: branches(),
+                  icon: Building2,
+              },
+          ]
+        : [],
+);
+
 const footerNavItems: NavItem[] = [
     {
         title: 'Modelos de contrato',
@@ -89,6 +106,11 @@ const footerNavItems: NavItem[] = [
 
         <SidebarContent>
             <NavMain :items="mainNavItems" />
+            <NavMain
+                v-if="managementNavItems.length > 0"
+                label="Gestão"
+                :items="managementNavItems"
+            />
         </SidebarContent>
 
         <SidebarFooter>

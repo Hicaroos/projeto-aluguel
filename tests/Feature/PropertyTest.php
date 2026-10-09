@@ -3,6 +3,7 @@
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Models\Account;
+use App\Models\Branch;
 use App\Models\Lease;
 use App\Models\Owner;
 use App\Models\Property;
@@ -61,17 +62,19 @@ test('single owner accounts automatically get their own owner assigned', functio
 test('agency accounts can create a property for one of their own owners', function () {
     $account = Account::factory()->agency()->create();
     $owner = Owner::factory()->for($account, 'account')->create();
+    $branch = Branch::factory()->for($account, 'account')->create();
     $user = User::factory()->for($account, 'account')->create();
 
     $response = $this->actingAs($user)->post(
         route('properties.store'),
-        validPropertyPayload(['owner_id' => $owner->id]),
+        validPropertyPayload(['owner_id' => $owner->id, 'branch_id' => $branch->id]),
     );
 
     $response->assertSessionHasNoErrors()->assertRedirect(route('properties.index'));
 
     $this->assertDatabaseHas('properties', [
         'account_id' => $account->id,
+        'branch_id' => $branch->id,
         'owner_id' => $owner->id,
     ]);
 });

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\BelongsToAccount;
+use App\Concerns\BelongsToVisibleBranches;
 use App\Enums\LeaseStatus;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
@@ -21,6 +22,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property int $account_id
+ * @property int|null $branch_id
  * @property int $owner_id
  * @property PropertyType $type
  * @property string $zip_code
@@ -36,6 +38,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Account $account
+ * @property-read Branch|null $branch
  * @property-read Owner $owner
  * @property-read Collection<int, PropertyPhoto> $photos
  * @property-read Collection<int, Lease> $leases
@@ -44,6 +47,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'account_id',
+    'branch_id',
     'owner_id',
     'type',
     'zip_code',
@@ -59,7 +63,7 @@ use Illuminate\Support\Carbon;
 class Property extends Model
 {
     /** @use HasFactory<PropertyFactory> */
-    use BelongsToAccount, HasFactory, SoftDeletes;
+    use BelongsToAccount, BelongsToVisibleBranches, HasFactory, SoftDeletes;
 
     /**
      * @var array<string, string>
@@ -67,6 +71,34 @@ class Property extends Model
     protected $attributes = [
         'status' => 'available',
     ];
+
+    /**
+     * Link the tenants of a property moved to another branch to that branch too.
+     */
+    protected static function booted(): void
+    {
+        static::updated(function (Property $property): void {
+            if ($property->wasChanged('branch_id')) {
+                Tenant::linkToBranch(
+                    Lease::withoutGlobalScopes()
+                        ->where('property_id', $property->id)
+                        ->get(['tenant_id'])
+                        ->map(fn (Lease $lease): int => $lease->tenant_id)
+                        ->unique()
+                        ->all(),
+                    $property->branch_id,
+                );
+            }
+        });
+    }
+
+    /**
+     * @return BelongsTo<Branch, $this>
+     */
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
 
     /**
      * @return BelongsTo<Owner, $this>
@@ -123,6 +155,7 @@ class Property extends Model
             'activeLease:id,property_id,tenant_id,start_date,end_date,amount,due_day,status',
             'activeLease.tenant:id,name,deleted_at',
             'photos:id,property_id,sort_order',
+            'branch:id,name',
         ]);
     }
 
@@ -147,6 +180,28 @@ class Property extends Model
     public function hasActiveLease(): bool
     {
         return $this->leases()->active()->exists();
+    }
+
+    /**
+     * Limit the query to the properties of the given branches.
+     *
+     * @param  Builder<static>  $query
+     * @param  list<int>  $branchIds
+     */
+    public static function restrictToBranches(Builder $query, array $branchIds): void
+    {
+        $query->whereIn($query->qualifyColumn('branch_id'), $branchIds);
+    }
+
+    /**
+     * Get a subquery selecting the ids of the properties of the given branches, deleted ones included.
+     *
+     * @param  list<int>  $branchIds
+     * @return Builder<Property>
+     */
+    public static function idsInBranches(array $branchIds): Builder
+    {
+        return static::withoutGlobalScopes()->whereIn('branch_id', $branchIds)->select('id');
     }
 
     /**

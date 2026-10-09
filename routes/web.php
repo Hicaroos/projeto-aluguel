@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\BranchController;
+use App\Http\Controllers\BranchSelectionController;
 use App\Http\Controllers\ContractTemplateController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpenseController;
@@ -21,6 +23,7 @@ Route::get('/', fn (Request $request) => to_route($request->user() ? 'dashboard'
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::put('branch-selection', [BranchSelectionController::class, 'update'])->name('branch-selection.update');
 
     Route::resource('properties', PropertyController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::post('properties/{property}/photos', [PropertyPhotoController::class, 'store'])->name('properties.photos.store');
@@ -28,6 +31,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('property-photos/{photo}/thumbnail', [PropertyPhotoController::class, 'thumbnail'])->name('property-photos.thumbnail');
     Route::patch('property-photos/{photo}/cover', [PropertyPhotoController::class, 'makeCover'])->name('property-photos.cover');
     Route::delete('property-photos/{photo}', [PropertyPhotoController::class, 'destroy'])->name('property-photos.destroy');
+    Route::post('tenants/link', [TenantController::class, 'link'])->name('tenants.link');
     Route::resource('tenants', TenantController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('leases', LeaseController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::patch('leases/{lease}/finish', [LeaseController::class, 'finish'])->name('leases.finish');
@@ -52,6 +56,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('receipts/{receipt}', [ReceiptController::class, 'show'])->name('receipts.show');
     Route::get('receipts/{receipt}/pdf', [ReceiptController::class, 'pdf'])->name('receipts.pdf');
     Route::delete('receipts/{receipt}', [ReceiptController::class, 'destroy'])->name('receipts.destroy');
+
+    Route::middleware('can:manage-agency')->group(function () {
+        Route::resource('branches', BranchController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::patch('branches/{branch}/status', [BranchController::class, 'toggleStatus'])->name('branches.status');
+    });
 
     Route::resource('expenses', ExpenseController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::patch('expenses/{expense}/pay', [ExpenseController::class, 'pay'])->name('expenses.pay');

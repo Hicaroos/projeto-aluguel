@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\AgencyController;
 use App\Http\Controllers\Settings\OwnerController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
@@ -26,6 +27,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('settings/owner', [OwnerController::class, 'edit'])->name('owner.edit');
     Route::patch('settings/owner', [OwnerController::class, 'update'])->name('owner.update');
+
+    Route::get('settings/agency/logo', [AgencyController::class, 'logo'])->name('agency.logo');
+
+    Route::middleware('can:manage-agency')->group(function () {
+        Route::get('settings/agency', [AgencyController::class, 'edit'])->name('agency.edit');
+        Route::patch('settings/agency', [AgencyController::class, 'update'])->name('agency.update');
+        Route::post('settings/agency/logo', [AgencyController::class, 'updateLogo'])->name('agency.logo.update');
+        Route::delete('settings/agency/logo', [AgencyController::class, 'destroyLogo'])->name('agency.logo.destroy');
+    });
 
     Route::inertia('settings/appearance', 'settings/Appearance')->name('appearance.edit');
 });

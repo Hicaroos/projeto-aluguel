@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\BelongsToAccount;
+use App\Concerns\BelongsToVisibleBranches;
 use App\Enums\MaritalStatus;
 use Database\Factories\TenantFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -10,10 +11,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @property int $id
@@ -37,6 +40,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Account $account
+ * @property-read Collection<int, Branch> $branches
  * @property-read Collection<int, Lease> $leases
  * @property-read Collection<int, Payment> $payments
  */
@@ -61,7 +65,34 @@ use Illuminate\Support\Carbon;
 class Tenant extends Model
 {
     /** @use HasFactory<TenantFactory> */
-    use BelongsToAccount, HasFactory, SoftDeletes;
+    use BelongsToAccount, BelongsToVisibleBranches, HasFactory, SoftDeletes;
+
+    /**
+     * Get the branches the tenant deals with. Tenants linked to none are seen by every branch.
+     *
+     * @return BelongsToMany<Branch, $this>
+     */
+    public function branches(): BelongsToMany
+    {
+        return $this->belongsToMany(Branch::class);
+    }
+
+    /**
+     * Link the given tenants to a branch, so the branch lists them.
+     *
+     * @param  array<int, int>  $tenantIds
+     */
+    public static function linkToBranch(array $tenantIds, ?int $branchId): void
+    {
+        if ($branchId === null || $tenantIds === []) {
+            return;
+        }
+
+        DB::table('branch_tenant')->insertOrIgnore(array_map(
+            fn (int $tenantId): array => ['branch_id' => $branchId, 'tenant_id' => $tenantId],
+            $tenantIds,
+        ));
+    }
 
     /**
      * @return HasMany<Lease, $this>
@@ -108,6 +139,21 @@ class Tenant extends Model
     public function payments(): HasManyThrough
     {
         return $this->hasManyThrough(Payment::class, Lease::class);
+    }
+
+    /**
+     * Limit the query to the tenants linked to the given branches, plus the ones not linked to
+     * any branch yet. Tenants are shared by the whole agency, but each branch only lists the
+     * people it deals with.
+     *
+     * @param  Builder<static>  $query
+     * @param  list<int>  $branchIds
+     */
+    public static function restrictToBranches(Builder $query, array $branchIds): void
+    {
+        $query->where(fn (Builder $query) => $query
+            ->whereDoesntHave('branches')
+            ->orWhereHas('branches', fn (Builder $query) => $query->whereIn('branches.id', $branchIds)));
     }
 
     /**

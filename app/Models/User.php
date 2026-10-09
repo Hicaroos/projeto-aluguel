@@ -38,6 +38,11 @@ class User extends Authenticatable
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
     /**
+     * The session key holding the branch picked in the branch selector.
+     */
+    public const string SELECTED_BRANCH_SESSION_KEY = 'selected_branch_id';
+
+    /**
      * @var array<string, string>
      */
     protected $attributes = [
@@ -50,6 +55,57 @@ class User extends Authenticatable
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class);
+    }
+
+    /**
+     * Get the branches the user may work with. Null means every branch of the account.
+     *
+     * @return list<int>|null
+     */
+    public function accessibleBranchIds(): ?array
+    {
+        return null;
+    }
+
+    /**
+     * Get the branch picked in the branch selector, as long as the user may still access it.
+     */
+    public function selectedBranchId(): ?int
+    {
+        if (! $this->account?->isAgency()) {
+            return null;
+        }
+
+        $selected = session()->get(self::SELECTED_BRANCH_SESSION_KEY);
+
+        if (! is_int($selected)) {
+            return null;
+        }
+
+        $accessible = $this->accessibleBranchIds();
+
+        $isAccessible = $accessible === null
+            ? Branch::withoutGlobalScope(Branch::SCOPE)->where('account_id', $this->account_id)->whereKey($selected)->exists()
+            : in_array($selected, $accessible, true);
+
+        return $isAccessible ? $selected : null;
+    }
+
+    /**
+     * Get the branches whose records the user is looking at: the selected one, or every branch
+     * they may access. Null means no restriction, as for single owner accounts.
+     *
+     * @return list<int>|null
+     */
+    public function visibleBranchIds(): ?array
+    {
+        if (! $this->account?->isAgency()) {
+            return null;
+        }
+
+        $selected = $this->selectedBranchId();
+
+        return $selected !== null ? [$selected] : $this->accessibleBranchIds();
     }
 
     /**

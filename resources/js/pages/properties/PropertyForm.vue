@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form } from '@inertiajs/vue3';
+import { Form, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, ref, watch } from 'vue';
 import PropertyController from '@/actions/App/Http/Controllers/PropertyController';
 import InputError from '@/components/InputError.vue';
@@ -24,6 +24,7 @@ import {
     propertyTypeLabels,
 } from '@/lib/property-labels';
 import type {
+    BranchOption,
     Property,
     PropertyOwnerOption,
     PropertyStatus,
@@ -34,6 +35,7 @@ const props = defineProps<{
     property?: Property | null;
     accountType: 'single_owner' | 'agency';
     owners: PropertyOwnerOption[];
+    branches: BranchOption[];
 }>();
 
 const emit = defineEmits<{
@@ -45,6 +47,26 @@ const formAction = computed(() =>
         ? PropertyController.update.form(props.property)
         : PropertyController.store.form(),
 );
+
+const page = usePage();
+
+/** Active branches, plus the inactive one the property may already be in. */
+const selectableBranches = computed(() =>
+    props.branches.filter(
+        (branch) => branch.is_active || branch.id === props.property?.branch_id,
+    ),
+);
+
+const defaultBranchId = computed(() => {
+    const branchId =
+        props.property?.branch_id ??
+        page.props.branchSelector?.selectedId ??
+        (selectableBranches.value.length === 1
+            ? selectableBranches.value[0].id
+            : null);
+
+    return branchId ? String(branchId) : undefined;
+});
 
 const selectableStatusLabels = Object.fromEntries(
     Object.entries(propertyStatusLabels).filter(([key]) => key !== 'rented'),
@@ -173,6 +195,25 @@ watch(zipCode, async (value) => {
                     </Select>
                     <InputError :message="errors.status" />
                 </div>
+            </div>
+
+            <div v-if="accountType === 'agency'" class="grid gap-2">
+                <Label for="branch_id">Unidade</Label>
+                <Select name="branch_id" :default-value="defaultBranchId">
+                    <SelectTrigger id="branch_id" class="w-full">
+                        <SelectValue placeholder="Selecione a unidade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem
+                            v-for="branch in selectableBranches"
+                            :key="branch.id"
+                            :value="String(branch.id)"
+                        >
+                            {{ branch.name }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+                <InputError :message="errors.branch_id" />
             </div>
 
             <div v-if="accountType === 'agency'" class="grid gap-2">

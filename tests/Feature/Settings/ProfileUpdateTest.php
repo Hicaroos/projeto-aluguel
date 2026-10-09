@@ -1,11 +1,13 @@
 <?php
 
 use App\Models\Account;
+use App\Models\Branch;
 use App\Models\Guarantor;
 use App\Models\Lease;
 use App\Models\LeaseRenewal;
 use App\Models\Owner;
 use App\Models\Payment;
+use App\Models\Property;
 use App\Models\PropertyPhoto;
 use App\Models\Receipt;
 use App\Models\User;
@@ -191,6 +193,25 @@ test('deleting the only user of an account removes the whole account, its record
     $this->assertDatabaseMissing('lease_renewals', ['lease_id' => $lease->id]);
     $this->assertModelExists($otherLease);
     Storage::disk(PropertyPhoto::DISK)->assertMissing($photo->path);
+});
+
+test('deleting an agency also removes its branches and logo', function () {
+    Storage::fake(Account::LOGO_DISK);
+    $account = Account::factory()->agency()->create(['logo_path' => 'accounts/1/logo.png']);
+    $user = User::factory()->for($account, 'account')->create();
+    $branch = Branch::factory()->for($account, 'account')->create();
+    $property = Property::factory()->for($account, 'account')->create(['branch_id' => $branch->id]);
+    Lease::factory()->for($account, 'account')->for($property, 'property')->create();
+    Storage::disk(Account::LOGO_DISK)->put("accounts/{$account->id}/logo.png", 'logo');
+
+    $this->actingAs($user)
+        ->delete(route('profile.destroy'), ['password' => 'password'])
+        ->assertRedirect(route('home'));
+
+    $this->assertModelMissing($account);
+    $this->assertModelMissing($branch);
+    $this->assertDatabaseEmpty('branch_tenant');
+    Storage::disk(Account::LOGO_DISK)->assertMissing("accounts/{$account->id}/logo.png");
 });
 
 test('a user leaving an account with other users only removes themselves', function () {

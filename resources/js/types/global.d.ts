@@ -1,4 +1,5 @@
 import type { Auth } from '@/types/auth';
+import type { BranchSelector } from '@/types/branch';
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
@@ -18,6 +19,8 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            /** Only for agencies: the branches the user may switch between. */
+            branchSelector: BranchSelector | null;
             sidebarOpen: boolean;
             /** Today's date for the app (Y-m-d), which may be simulated through APP_FAKE_TODAY. */
             today: string;

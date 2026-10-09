@@ -7,6 +7,7 @@ use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\AccountType;
 use App\Models\Account;
+use App\Models\Branch;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -78,6 +79,11 @@ class CreateNewUser implements CreatesNewUsers
                     'cpf_cnpj' => $input['owner_cpf_cnpj'],
                     'email' => $input['email'],
                     'phone' => $input['owner_phone'],
+                ]);
+            } else {
+                $account->branches()->create([
+                    'name' => Branch::MAIN_BRANCH_NAME,
+                    'phone' => $input['agency_phone'],
                 ]);
             }
 

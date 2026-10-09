@@ -1,7 +1,20 @@
 export type Account = {
     id: number;
     name: string;
+    legal_name: string | null;
     type: string;
+    document: string | null;
+    creci: string | null;
+    phone: string | null;
+    email: string | null;
+    zip_code: string | null;
+    street: string | null;
+    number: string | null;
+    complement: string | null;
+    neighborhood: string | null;
+    city: string | null;
+    state: string | null;
+    logo_url: string | null;
     plan: string | null;
     status: string;
 };
@@ -21,6 +34,10 @@ export type User = {
 
 export type Auth = {
     user: User;
+    can: {
+        /** Manage the agency: its details, branches and team. */
+        manageAgency: boolean;
+    };
 };
 
 /* @chisel-passkeys */

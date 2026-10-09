@@ -20,8 +20,8 @@ class LeaseRenewalFactory extends Factory
     {
         return [
             'lease_id' => Lease::factory(),
-            'previous_end_date' => fn (array $attributes) => Lease::withoutGlobalScope(Lease::SCOPE)->find($attributes['lease_id'])?->end_date ?? now(),
-            'new_end_date' => fn (array $attributes) => Lease::withoutGlobalScope(Lease::SCOPE)->find($attributes['lease_id'])?->end_date->addYear() ?? now()->addYear(),
+            'previous_end_date' => fn (array $attributes) => Lease::withoutGlobalScopes()->find($attributes['lease_id'])?->end_date ?? now(),
+            'new_end_date' => fn (array $attributes) => Lease::withoutGlobalScopes()->find($attributes['lease_id'])?->end_date->addYear() ?? now()->addYear(),
             'notes' => null,
         ];
     }

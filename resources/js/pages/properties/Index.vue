@@ -64,6 +64,7 @@ import PropertyDetailsDialog from '@/pages/properties/PropertyDetailsDialog.vue'
 import PropertyForm from '@/pages/properties/PropertyForm.vue';
 import { destroy, index } from '@/routes/properties';
 import type {
+    BranchOption,
     Property,
     PropertyOwnerOption,
     PropertyPaginator,
@@ -81,6 +82,7 @@ const props = defineProps<{
     selected: Property | null;
     accountType: 'single_owner' | 'agency';
     owners: PropertyOwnerOption[];
+    branches: BranchOption[];
 }>();
 
 defineOptions({
@@ -368,7 +370,7 @@ function confirmDelete() {
                 </div>
             </DialogHeader>
             <PropertyForm :key="formDialogProperty?.id ?? 'create'" :property="formDialogProperty"
-                :account-type="accountType" :owners="owners" @success="isFormDialogOpen = false" />
+                :account-type="accountType" :owners="owners" :branches="branches" @success="isFormDialogOpen = false" />
         </DialogScrollContent>
     </Dialog>
 

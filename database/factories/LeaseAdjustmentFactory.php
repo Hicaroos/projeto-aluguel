@@ -21,7 +21,7 @@ class LeaseAdjustmentFactory extends Factory
     {
         return [
             'lease_id' => Lease::factory(),
-            'effective_on' => fn (array $attributes) => Lease::withoutGlobalScope(Lease::SCOPE)->find($attributes['lease_id'])?->start_date->addYear() ?? now(),
+            'effective_on' => fn (array $attributes) => Lease::withoutGlobalScopes()->find($attributes['lease_id'])?->start_date->addYear() ?? now(),
             'adjustment_index' => AdjustmentIndex::Igpm,
             'percent' => 4.5,
             'previous_amount' => 2000,
