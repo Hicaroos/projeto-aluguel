@@ -59,7 +59,7 @@ function handleError(errors: Record<string, string>) {
 
     <Head title="Cadastro" />
 
-    <Form v-bind="store.form()" :reset-on-success="['password', 'password_confirmation']" @error="handleError"
+    <Form v-bind="store.form()" :options="{ replace: true }" :reset-on-success="['password', 'password_confirmation']" @error="handleError"
         v-slot="{ errors, processing }" class="flex flex-col gap-6">
         <div ref="stepOneEl" class="grid gap-6" v-show="step === 1">
 
