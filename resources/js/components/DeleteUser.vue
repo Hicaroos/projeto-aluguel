@@ -60,11 +60,10 @@ const passwordInput = useTemplateRef('passwordInput');
                                 conta?</DialogTitle
                             >
                             <DialogDescription>
-                                Depois que sua conta for excluída, todos os
-                                seus recursos e dados também serão
-                                permanentemente excluídos. Digite sua senha
-                                para confirmar que deseja excluir sua conta
-                                permanentemente.
+                                Todos os dados da conta serão apagados
+                                definitivamente: imóveis, inquilinos,
+                                contratos, cobranças, recibos, despesas, fotos e
+                                documentos. Digite sua senha para confirmar.
                             </DialogDescription>
                         </DialogHeader>
 

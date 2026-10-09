@@ -15,6 +15,11 @@ trait NormalizesBrazilianNumbers
     protected const string CPF_RULE = 'regex:/^\d{11}$/';
 
     /**
+     * Rule for a CNPJ only (14 digits), once reduced to its digits.
+     */
+    protected const string CNPJ_RULE = 'regex:/^\d{14}$/';
+
+    /**
      * Rule for a landline (10 digits) or mobile (11 digits) number with area code, once reduced to its digits.
      */
     protected const string PHONE_RULE = 'regex:/^\d{10,11}$/';
@@ -40,13 +45,15 @@ trait NormalizesBrazilianNumbers
      * @param  list<string>  $documents
      * @param  list<string>  $cpfs
      * @param  list<string>  $phones
+     * @param  list<string>  $cnpjs
      * @return array<string, string>
      */
-    protected function brazilianNumberMessages(array $documents = [], array $cpfs = [], array $phones = []): array
+    protected function brazilianNumberMessages(array $documents = [], array $cpfs = [], array $phones = [], array $cnpjs = []): array
     {
         return [
             ...array_fill_keys(array_map(fn (string $field): string => "{$field}.regex", $documents), __('Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.')),
             ...array_fill_keys(array_map(fn (string $field): string => "{$field}.regex", $cpfs), __('Informe um CPF com 11 dígitos.')),
+            ...array_fill_keys(array_map(fn (string $field): string => "{$field}.regex", $cnpjs), __('Informe um CNPJ com 14 dígitos.')),
             ...array_fill_keys(array_map(fn (string $field): string => "{$field}.regex", $phones), __('Informe o número com DDD (10 ou 11 dígitos).')),
         ];
     }

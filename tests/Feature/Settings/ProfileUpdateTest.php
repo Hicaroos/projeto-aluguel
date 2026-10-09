@@ -1,8 +1,15 @@
 <?php
 
 use App\Models\Account;
+use App\Models\Guarantor;
+use App\Models\Lease;
+use App\Models\LeaseRenewal;
 use App\Models\Owner;
+use App\Models\Payment;
+use App\Models\PropertyPhoto;
+use App\Models\Receipt;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('profile page is displayed', function () {
@@ -155,6 +162,51 @@ test('user can delete their account', function () {
 
     $this->assertGuest();
     expect($user->fresh())->toBeNull();
+});
+
+test('deleting the only user of an account removes the whole account, its records and files', function () {
+    Storage::fake(PropertyPhoto::DISK);
+    $account = Account::factory()->create();
+    $user = User::factory()->for($account, 'account')->create();
+    $lease = Lease::factory()->for($account, 'account')->create();
+    $payment = Payment::factory()->for($lease)->create();
+    Receipt::factory()->for($payment)->create();
+    Guarantor::factory()->for($lease)->create();
+    LeaseRenewal::factory()->for($lease)->create();
+    $photo = PropertyPhoto::factory()->for($lease->property)->create();
+    Storage::disk(PropertyPhoto::DISK)->put($photo->path, 'photo');
+    $otherLease = Lease::factory()->create();
+
+    $this->actingAs($user)
+        ->delete(route('profile.destroy'), ['password' => 'password'])
+        ->assertRedirect(route('home'));
+
+    $this->assertModelMissing($account);
+    $this->assertDatabaseMissing('leases', ['account_id' => $account->id]);
+    $this->assertDatabaseMissing('properties', ['account_id' => $account->id]);
+    $this->assertDatabaseMissing('tenants', ['account_id' => $account->id]);
+    $this->assertDatabaseMissing('payments', ['account_id' => $account->id]);
+    $this->assertDatabaseMissing('receipts', ['account_id' => $account->id]);
+    $this->assertDatabaseMissing('guarantors', ['lease_id' => $lease->id]);
+    $this->assertDatabaseMissing('lease_renewals', ['lease_id' => $lease->id]);
+    $this->assertModelExists($otherLease);
+    Storage::disk(PropertyPhoto::DISK)->assertMissing($photo->path);
+});
+
+test('a user leaving an account with other users only removes themselves', function () {
+    $account = Account::factory()->agency()->create();
+    $user = User::factory()->for($account, 'account')->create();
+    $colleague = User::factory()->for($account, 'account')->create();
+    $lease = Lease::factory()->for($account, 'account')->create();
+
+    $this->actingAs($user)
+        ->delete(route('profile.destroy'), ['password' => 'password'])
+        ->assertRedirect(route('home'));
+
+    $this->assertModelMissing($user);
+    $this->assertModelExists($colleague);
+    $this->assertModelExists($account);
+    $this->assertModelExists($lease);
 });
 
 test('correct password must be provided to delete account', function () {

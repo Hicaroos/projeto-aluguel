@@ -66,7 +66,7 @@ function handleError(errors: Record<string, string>) {
             <div class="grid gap-2">
                 <Label for="account_type">Tipo de conta</Label>
                 <Select v-model="accountType" name="account_type">
-                    <SelectTrigger id="account_type" class="w-full" :tabindex="3">
+                    <SelectTrigger id="account_type" class="w-full" :tabindex="1">
                         <SelectValue placeholder="Selecione o tipo de conta" />
                     </SelectTrigger>
                     <SelectContent>
@@ -77,29 +77,23 @@ function handleError(errors: Record<string, string>) {
                 <InputError :message="errors.account_type" />
             </div>
 
-            <div class="grid gap-2">
-                <Label for="account_name">{{
-                    accountType === 'agency'
-                        ? 'Nome da imobiliária'
-                        : 'Nome da conta'
-                }}</Label>
-                <Input id="account_name" type="text" required :tabindex="4" name="account_name" :placeholder="accountType === 'agency'
-                    ? 'Nome da imobiliária'
-                    : 'Nome da sua conta'
-                    " />
+            <div v-if="accountType === 'agency'" class="grid gap-2">
+                <Label for="account_name">Nome da imobiliária</Label>
+                <Input id="account_name" type="text" required :tabindex="2" name="account_name"
+                    placeholder="Ex.: Imobiliária Silva" />
                 <InputError :message="errors.account_name" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="name">Nome</Label>
-                <Input id="name" type="text" required autofocus :tabindex="1" autocomplete="name" name="name"
+                <Label for="name">{{ accountType === 'agency' ? 'Seu nome (responsável)' : 'Nome' }}</Label>
+                <Input id="name" type="text" required autofocus :tabindex="3" autocomplete="name" name="name"
                     placeholder="Nome completo" />
                 <InputError :message="errors.name" />
             </div>
 
             <div class="grid gap-2">
                 <Label for="email">E-mail</Label>
-                <Input id="email" type="email" required :tabindex="2" autocomplete="email" name="email"
+                <Input id="email" type="email" required :tabindex="4" autocomplete="email" name="email"
                     placeholder="seuemail@exemplo.com" />
                 <InputError :message="errors.email" />
             </div>
@@ -119,31 +113,50 @@ function handleError(errors: Record<string, string>) {
                 <InputError :message="errors.password_confirmation" />
             </div>
 
-            <Button v-if="accountType === 'single_owner'" type="button" class="mt-2 w-full" :tabindex="7"
-                @click="goToStep2">
+            <Button type="button" class="mt-2 w-full" :tabindex="7" @click="goToStep2">
                 Próximo
-            </Button>
-
-            <Button v-else type="submit" class="mt-2 w-full" :tabindex="7" :disabled="processing"
-                data-test="register-user-button">
-                <Spinner v-if="processing" />
-                Criar conta
             </Button>
         </div>
 
-        <div v-if="accountType === 'single_owner'" class="grid gap-6" v-show="step === 2">
-            <div class="grid gap-2">
-                <Label for="owner_cpf_cnpj">CPF ou CNPJ</Label>
-                <MaskedInput id="owner_cpf_cnpj" mask="document" type="text" required :tabindex="8" name="owner_cpf_cnpj"
-                    placeholder="000.000.000-00 ou 00.000.000/0000-00" />
-                <InputError :message="errors.owner_cpf_cnpj" />
-            </div>
+        <div class="grid gap-6" v-show="step === 2">
+            <template v-if="accountType === 'single_owner'">
+                <div class="grid gap-2">
+                    <Label for="owner_cpf_cnpj">CPF ou CNPJ</Label>
+                    <MaskedInput id="owner_cpf_cnpj" mask="document" type="text" required :tabindex="8" name="owner_cpf_cnpj"
+                        placeholder="000.000.000-00 ou 00.000.000/0000-00" />
+                    <InputError :message="errors.owner_cpf_cnpj" />
+                </div>
 
-            <div class="grid gap-2">
-                <Label for="owner_phone">Telefone (opcional)</Label>
-                <MaskedInput id="owner_phone" mask="phone" type="tel" :tabindex="9" name="owner_phone" placeholder="(00) 00000-0000" />
-                <InputError :message="errors.owner_phone" />
-            </div>
+                <div class="grid gap-2">
+                    <Label for="owner_phone">Celular</Label>
+                    <MaskedInput id="owner_phone" mask="phone" type="tel" required :tabindex="9" name="owner_phone"
+                        placeholder="(00) 00000-0000" />
+                    <InputError :message="errors.owner_phone" />
+                </div>
+            </template>
+
+            <template v-else>
+                <div class="grid gap-2">
+                    <Label for="agency_document">CNPJ</Label>
+                    <MaskedInput id="agency_document" mask="document" type="text" required :tabindex="8"
+                        name="agency_document" placeholder="00.000.000/0000-00" />
+                    <InputError :message="errors.agency_document" />
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="agency_creci">CRECI (opcional)</Label>
+                    <Input id="agency_creci" type="text" :tabindex="9" name="agency_creci" maxlength="20"
+                        placeholder="Ex.: 1234-J" />
+                    <InputError :message="errors.agency_creci" />
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="agency_phone">Telefone</Label>
+                    <MaskedInput id="agency_phone" mask="phone" type="tel" required :tabindex="9"
+                        name="agency_phone" placeholder="(00) 0000-0000" />
+                    <InputError :message="errors.agency_phone" />
+                </div>
+            </template>
 
             <div class="flex flex-col gap-3">
 

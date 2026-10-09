@@ -16,6 +16,9 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $name
  * @property AccountType $type
+ * @property string|null $document The agency CNPJ, as digits.
+ * @property string|null $creci The agency CRECI registration.
+ * @property string|null $phone The agency phone, as digits.
  * @property string|null $plan
  * @property AccountStatus $status
  * @property Carbon|null $created_at
@@ -24,7 +27,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, Owner> $owners
  * @property-read Collection<int, Tenant> $tenants
  */
-#[Fillable(['name', 'type', 'plan', 'status'])]
+#[Fillable(['name', 'type', 'document', 'creci', 'phone', 'plan', 'status'])]
 class Account extends Model
 {
     /** @use HasFactory<AccountFactory> */
