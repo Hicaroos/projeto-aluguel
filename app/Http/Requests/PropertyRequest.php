@@ -5,9 +5,11 @@ namespace App\Http\Requests;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Models\Branch;
+use App\Models\Owner;
 use App\Models\Property;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -32,7 +34,8 @@ class PropertyRequest extends FormRequest
                 Rule::requiredIf($isAgency),
                 'nullable',
                 'integer',
-                Rule::exists('owners', 'id')->where('account_id', $this->user()->account_id),
+                Rule::exists('owners', 'id')->where('account_id', $this->user()->account_id)->withoutTrashed()
+                    ->where(fn (QueryBuilder $query) => $query->whereIn('id', Owner::query()->select('id'))),
             ],
             'zip_code' => ['required', 'string', 'max:9'],
             'street' => ['required', 'string', 'max:255'],

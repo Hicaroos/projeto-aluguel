@@ -33,6 +33,8 @@ export type Property = {
     photos?: PropertyPhoto[];
     /** Loaded on the properties list of agencies. */
     branch?: { id: number; name: string } | null;
+    /** Loaded on the properties list. */
+    owner?: { id: number; name: string } | null;
 };
 
 export type PropertyPhoto = {

@@ -73,10 +73,17 @@ class Property extends Model
     ];
 
     /**
-     * Link the tenants of a property moved to another branch to that branch too.
+     * Link the owner of the property to its branch, and the tenants of a property moved to another
+     * branch to that branch too, so the branch lists them.
      */
     protected static function booted(): void
     {
+        static::saved(function (Property $property): void {
+            if ($property->wasRecentlyCreated || $property->wasChanged(['owner_id', 'branch_id'])) {
+                Owner::linkToBranch([$property->owner_id], $property->branch_id);
+            }
+        });
+
         static::updated(function (Property $property): void {
             if ($property->wasChanged('branch_id')) {
                 Tenant::linkToBranch(
@@ -156,6 +163,7 @@ class Property extends Model
             'activeLease.tenant:id,name,deleted_at',
             'photos:id,property_id,sort_order',
             'branch:id,name',
+            'owner:id,name,deleted_at',
         ]);
     }
 

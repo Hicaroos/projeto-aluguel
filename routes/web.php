@@ -12,6 +12,7 @@ use App\Http\Controllers\LeaseController;
 use App\Http\Controllers\LeaseDepositController;
 use App\Http\Controllers\LeaseDocumentController;
 use App\Http\Controllers\LeaseRenewalController;
+use App\Http\Controllers\OwnerController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\PropertyPhotoController;
@@ -30,6 +31,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
     Route::put('branch-selection', [BranchSelectionController::class, 'update'])->name('branch-selection.update');
 
+    Route::get('owners', [OwnerController::class, 'index'])->name('owners.index');
     Route::get('properties', [PropertyController::class, 'index'])->name('properties.index');
     Route::get('property-photos/{photo}', [PropertyPhotoController::class, 'show'])->name('property-photos.show');
     Route::get('property-photos/{photo}/thumbnail', [PropertyPhotoController::class, 'thumbnail'])->name('property-photos.thumbnail');
@@ -41,6 +43,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('lease-documents/{document}/download', [LeaseDocumentController::class, 'download'])->name('lease-documents.download');
 
     Route::middleware('can:manage-rentals')->group(function () {
+        Route::post('owners/link', [OwnerController::class, 'link'])->name('owners.link');
+        Route::resource('owners', OwnerController::class)->only(['store', 'update', 'destroy']);
         Route::resource('properties', PropertyController::class)->only(['store', 'update', 'destroy']);
         Route::post('properties/{property}/photos', [PropertyPhotoController::class, 'store'])->name('properties.photos.store');
         Route::patch('property-photos/{photo}/cover', [PropertyPhotoController::class, 'makeCover'])->name('property-photos.cover');

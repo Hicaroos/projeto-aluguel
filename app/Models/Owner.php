@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Concerns\BelongsToAccount;
+use App\Concerns\SharedAcrossBranches;
 use App\Enums\MaritalStatus;
 use Database\Factories\OwnerFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -37,6 +39,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read Account $account
  * @property-read Collection<int, Property> $properties
+ * @property-read Collection<int, Branch> $branches
  */
 #[Fillable([
     'account_id',
@@ -60,7 +63,7 @@ use Illuminate\Support\Carbon;
 class Owner extends Model
 {
     /** @use HasFactory<OwnerFactory> */
-    use BelongsToAccount, HasFactory, SoftDeletes;
+    use BelongsToAccount, HasFactory, SharedAcrossBranches, SoftDeletes;
 
     /**
      * @return HasMany<Property, $this>
@@ -68,6 +71,21 @@ class Owner extends Model
     public function properties(): HasMany
     {
         return $this->hasMany(Property::class);
+    }
+
+    /**
+     * Scope the query to owners whose name, document, e-mail or phone matches the given term.
+     *
+     * @param  Builder<Owner>  $query
+     */
+    public function scopeSearch(Builder $query, string $term): void
+    {
+        $query->when($term !== '', fn (Builder $query) => $query->where(function (Builder $query) use ($term) {
+            $query->where('name', 'like', "%{$term}%")
+                ->orWhere('cpf_cnpj', 'like', "%{$term}%")
+                ->orWhere('email', 'like', "%{$term}%")
+                ->orWhere('phone', 'like', "%{$term}%");
+        }));
     }
 
     /**

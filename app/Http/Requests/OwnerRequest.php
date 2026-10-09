@@ -5,11 +5,11 @@ namespace App\Http\Requests;
 use App\Concerns\NormalizesBrazilianNumbers;
 use App\Concerns\PersonQualificationRules;
 use App\Concerns\ValidatesSharedDocument;
-use App\Models\Tenant;
+use App\Models\Owner;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class TenantRequest extends FormRequest
+class OwnerRequest extends FormRequest
 {
     use NormalizesBrazilianNumbers, PersonQualificationRules, ValidatesSharedDocument;
 
@@ -31,8 +31,8 @@ class TenantRequest extends FormRequest
      */
     public function rules(): array
     {
-        /** @var Tenant|null $tenant */
-        $tenant = $this->route('tenant');
+        /** @var Owner|null $owner */
+        $owner = $this->route('owner');
 
         return [
             'name' => ['required', 'string', 'max:255'],
@@ -40,11 +40,12 @@ class TenantRequest extends FormRequest
                 'required',
                 'string',
                 self::DOCUMENT_RULE,
-                $this->documentIsNotTaken(Tenant::class, $tenant, __('Já existe um inquilino com este CPF/CNPJ.')),
+                $this->documentIsNotTaken(Owner::class, $owner, __('Já existe um proprietário com este CPF/CNPJ.')),
             ],
             'email' => ['nullable', 'string', 'email', 'max:255'],
             'phone' => ['required', 'string', self::PHONE_RULE],
             ...$this->qualificationRules(),
+            'pix_key' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -57,6 +58,7 @@ class TenantRequest extends FormRequest
     {
         return [
             'phone' => __('celular'),
+            'pix_key' => __('chave Pix'),
         ];
     }
 
@@ -67,8 +69,6 @@ class TenantRequest extends FormRequest
      */
     public function messages(): array
     {
-        return [
-            ...$this->brazilianNumberMessages(documents: ['cpf_cnpj'], phones: ['phone']),
-        ];
+        return $this->brazilianNumberMessages(documents: ['cpf_cnpj'], phones: ['phone']);
     }
 }

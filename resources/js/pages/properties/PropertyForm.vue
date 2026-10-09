@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form, usePage } from '@inertiajs/vue3';
+import { Form, Link, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, ref, watch } from 'vue';
 import PropertyController from '@/actions/App/Http/Controllers/PropertyController';
 import InputError from '@/components/InputError.vue';
@@ -23,6 +23,7 @@ import {
     propertyTypeIcons,
     propertyTypeLabels,
 } from '@/lib/property-labels';
+import { index as ownersIndex } from '@/routes/owners';
 import type {
     BranchOption,
     Property,
@@ -237,6 +238,18 @@ watch(zipCode, async (value) => {
                         </SelectItem>
                     </SelectContent>
                 </Select>
+                <p
+                    v-if="owners.length === 0"
+                    class="text-xs text-muted-foreground"
+                >
+                    Nenhum proprietário cadastrado.
+                    <Link
+                        :href="ownersIndex()"
+                        class="font-medium text-primary hover:underline"
+                        >Cadastre o proprietário</Link
+                    >
+                    antes do imóvel.
+                </p>
                 <InputError :message="errors.owner_id" />
             </div>
         </section>

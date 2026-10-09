@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import {
     Building2,
     Coins,
+    Contact,
     FileSignature,
     FileText,
     House,
@@ -31,6 +32,7 @@ import { index as branches } from '@/routes/branches';
 import { index as contractTemplates } from '@/routes/contract-templates';
 import { index as expenses } from '@/routes/expenses';
 import { index as leases } from '@/routes/leases';
+import { index as owners } from '@/routes/owners';
 import { index as payments } from '@/routes/payments';
 import { index as properties } from '@/routes/properties';
 import { index as team } from '@/routes/team';
@@ -39,12 +41,27 @@ import type { NavItem } from '@/types';
 
 const can = usePermissions();
 
+const page = usePage();
+
+const isAgency = computed(
+    () => page.props.auth.user.account?.type === 'agency',
+);
+
 const mainNavItems = computed<NavItem[]>(() => [
     {
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
     },
+    ...(isAgency.value
+        ? [
+              {
+                  title: 'Proprietários',
+                  href: owners(),
+                  icon: Contact,
+              },
+          ]
+        : []),
     {
         title: 'Imóveis',
         href: properties(),

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\LeaseStatus;
+use App\Http\Controllers\Concerns\LinksToUserBranches;
 use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
 use App\Http\Controllers\Concerns\SortsTable;
 use App\Http\Requests\TenantRequest;
@@ -17,7 +18,7 @@ use SortDirection;
 
 class TenantController extends Controller
 {
-    use ResolvesSelectedRecord, SortsTable;
+    use LinksToUserBranches, ResolvesSelectedRecord, SortsTable;
 
     /**
      * Display the authenticated account's tenants.
@@ -61,7 +62,7 @@ class TenantController extends Controller
             'account_id' => $request->user()->account_id,
         ]);
 
-        $this->linkToUserBranches($request, $tenant);
+        $this->linkToUserBranches($request->user(), $tenant);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Inquilino cadastrado com sucesso.')]);
 
@@ -79,7 +80,7 @@ class TenantController extends Controller
             ->where('cpf_cnpj', $document)
             ->firstOrFail();
 
-        $this->linkToUserBranches($request, $tenant);
+        $this->linkToUserBranches($request->user(), $tenant);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Inquilino adicionado à sua unidade.')]);
 
@@ -124,19 +125,5 @@ class TenantController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Inquilino removido com sucesso.')]);
 
         return to_route('tenants.index');
-    }
-
-    /**
-     * Link the tenant to the branch the user is looking at, or to every branch they work in. Users
-     * who see every branch leave the tenant unlinked, so every branch sees them.
-     */
-    private function linkToUserBranches(Request $request, Tenant $tenant): void
-    {
-        $user = $request->user();
-        $selectedId = $user->selectedBranchId();
-
-        foreach ($selectedId !== null ? [$selectedId] : ($user->accessibleBranchIds() ?? []) as $branchId) {
-            Tenant::linkToBranch([$tenant->id], $branchId);
-        }
     }
 }

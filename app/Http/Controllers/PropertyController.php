@@ -8,6 +8,7 @@ use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
 use App\Http\Controllers\Concerns\SortsTable;
 use App\Http\Requests\PropertyRequest;
 use App\Models\Branch;
+use App\Models\Owner;
 use App\Models\Property;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Expression;
@@ -58,7 +59,7 @@ class PropertyController extends Controller
                 ...$sorting,
             ],
             'accountType' => $account?->type->value,
-            'owners' => $account?->isAgency() ? $account->owners()->get(['id', 'name']) : [],
+            'owners' => $account?->isAgency() ? Owner::query()->orderBy('name')->get(['id', 'name']) : [],
             'branches' => $account?->isAgency()
                 ? Branch::accessibleBy($request->user())->orderBy('name')->get(['id', 'name', 'is_active'])
                 : [],

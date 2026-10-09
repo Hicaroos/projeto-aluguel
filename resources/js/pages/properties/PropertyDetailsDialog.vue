@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { FileText, MapPin, Pencil, UserRound, Wallet } from '@lucide/vue';
+import { computed } from 'vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ import {
 } from '@/lib/property-labels';
 import PropertyPhotos from '@/pages/properties/PropertyPhotos.vue';
 import { index as leasesIndex } from '@/routes/leases';
+import { index as ownersIndex } from '@/routes/owners';
 import { index as tenantsIndex } from '@/routes/tenants';
 import type { Property } from '@/types';
 
@@ -34,6 +36,12 @@ defineProps<{
 }>();
 
 const can = usePermissions();
+
+const page = usePage();
+
+const isAgency = computed(
+    () => page.props.auth.user.account?.type === 'agency',
+);
 
 const emit = defineEmits<{
     close: [];
@@ -138,6 +146,21 @@ const emit = defineEmits<{
                         <dt class="text-muted-foreground">Cidade/UF</dt>
                         <dd class="font-medium">
                             {{ property.city }}/{{ property.state }}
+                        </dd>
+                    </div>
+                    <div v-if="isAgency && property.owner">
+                        <dt class="text-muted-foreground">Proprietário</dt>
+                        <dd class="font-medium">
+                            <Link
+                                :href="
+                                    ownersIndex({
+                                        query: { show: property.owner.id },
+                                    })
+                                "
+                                class="text-primary hover:underline"
+                            >
+                                {{ property.owner.name }}
+                            </Link>
                         </dd>
                     </div>
                     <div v-if="property.branch">
