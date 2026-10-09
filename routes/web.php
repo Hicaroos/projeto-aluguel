@@ -12,6 +12,7 @@ use App\Http\Controllers\LeaseController;
 use App\Http\Controllers\LeaseDepositController;
 use App\Http\Controllers\LeaseDocumentController;
 use App\Http\Controllers\LeaseRenewalController;
+use App\Http\Controllers\ManagementController;
 use App\Http\Controllers\OwnerController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PropertyController;
@@ -81,6 +82,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::middleware('can:manage-agency')->group(function () {
+        Route::get('management', ManagementController::class)->name('management');
+
         Route::resource('branches', BranchController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::patch('branches/{branch}/status', [BranchController::class, 'toggleStatus'])->name('branches.status');
 

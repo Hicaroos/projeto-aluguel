@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\BelongsToAccount;
+use Closure;
 use Database\Factories\BranchFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -143,6 +144,38 @@ class Branch extends Model
         }
 
         return $attributes->get($key);
+    }
+
+    /**
+     * Run the callback looking at the given branches only, whatever the branch selector says, e.g.
+     * to compare the figures of each branch. Null looks at every branch.
+     *
+     * @template TResult
+     *
+     * @param  array<int, int>|null  $branchIds
+     * @param  Closure(): TResult  $callback
+     * @return TResult
+     */
+    public static function viewing(?array $branchIds, Closure $callback): mixed
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            return $callback();
+        }
+
+        $attributes = request()->attributes;
+        $key = 'visible_branch_ids.'.$user->id;
+        $hadPrevious = $attributes->has($key);
+        $previous = $attributes->get($key);
+
+        $attributes->set($key, $branchIds);
+
+        try {
+            return $callback();
+        } finally {
+            $hadPrevious ? $attributes->set($key, $previous) : $attributes->remove($key);
+        }
     }
 
     /**

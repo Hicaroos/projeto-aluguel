@@ -2,6 +2,7 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import {
     Building2,
+    ChartPie,
     Coins,
     Contact,
     FileSignature,
@@ -27,7 +28,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { usePermissions } from '@/composables/usePermissions';
-import { dashboard } from '@/routes';
+import { dashboard, management } from '@/routes';
 import { index as branches } from '@/routes/branches';
 import { index as contractTemplates } from '@/routes/contract-templates';
 import { index as expenses } from '@/routes/expenses';
@@ -100,6 +101,11 @@ const mainNavItems = computed<NavItem[]>(() => [
 const managementNavItems = computed<NavItem[]>(() =>
     can.value.manageAgency
         ? [
+              {
+                  title: 'Visão geral',
+                  href: management(),
+                  icon: ChartPie,
+              },
               {
                   title: 'Equipe',
                   href: team(),
