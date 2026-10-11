@@ -14,10 +14,12 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @property int $id
@@ -52,7 +54,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read Account $account
  * @property-read Branch|null $branch
- * @property-read Owner $owner
+ * @property-read Owner $owner The main owner, who signs the contracts.
+ * @property-read Collection<int, Owner> $owners Every owner, the main one included, with their share.
  * @property-read Collection<int, PropertyPhoto> $photos
  * @property-read Collection<int, Lease> $leases
  * @property-read Lease|null $activeLease
@@ -106,9 +109,19 @@ class Property extends Model
      */
     protected static function booted(): void
     {
+        static::created(function (Property $property): void {
+            $property->owners()->syncWithoutDetaching([$property->owner_id => ['share_percent' => 100]]);
+        });
+
+        static::updated(function (Property $property): void {
+            if ($property->wasChanged('owner_id')) {
+                $property->passShareToMainOwner((int) $property->getOriginal('owner_id'));
+            }
+        });
+
         static::saved(function (Property $property): void {
             if ($property->wasRecentlyCreated || $property->wasChanged(['owner_id', 'branch_id'])) {
-                Owner::linkToBranch([$property->owner_id], $property->branch_id);
+                Owner::linkToBranch($property->owners()->pluck('owners.id')->all(), $property->branch_id);
             }
         });
 
@@ -141,6 +154,48 @@ class Property extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(Owner::class);
+    }
+
+    /**
+     * Get everyone who owns the property, the main owner included, with the share each one holds.
+     *
+     * @return BelongsToMany<Owner, $this, OwnerProperty, 'pivot'>
+     */
+    public function owners(): BelongsToMany
+    {
+        return $this->belongsToMany(Owner::class)->using(OwnerProperty::class)->withPivot('share_percent')->withTimestamps();
+    }
+
+    /**
+     * Get the share of the property each owner holds, as percentages keyed by owner id. A property
+     * whose shares were never recorded belongs wholly to its main owner.
+     *
+     * @return array<int, float>
+     */
+    public function ownerShares(): array
+    {
+        $shares = DB::table('owner_property')
+            ->where('property_id', $this->id)
+            ->pluck('share_percent', 'owner_id')
+            ->map(fn (mixed $share): float => (float) $share)
+            ->all();
+
+        return $shares === [] ? [$this->owner_id => 100.0] : $shares;
+    }
+
+    /**
+     * Hand the share of the former main owner to the new one, so the main owner always holds a share.
+     */
+    private function passShareToMainOwner(int $formerOwnerId): void
+    {
+        $shares = $this->ownerShares();
+        $formerShare = $shares[$formerOwnerId] ?? 0.0;
+
+        unset($shares[$formerOwnerId]);
+
+        $shares[$this->owner_id] = ($shares[$this->owner_id] ?? 0.0) + ($formerShare > 0 ? $formerShare : max(0.0, 100 - array_sum($shares)));
+
+        $this->owners()->sync(array_map(fn (float $share): array => ['share_percent' => $share], $shares));
     }
 
     /**
@@ -192,6 +247,7 @@ class Property extends Model
             'photos:id,property_id,sort_order',
             'branch:id,name',
             'owner:id,name,deleted_at',
+            'owners:id,name',
         ]);
     }
 

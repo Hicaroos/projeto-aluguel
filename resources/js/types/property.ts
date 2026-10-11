@@ -58,6 +58,14 @@ export type Property = {
     branch?: { id: number; name: string } | null;
     /** Loaded on the properties list. */
     owner?: { id: number; name: string } | null;
+    /** Loaded on the properties list: every owner, the main one included, with their share. */
+    owners?: PropertyCoOwner[];
+};
+
+export type PropertyCoOwner = {
+    id: number;
+    name: string;
+    pivot: { share_percent: string };
 };
 
 export type PropertyPhoto = {

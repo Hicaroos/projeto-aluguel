@@ -32,8 +32,11 @@ class OwnerController extends Controller
             ->withCount('properties')
             ->with([
                 'properties' => fn ($query) => $query
-                    ->select(['id', 'owner_id', 'branch_id', 'type', 'street', 'number', 'neighborhood', 'city', 'state', 'for_rent', 'for_sale', 'rent_amount', 'sale_price', 'status'])
-                    ->orderBy('street'),
+                    ->select(array_map(
+                        fn (string $column): string => "properties.{$column}",
+                        ['id', 'owner_id', 'branch_id', 'type', 'street', 'number', 'neighborhood', 'city', 'state', 'for_rent', 'for_sale', 'rent_amount', 'sale_price', 'status'],
+                    ))
+                    ->orderBy('properties.street'),
                 'properties.branch:id,name',
             ]);
 
@@ -110,7 +113,7 @@ class OwnerController extends Controller
     {
         Gate::authorize('delete', $owner);
 
-        if ($owner->properties()->withoutGlobalScopes()->whereNull('deleted_at')->exists()) {
+        if ($owner->properties()->withoutGlobalScopes()->whereNull('properties.deleted_at')->exists()) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __('Este proprietário possui imóveis cadastrados e não pode ser removido.')]);
 
             return back();

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Form, Link, usePage } from '@inertiajs/vue3';
+import { Plus, Trash2 } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import PropertyController from '@/actions/App/Http/Controllers/PropertyController';
 import InputError from '@/components/InputError.vue';
@@ -82,6 +83,47 @@ const lockedStatus = computed(() =>
         ? props.property.status
         : null,
 );
+
+const ownerId = ref(props.property ? String(props.property.owner_id) : '');
+
+/** Other people who own part of the property, each with their share. */
+const coOwners = ref(
+    (props.property?.owners ?? [])
+        .filter((owner) => owner.id !== props.property?.owner_id)
+        .map((owner) => ({
+            ownerId: String(owner.id),
+            share: String(Number(owner.pivot.share_percent)),
+        })),
+);
+
+const mainOwnerShare = computed(() => {
+    const coOwnersShare = coOwners.value.reduce(
+        (total, coOwner) => total + (Number(coOwner.share) || 0),
+        0,
+    );
+
+    return Math.round((100 - coOwnersShare) * 100) / 100;
+});
+
+function addCoOwner() {
+    coOwners.value.push({ ownerId: '', share: '' });
+}
+
+function removeCoOwner(index: number) {
+    coOwners.value.splice(index, 1);
+}
+
+/** The owners a co-owner row may pick: anyone but the main owner and the other rows. */
+function coOwnerOptions(index: number) {
+    const taken = new Set([
+        ownerId.value,
+        ...coOwners.value
+            .filter((_, other) => other !== index)
+            .map((coOwner) => coOwner.ownerId),
+    ]);
+
+    return props.owners.filter((owner) => !taken.has(String(owner.id)));
+}
 
 const forRent = ref(props.property?.for_rent ?? true);
 const forSale = ref(props.property?.for_sale ?? false);
@@ -250,12 +292,7 @@ watch(zipCode, async (value) => {
 
             <div v-if="accountType === 'agency'" class="grid gap-2">
                 <Label for="owner_id">Proprietário</Label>
-                <Select
-                    name="owner_id"
-                    :default-value="
-                        property ? String(property.owner_id) : undefined
-                    "
-                >
+                <Select v-model="ownerId" name="owner_id">
                     <SelectTrigger id="owner_id" class="w-full">
                         <SelectValue placeholder="Selecione o proprietário" />
                     </SelectTrigger>
@@ -282,6 +319,95 @@ watch(zipCode, async (value) => {
                     antes do imóvel.
                 </p>
                 <InputError :message="errors.owner_id" />
+            </div>
+
+            <div
+                v-if="accountType === 'agency' && owners.length > 1"
+                class="grid gap-3"
+            >
+                <div v-if="coOwners.length > 0" class="grid gap-3">
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="text-sm font-medium">Coproprietários</p>
+                        <p class="text-xs text-muted-foreground tabular-nums">
+                            Proprietário principal: {{ mainOwnerShare }}%
+                        </p>
+                    </div>
+                    <div
+                        v-for="(coOwner, index) in coOwners"
+                        :key="index"
+                        class="grid gap-2"
+                    >
+                        <div class="flex items-start gap-2">
+                            <Select
+                                v-model="coOwner.ownerId"
+                                :name="`co_owners[${index}][owner_id]`"
+                            >
+                                <SelectTrigger
+                                    :id="`co_owner_${index}`"
+                                    class="w-full min-w-0 flex-1"
+                                    :aria-label="`Coproprietário ${index + 1}`"
+                                >
+                                    <SelectValue
+                                        placeholder="Selecione o coproprietário"
+                                    />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem
+                                        v-for="owner in coOwnerOptions(index)"
+                                        :key="owner.id"
+                                        :value="String(owner.id)"
+                                    >
+                                        {{ owner.name }}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <div class="relative w-28 shrink-0">
+                                <Input
+                                    v-model="coOwner.share"
+                                    :name="`co_owners[${index}][share_percent]`"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    max="100"
+                                    placeholder="0"
+                                    class="pr-8 tabular-nums"
+                                    :aria-label="`Participação do coproprietário ${index + 1}`"
+                                />
+                                <span
+                                    class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground"
+                                    >%</span
+                                >
+                            </div>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                :aria-label="`Remover coproprietário ${index + 1}`"
+                                @click="removeCoOwner(index)"
+                            >
+                                <Trash2 class="size-4" />
+                            </Button>
+                        </div>
+                        <InputError
+                            :message="
+                                errors[`co_owners.${index}.owner_id`] ??
+                                errors[`co_owners.${index}.share_percent`]
+                            "
+                        />
+                    </div>
+                </div>
+                <InputError :message="errors.co_owners" />
+                <div>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        @click="addCoOwner"
+                    >
+                        <Plus class="size-4" />
+                        Adicionar coproprietário
+                    </Button>
+                </div>
             </div>
         </section>
 

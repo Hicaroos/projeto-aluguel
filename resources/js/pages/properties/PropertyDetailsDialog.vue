@@ -180,7 +180,37 @@ const emit = defineEmits<{
                             {{ property.city }}/{{ property.state }}
                         </dd>
                     </div>
-                    <div v-if="isAgency && property.owner">
+                    <div
+                        v-if="isAgency && (property.owners?.length ?? 0) > 1"
+                        class="col-span-2"
+                    >
+                        <dt class="text-muted-foreground">Proprietários</dt>
+                        <dd class="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                            <Link
+                                v-for="owner in property.owners"
+                                :key="owner.id"
+                                :href="
+                                    ownersIndex({ query: { show: owner.id } })
+                                "
+                                class="font-medium text-primary hover:underline"
+                            >
+                                {{ owner.name }}
+                                <span
+                                    class="font-normal text-muted-foreground tabular-nums"
+                                    >{{
+                                        Number(owner.pivot.share_percent)
+                                    }}%</span
+                                >
+                                <span
+                                    v-if="owner.id === property.owner_id"
+                                    class="font-normal text-muted-foreground"
+                                >
+                                    · principal</span
+                                >
+                            </Link>
+                        </dd>
+                    </div>
+                    <div v-else-if="isAgency && property.owner">
                         <dt class="text-muted-foreground">Proprietário</dt>
                         <dd class="font-medium">
                             <Link

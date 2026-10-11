@@ -52,6 +52,15 @@ class PropertyRequest extends FormRequest
                 Rule::exists('owners', 'id')->where('account_id', $this->user()->account_id)->withoutTrashed()
                     ->where(fn (QueryBuilder $query) => $query->whereIn('id', Owner::query()->select('id'))),
             ],
+            'co_owners' => $isAgency ? ['array', 'max:20'] : ['exclude'],
+            'co_owners.*.owner_id' => [
+                'required',
+                'integer',
+                'distinct',
+                Rule::exists('owners', 'id')->where('account_id', $this->user()->account_id)->withoutTrashed()
+                    ->where(fn (QueryBuilder $query) => $query->whereIn('id', Owner::query()->select('id'))),
+            ],
+            'co_owners.*.share_percent' => ['required', 'numeric', 'gt:0', 'lt:100'],
             'zip_code' => ['required', 'string', 'max:9'],
             'street' => ['required', 'string', 'max:255'],
             'number' => ['required', 'string', 'max:20'],
@@ -91,8 +100,35 @@ class PropertyRequest extends FormRequest
                 if (! $this->boolean('for_rent') && ! $this->boolean('for_sale')) {
                     $validator->errors()->add('for_rent', __('Marque se o imóvel é para alugar, para vender ou os dois.'));
                 }
+
+                /** @var array<int, mixed> $input */
+                $input = (array) $this->input('co_owners', []);
+                $coOwners = array_filter($input, is_array(...));
+
+                if (in_array((int) $this->input('owner_id'), array_map(fn (array $coOwner): int => (int) ($coOwner['owner_id'] ?? 0), $coOwners), true)) {
+                    $validator->errors()->add('co_owners', __('O proprietário principal já faz parte do imóvel. Escolha outra pessoa como coproprietária.'));
+                }
+
+                if (array_sum(array_map(fn (array $coOwner): float => (float) ($coOwner['share_percent'] ?? 0), $coOwners)) >= 100) {
+                    $validator->errors()->add('co_owners', __('A soma das participações dos coproprietários precisa ficar abaixo de 100%, deixando uma parte para o proprietário principal.'));
+                }
             },
         ];
+    }
+
+    /**
+     * Get the share each co-owner holds, as percentages keyed by owner id. The main owner keeps the rest.
+     *
+     * @return array<int, float>
+     */
+    public function coOwnerShares(): array
+    {
+        /** @var list<array{owner_id: int|string, share_percent: float|string}> $coOwners */
+        $coOwners = $this->validated('co_owners', []);
+
+        return collect($coOwners)
+            ->mapWithKeys(fn (array $coOwner): array => [(int) $coOwner['owner_id'] => round((float) $coOwner['share_percent'], 2)])
+            ->all();
     }
 
     /**
@@ -141,6 +177,11 @@ class PropertyRequest extends FormRequest
             'sale_price.required' => __('Informe o preço de venda.'),
             'branch_id.required' => __('Selecione a unidade do imóvel.'),
             'branch_id.in' => __('Selecione uma unidade ativa.'),
+            'co_owners.*.owner_id.required' => __('Escolha o coproprietário.'),
+            'co_owners.*.owner_id.distinct' => __('Este coproprietário aparece mais de uma vez.'),
+            'co_owners.*.share_percent.required' => __('Informe a participação.'),
+            'co_owners.*.share_percent.gt' => __('A participação precisa ser maior que zero.'),
+            'co_owners.*.share_percent.lt' => __('A participação precisa ser menor que 100%.'),
         ];
     }
 

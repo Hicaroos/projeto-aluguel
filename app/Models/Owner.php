@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -66,11 +66,13 @@ class Owner extends Model
     use BelongsToAccount, HasFactory, SharedAcrossBranches, SoftDeletes;
 
     /**
-     * @return HasMany<Property, $this>
+     * Get the properties the owner owns, wholly or in part, with the share they hold.
+     *
+     * @return BelongsToMany<Property, $this, OwnerProperty, 'pivot'>
      */
-    public function properties(): HasMany
+    public function properties(): BelongsToMany
     {
-        return $this->hasMany(Property::class);
+        return $this->belongsToMany(Property::class)->using(OwnerProperty::class)->withPivot('share_percent')->withTimestamps();
     }
 
     /**

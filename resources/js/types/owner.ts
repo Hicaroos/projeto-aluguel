@@ -38,4 +38,6 @@ export type OwnerProperty = Pick<
     | 'status'
 > & {
     branch: { id: number; name: string } | null;
+    /** The share of the property the owner holds. */
+    pivot: { share_percent: string };
 };

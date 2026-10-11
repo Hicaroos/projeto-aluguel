@@ -219,6 +219,16 @@ const emit = defineEmits<{
                                 <template v-if="property.branch">
                                     · {{ property.branch.name }}
                                 </template>
+                                <template
+                                    v-if="
+                                        Number(property.pivot.share_percent) <
+                                        100
+                                    "
+                                >
+                                    ·
+                                    {{ Number(property.pivot.share_percent) }}%
+                                    do imóvel
+                                </template>
                             </p>
                         </div>
                         <Button variant="outline" size="sm" as-child>

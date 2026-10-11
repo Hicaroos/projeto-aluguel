@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Properties\SyncPropertyOwners;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
@@ -72,17 +73,19 @@ class PropertyController extends Controller
     /**
      * Store a newly created property.
      */
-    public function store(PropertyRequest $request): RedirectResponse
+    public function store(PropertyRequest $request, SyncPropertyOwners $syncPropertyOwners): RedirectResponse
     {
         $ownerId = $request->ownerId();
 
         abort_if($ownerId === null, 422, 'Nenhum proprietário encontrado para esta conta.');
 
-        Property::create([
-            ...$request->validated(),
+        $property = Property::create([
+            ...$request->safe()->except('co_owners'),
             'account_id' => $request->user()->account_id,
             'owner_id' => $ownerId,
         ]);
+
+        $syncPropertyOwners->handle($property, $request->coOwnerShares());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Imóvel cadastrado com sucesso.')]);
 
@@ -92,14 +95,16 @@ class PropertyController extends Controller
     /**
      * Update the given property.
      */
-    public function update(PropertyRequest $request, Property $property): RedirectResponse
+    public function update(PropertyRequest $request, Property $property, SyncPropertyOwners $syncPropertyOwners): RedirectResponse
     {
         Gate::authorize('update', $property);
 
         $property->update([
-            ...$request->validated(),
+            ...$request->safe()->except('co_owners'),
             'owner_id' => $request->ownerId(),
         ]);
+
+        $syncPropertyOwners->handle($property, $request->coOwnerShares());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Imóvel atualizado com sucesso.')]);
 

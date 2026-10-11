@@ -69,12 +69,14 @@ class DeleteAccount
         $leaseIds = DB::table('leases')->where('account_id', $account->id)->pluck('id');
         $saleIds = DB::table('sales')->where('account_id', $account->id)->pluck('id');
 
-        DB::transaction(function () use ($account, $leaseIds): void {
+        DB::transaction(function () use ($account, $propertyIds, $leaseIds): void {
             foreach (['branch_tenant', 'branch_user'] as $pivot) {
                 DB::table($pivot)
                     ->whereIn('branch_id', DB::table('branches')->where('account_id', $account->id)->select('id'))
                     ->delete();
             }
+
+            DB::table('owner_property')->whereIn('property_id', $propertyIds)->delete();
 
             foreach (self::LEASE_TABLES as $table) {
                 DB::table($table)->whereIn('lease_id', $leaseIds)->delete();
