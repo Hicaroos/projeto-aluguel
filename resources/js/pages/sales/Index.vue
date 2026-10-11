@@ -25,6 +25,7 @@ import SaleDialog from '@/pages/deals/SaleDialog.vue';
 import SaleDetailsDialog from '@/pages/sales/SaleDetailsDialog.vue';
 import { destroy, index } from '@/routes/sales';
 import type {
+    ContractTemplate,
     DealPropertyOption,
     Sale,
     SalesSummary,
@@ -36,6 +37,7 @@ const props = defineProps<{
     sales: Sale[];
     summary: SalesSummary;
     selected: Sale | null;
+    templates: Pick<ContractTemplate, 'id' | 'kind' | 'name' | 'is_default'>[];
     users: TeamMemberOption[];
     saleCommissionPercent: string | null;
     /** The properties for sale, to register a sale without the funnel. */
@@ -310,6 +312,7 @@ const headClass =
     <SaleDetailsDialog
         :sale="saleToShow"
         :is-agency="isAgency"
+        :templates="templates"
         @close="saleToShow = null"
         @delete="openDeleteDialog"
         @edit="openEditDialog"

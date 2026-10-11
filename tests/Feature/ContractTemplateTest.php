@@ -18,7 +18,7 @@ function contractTemplateScenario(): array
     ];
 }
 
-test('index creates the standard template once for the account', function () {
+test('index creates the standard template of each kind once for the account', function () {
     ['account' => $account, 'user' => $user] = contractTemplateScenario();
     ContractTemplate::factory()->create();
 
@@ -26,16 +26,42 @@ test('index creates the standard template once for the account', function () {
         ->get(route('contract-templates.index'))
         ->assertInertia(fn (Assert $page) => $page
             ->component('contract-templates/Index')
-            ->has('templates', 1)
-            ->where('templates.0.name', 'Contrato residencial padrão')
-            ->where('templates.0.is_default', true)
+            ->has('templates', 3)
+            ->has('kinds', 3)
+            ->where('templates', fn ($templates) => collect($templates)->every(fn (array $template): bool => $template['is_default']))
         );
 
     $this->actingAs($user)->get(route('contract-templates.index'));
 
-    $template = $account->contractTemplates()->sole();
+    $templates = $account->contractTemplates()->get()->keyBy(fn (ContractTemplate $template): string => $template->kind->value);
 
-    expect($template->body)->toContain('data-variable="tenant.qualification"');
+    expect($templates)->toHaveCount(3)
+        ->and($templates['lease']->name)->toBe('Contrato residencial padrão')
+        ->and($templates['lease']->body)->toContain('data-variable="tenant.qualification"')
+        ->and($templates['sale_contract']->body)->toContain('data-variable="buyer.qualification"')
+        ->and($templates['down_payment_receipt']->body)->toContain('data-variable="sale.down_payment"');
+});
+
+test('templates only use the variables of their kind', function () {
+    ['user' => $user] = contractTemplateScenario();
+
+    $this->actingAs($user)
+        ->post(route('contract-templates.store'), [
+            'kind' => 'down_payment_receipt',
+            'name' => 'Recibo',
+            'body' => '<p>Recebi de <span data-variable="tenant.name"></span>.</p>',
+        ])
+        ->assertSessionHasErrors(['body' => 'A variável "Nome do locatário" não pode ser usada neste tipo de modelo.']);
+
+    $this->actingAs($user)
+        ->post(route('contract-templates.store'), [
+            'kind' => 'down_payment_receipt',
+            'name' => 'Recibo curto',
+            'body' => '<p>Recebi de <span data-variable="buyer.name"></span> o sinal de <span data-variable="sale.down_payment"></span>.</p>',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(ContractTemplate::where('name', 'Recibo curto')->sole()->kind->value)->toBe('down_payment_receipt');
 });
 
 test('the editor receives the variables catalog', function () {

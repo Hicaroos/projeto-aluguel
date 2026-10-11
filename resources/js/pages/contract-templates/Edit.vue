@@ -11,13 +11,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { index, preview } from '@/routes/contract-templates';
-import type { ContractTemplate, ContractVariableOption } from '@/types';
+import type {
+    ContractTemplate,
+    ContractTemplateKind,
+    ContractVariableOption,
+} from '@/types';
 
 const props = defineProps<{
     template: Pick<
         ContractTemplate,
         'id' | 'name' | 'body' | 'is_default'
     > | null;
+    kind: { value: ContractTemplateKind; label: string };
     variables: ContractVariableOption[];
 }>();
 
@@ -92,7 +97,7 @@ async function previewPdf() {
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-XSRF-TOKEN': xsrfToken(),
             },
-            body: JSON.stringify({ body: body.value }),
+            body: JSON.stringify({ body: body.value, kind: props.kind.value }),
         });
 
         if (!response.ok) {
@@ -122,11 +127,7 @@ async function previewPdf() {
 </script>
 
 <template>
-    <Head
-        :title="
-            template ? `Editar ${template.name}` : 'Novo modelo de contrato'
-        "
-    />
+    <Head :title="template ? `Editar ${template.name}` : 'Novo modelo'" />
 
     <Form
         v-bind="formAction"
@@ -134,12 +135,8 @@ async function previewPdf() {
         class="flex flex-1 flex-col gap-6 p-4 md:p-6"
     >
         <PageHeader
-            :title="
-                template
-                    ? 'Editar modelo de contrato'
-                    : 'Novo modelo de contrato'
-            "
-            description="Escreva o texto do contrato e insira as variáveis onde os dados devem aparecer."
+            :title="template ? 'Editar modelo' : 'Novo modelo'"
+            :description="`${kind.label}: escreva o texto e insira as variáveis onde os dados devem aparecer.`"
         >
             <Button variant="outline" as-child>
                 <Link :href="index()">
@@ -177,6 +174,12 @@ async function previewPdf() {
                 </div>
 
                 <input type="hidden" name="body" :value="body" />
+                <input
+                    v-if="!template"
+                    type="hidden"
+                    name="kind"
+                    :value="kind.value"
+                />
                 <ContractEditor
                     ref="editor"
                     v-model="body"

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\ContractTemplates\EnsureDefaultContractTemplate;
 use App\Actions\ContractTemplates\RenderLeaseContract;
+use App\Enums\ContractTemplateKind;
 use App\Models\ContractTemplate;
 use App\Models\Lease;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -26,7 +27,7 @@ class LeaseContractController extends Controller
         Gate::authorize('view', $lease);
 
         $template = $request->filled('template')
-            ? ContractTemplate::whereKey($request->integer('template'))->firstOrFail()
+            ? ContractTemplate::where('kind', ContractTemplateKind::Lease)->whereKey($request->integer('template'))->firstOrFail()
             : $ensureDefaultContractTemplate->handle($lease->account);
 
         Gate::authorize('view', $template);

@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Actions\Deals\RegisterSale;
 use App\Actions\Deals\UndoSale;
+use App\Enums\ContractTemplateKind;
 use App\Http\Controllers\Concerns\ListsSalesOptions;
 use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
 use App\Http\Requests\SaleRequest;
+use App\Models\ContractTemplate;
 use App\Models\Deal;
 use App\Models\Property;
 use App\Models\Sale;
@@ -52,6 +54,11 @@ class SaleController extends Controller
                 'total' => round($sales->sum(fn (Sale $sale): float => (float) $sale->price), 2),
                 'commission' => round($sales->sum(fn (Sale $sale): float => (float) $sale->commission_amount), 2),
             ],
+            'templates' => ContractTemplate::query()
+                ->whereIn('kind', [ContractTemplateKind::SaleContract, ContractTemplateKind::DownPaymentReceipt])
+                ->orderByDesc('is_default')
+                ->orderBy('name')
+                ->get(['id', 'kind', 'name', 'is_default']),
             'users' => $this->teamMemberOptions($request),
             'saleCommissionPercent' => ($request->user()->account?->isAgency() ?? false)
                 ? $request->user()->account->sale_commission_percent

@@ -6,6 +6,7 @@ use App\Actions\Leases\CreateLease;
 use App\Actions\Leases\DeleteLease;
 use App\Actions\Leases\FinishLease;
 use App\Actions\Leases\UpdateLease;
+use App\Enums\ContractTemplateKind;
 use App\Enums\LeaseStatus;
 use App\Enums\PropertyStatus;
 use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
@@ -73,6 +74,7 @@ class LeaseController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name']),
             'contractTemplates' => ContractTemplate::where('account_id', $accountId)
+                ->where('kind', ContractTemplateKind::Lease)
                 ->orderByDesc('is_default')
                 ->orderBy('name')
                 ->get(['id', 'name', 'is_default']),

@@ -3,6 +3,7 @@ import { Link } from '@inertiajs/vue3';
 import {
     BadgeCheck,
     CalendarDays,
+    FileDown,
     HandCoins,
     House,
     IdCard,
@@ -31,14 +32,16 @@ import { formatCurrency } from '@/lib/currency';
 import { formatDate, formatDocument, formatPhone } from '@/lib/formatters';
 import { propertyTypeIcons, propertyTypeLabels } from '@/lib/property-labels';
 import { paymentPlanLabels } from '@/lib/sales-labels';
+import SaleDocumentButtons from '@/pages/sales/SaleDocumentButtons.vue';
 import { index as dealsIndex } from '@/routes/deals';
 import { index as propertiesIndex } from '@/routes/properties';
-import type { Sale } from '@/types';
+import type { ContractTemplate, Sale } from '@/types';
 
 defineProps<{
     sale: Sale | null;
     /** Agencies earn commissions and name who sold. */
     isAgency: boolean;
+    templates: Pick<ContractTemplate, 'id' | 'kind' | 'name' | 'is_default'>[];
 }>();
 
 const can = usePermissions();
@@ -274,6 +277,28 @@ const emit = defineEmits<{
                         </div>
                     </li>
                 </ul>
+            </section>
+
+            <section class="space-y-3">
+                <h3
+                    class="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                >
+                    <FileDown class="size-3.5" />
+                    Gerar documentos
+                </h3>
+                <SaleDocumentButtons :sale="sale" :templates="templates" />
+                <p class="text-xs text-muted-foreground">
+                    Os dados que faltarem saem como uma linha para completar à
+                    mão.
+                    <button
+                        v-if="can.manageSales"
+                        type="button"
+                        class="font-medium text-primary hover:underline"
+                        @click="emit('edit', sale)"
+                    >
+                        Completar os dados da venda
+                    </button>
+                </p>
             </section>
 
             <DialogFooter class="flex-wrap gap-2 border-t pt-6">

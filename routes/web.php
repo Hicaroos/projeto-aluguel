@@ -23,6 +23,7 @@ use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\PropertyPhotoController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\SaleDocumentController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TenantController;
 use Illuminate\Http\Request;
@@ -51,6 +52,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('leads', [LeadController::class, 'index'])->name('leads.index');
     Route::get('deals', [DealController::class, 'index'])->name('deals.index');
     Route::get('sales', [SaleController::class, 'index'])->name('sales.index');
+    Route::get('sales/{sale}/generate/{kind}', [SaleDocumentController::class, 'generate'])->name('sales.generate');
 
     Route::middleware('can:manage-sales')->group(function () {
         Route::resource('leads', LeadController::class)->only(['store', 'update', 'destroy']);

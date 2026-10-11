@@ -1,5 +1,9 @@
+export type ContractTemplateKind =
+    'lease' | 'sale_contract' | 'down_payment_receipt';
+
 export type ContractTemplate = {
     id: number;
+    kind: ContractTemplateKind;
     name: string;
     body: string;
     is_default: boolean;

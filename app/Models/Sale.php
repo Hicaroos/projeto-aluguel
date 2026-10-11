@@ -129,6 +129,30 @@ class Sale extends Model
     }
 
     /**
+     * Get the buyer as a person, to describe them in contracts the way owners and tenants are.
+     */
+    public function buyer(): Owner
+    {
+        return new Owner([
+            'name' => $this->buyer_name,
+            'cpf_cnpj' => $this->buyer_document,
+            'phone' => $this->buyer_phone,
+            'email' => $this->buyer_email,
+            'rg' => $this->buyer_rg,
+            'nationality' => $this->buyer_nationality,
+            'marital_status' => $this->buyer_marital_status,
+            'profession' => $this->buyer_profession,
+            'zip_code' => $this->buyer_zip_code,
+            'street' => $this->buyer_street,
+            'number' => $this->buyer_number,
+            'complement' => $this->buyer_complement,
+            'neighborhood' => $this->buyer_neighborhood,
+            'city' => $this->buyer_city,
+            'state' => $this->buyer_state,
+        ]);
+    }
+
+    /**
      * Scope the query to the sales closed within the given month.
      *
      * @param  Builder<Sale>  $query

@@ -2,6 +2,7 @@
 
 namespace App\Actions\ContractTemplates;
 
+use App\Enums\ContractTemplateKind;
 use App\Models\Account;
 use App\Models\ContractTemplate;
 use Illuminate\Support\Facades\File;
@@ -9,20 +10,25 @@ use Illuminate\Support\Facades\File;
 class EnsureDefaultContractTemplate
 {
     /**
-     * Give the account the standard residential template when it has no templates yet,
-     * and return its default template.
+     * Give the account the standard template of the given kind when it has none of that kind yet,
+     * and return its default template of that kind.
      */
-    public function handle(Account $account): ContractTemplate
+    public function handle(Account $account, ContractTemplateKind $kind = ContractTemplateKind::Lease): ContractTemplate
     {
-        $default = $account->contractTemplates()->orderByDesc('is_default')->oldest('id')->first();
+        $default = $account->contractTemplates()
+            ->where('kind', $kind)
+            ->orderByDesc('is_default')
+            ->oldest('id')
+            ->first();
 
         if ($default !== null) {
             return $default;
         }
 
         return $account->contractTemplates()->create([
-            'name' => 'Contrato residencial padrão',
-            'body' => File::get(resource_path('views/contracts/default-template.html')),
+            'kind' => $kind,
+            'name' => $kind->defaultTemplateName(),
+            'body' => File::get($kind->defaultTemplatePath()),
             'is_default' => true,
         ]);
     }

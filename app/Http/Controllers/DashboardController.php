@@ -6,6 +6,7 @@ use App\Actions\Dashboard\GetMonthlyRevenue;
 use App\Actions\Expenses\SummarizeExpenses;
 use App\Actions\Leases\SyncLeasePayments;
 use App\Actions\Payments\SummarizePayments;
+use App\Enums\ContractTemplateKind;
 use App\Enums\LeaseStatus;
 use App\Enums\Permission;
 use App\Enums\PropertyStatus;
@@ -109,6 +110,7 @@ class DashboardController extends Controller
                 ->get(),
             'vacantPropertiesCount' => $properties()->where('status', PropertyStatus::Available)->count(),
             'contractTemplates' => ContractTemplate::where('account_id', $accountId)
+                ->where('kind', ContractTemplateKind::Lease)
                 ->orderByDesc('is_default')
                 ->orderBy('name')
                 ->get(['id', 'name', 'is_default']),
