@@ -7,6 +7,7 @@ use App\Actions\Leases\DeleteLease;
 use App\Actions\Leases\FinishLease;
 use App\Actions\Leases\UpdateLease;
 use App\Enums\LeaseStatus;
+use App\Enums\PropertyStatus;
 use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
 use App\Http\Controllers\Concerns\SortsTable;
 use App\Http\Requests\LeaseRequest;
@@ -65,6 +66,7 @@ class LeaseController extends Controller
                 ...$sorting,
             ],
             'properties' => Property::where('account_id', $accountId)
+                ->where(fn (Builder $query) => $query->where('for_rent', true)->orWhere('status', PropertyStatus::Rented))
                 ->orderBy('street')
                 ->get(['id', 'street', 'number', 'complement', 'neighborhood', 'city', 'state', 'rent_amount', 'status']),
             'tenants' => Tenant::where('account_id', $accountId)

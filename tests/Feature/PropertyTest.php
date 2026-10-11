@@ -351,6 +351,24 @@ test('properties only for sale cannot be rented', function () {
         ->assertSessionHasErrors(['property_id' => 'Este imóvel não está disponível para locação.']);
 });
 
+test('properties only for sale stay out of the rentals', function () {
+    $account = Account::factory()->create();
+    $user = User::factory()->for($account, 'account')->create();
+    $forRent = Property::factory()->for($account, 'account')->create();
+    Property::factory()->for($account, 'account')->create(['for_rent' => false, 'for_sale' => true, 'rent_amount' => null, 'sale_price' => 200000]);
+
+    $this->actingAs($user)
+        ->get(route('leases.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('properties', 1)
+            ->where('properties.0.id', $forRent->id)
+        );
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page->where('vacantPropertiesCount', 1));
+});
+
 test('the sold status cannot be set manually', function () {
     $account = Account::factory()->create();
     Owner::factory()->for($account, 'account')->create();

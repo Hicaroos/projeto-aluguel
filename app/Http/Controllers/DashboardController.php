@@ -44,7 +44,7 @@ class DashboardController extends Controller
         $monthSummary = $summarizePayments->handle($accountPayments()->dueInMonth($month));
         $overdueSummary = $summarizePayments->handle($accountPayments()->overdue());
         $expensesSummary = $summarizeExpenses->handle(Expense::where('account_id', $accountId)->dueInMonth($month));
-        $properties = fn (): Builder => Property::where('account_id', $accountId);
+        $properties = fn (): Builder => Property::where('account_id', $accountId)->rentable();
 
         return Inertia::render('Dashboard', [
             'month' => $month->toDateString(),

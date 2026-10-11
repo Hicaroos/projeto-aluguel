@@ -736,7 +736,10 @@ const clickableRow =
                                 {{ property.city }}/{{ property.state }}
                             </p>
                         </div>
-                        <p class="text-sm font-medium tabular-nums">
+                        <p
+                            v-if="property.rent_amount"
+                            class="text-sm font-medium tabular-nums"
+                        >
                             {{ formatCurrency(property.rent_amount) }}
                         </p>
                     </li>
