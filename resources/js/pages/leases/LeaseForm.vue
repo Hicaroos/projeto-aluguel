@@ -5,6 +5,7 @@ import LeaseController from '@/actions/App/Http/Controllers/LeaseController';
 import AddressFields from '@/components/AddressFields.vue';
 import InputError from '@/components/InputError.vue';
 import MaskedInput from '@/components/MaskedInput.vue';
+import PayoutRulesFields from '@/components/PayoutRulesFields.vue';
 import PersonQualificationFields from '@/components/PersonQualificationFields.vue';
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import type { SearchableSelectOption } from '@/components/SearchableSelect.vue';
@@ -26,6 +27,7 @@ import {
     guaranteeTypeLabels,
     leasePurposeLabels,
 } from '@/lib/lease-labels';
+import { payoutRuleColumns } from '@/lib/payout-labels';
 import type {
     AdjustmentIndex,
     GuaranteeType,
@@ -33,12 +35,15 @@ import type {
     LeasePurpose,
     LeasePropertyOption,
     LeaseTenantOption,
+    PayoutRules,
 } from '@/types';
 
 const props = defineProps<{
     lease?: Lease | null;
     properties: LeasePropertyOption[];
     tenants: LeaseTenantOption[];
+    /** The agency payout defaults, for members who handle the money; null hides the payout terms. */
+    payoutDefaults?: PayoutRules | null;
 }>();
 
 const emit = defineEmits<{
@@ -89,6 +94,38 @@ const guaranteeType = ref<GuaranteeType>(props.lease?.guarantee_type ?? 'none');
 const purpose = ref<LeasePurpose>(props.lease?.purpose ?? 'residential');
 const adjustmentIndex = ref<AdjustmentIndex>(
     props.lease?.adjustment_index ?? 'igpm',
+);
+
+/** What applies when a payout term is left blank: the main owner's terms, else the agency defaults. */
+const inheritedPayoutRules = computed<PayoutRules | null>(() => {
+    if (!props.payoutDefaults) {
+        return null;
+    }
+
+    const owner = props.properties.find(
+        (property) => String(property.id) === propertyId.value,
+    )?.owner;
+    const rules = { ...props.payoutDefaults };
+
+    for (const column of payoutRuleColumns) {
+        const value = owner?.[column];
+
+        if (value !== null && value !== undefined) {
+            Object.assign(rules, { [column]: value });
+        }
+    }
+
+    return rules;
+});
+
+/** Show the payout terms when the lease already has terms of its own. */
+const showPayoutRules = ref(
+    !!props.lease &&
+        payoutRuleColumns.some(
+            (column) =>
+                props.lease?.[column] !== null &&
+                props.lease?.[column] !== undefined,
+        ),
 );
 
 watch(propertyId, (selectedId) => {
@@ -550,6 +587,42 @@ watch(propertyId, (selectedId) => {
                 :value="lease?.notes ?? ''"
             />
             <InputError :message="errors.notes" />
+        </section>
+
+        <section v-if="inheritedPayoutRules" class="grid gap-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <h3
+                        class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                    >
+                        Repasse ao proprietário
+                    </h3>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        {{
+                            showPayoutRules
+                                ? 'Em branco, segue o que vale para o proprietário do imóvel.'
+                                : 'Segue as condições do proprietário do imóvel.'
+                        }}
+                    </p>
+                </div>
+                <Button
+                    v-if="!showPayoutRules"
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    @click="showPayoutRules = true"
+                >
+                    Definir condições deste contrato
+                </Button>
+            </div>
+
+            <PayoutRulesFields
+                v-if="showPayoutRules"
+                :key="propertyId"
+                :values="lease ?? null"
+                :inherited="inheritedPayoutRules"
+                :errors="errors"
+            />
         </section>
 
         <DialogFooter class="border-t pt-6">

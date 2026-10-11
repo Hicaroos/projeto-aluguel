@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PayoutRule;
+use App\Enums\Permission;
 use App\Http\Controllers\Concerns\LinksToUserBranches;
 use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
 use App\Http\Controllers\Concerns\SortsTable;
@@ -54,6 +56,9 @@ class OwnerController extends Controller
                 ->appends($this->queryWithoutSelection($request)),
             'selected' => $this->resolveSelectedRecord($request, $owners()),
             'filters' => ['search' => $search, ...$sorting],
+            'payoutDefaults' => $request->user()->can(Permission::ManageFinance->value)
+                ? $request->user()->account->only(PayoutRule::columns())
+                : null,
         ]);
     }
 

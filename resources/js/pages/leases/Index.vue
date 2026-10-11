@@ -78,6 +78,7 @@ import LeaseRenewalDialog from '@/pages/leases/LeaseRenewalDialog.vue';
 import { destroy, index } from '@/routes/leases';
 import type {
     ContractTemplateOption,
+    PayoutRules,
     Lease,
     LeasePaginator,
     LeasePropertyOption,
@@ -97,6 +98,8 @@ const props = defineProps<{
     properties: LeasePropertyOption[];
     tenants: LeaseTenantOption[];
     contractTemplates: ContractTemplateOption[];
+    /** The agency payout defaults, for members who handle the money. */
+    payoutDefaults: PayoutRules | null;
 }>();
 
 defineOptions({
@@ -578,6 +581,7 @@ function confirmDelete() {
                 :lease="formDialogLease"
                 :properties="properties"
                 :tenants="tenants"
+                :payout-defaults="payoutDefaults"
                 @success="isFormDialogOpen = false"
             />
         </DialogScrollContent>

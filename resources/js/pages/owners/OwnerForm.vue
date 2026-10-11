@@ -6,18 +6,32 @@ import OwnerController from '@/actions/App/Http/Controllers/OwnerController';
 import AddressFields from '@/components/AddressFields.vue';
 import InputError from '@/components/InputError.vue';
 import MaskedInput from '@/components/MaskedInput.vue';
+import PayoutRulesFields from '@/components/PayoutRulesFields.vue';
 import PersonQualificationFields from '@/components/PersonQualificationFields.vue';
 import { Button } from '@/components/ui/button';
 import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { payoutRuleColumns } from '@/lib/payout-labels';
 import { link } from '@/routes/owners';
-import type { Owner } from '@/types';
+import type { Owner, PayoutRules } from '@/types';
 
 const props = defineProps<{
     owner?: Owner | null;
+    /** The agency payout defaults, for members who handle the money; null hides the payout terms. */
+    payoutDefaults?: PayoutRules | null;
 }>();
+
+/** Show the payout terms when the owner already has terms of their own. */
+const showPayoutRules = ref(
+    !!props.owner &&
+        payoutRuleColumns.some(
+            (column) =>
+                props.owner?.[column] !== null &&
+                props.owner?.[column] !== undefined,
+        ),
+);
 
 const emit = defineEmits<{
     success: [];
@@ -186,6 +200,41 @@ function useExistingOwner() {
                 </p>
                 <InputError :message="errors.pix_key" />
             </div>
+        </section>
+
+        <section v-if="payoutDefaults" class="grid gap-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <h3
+                        class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                    >
+                        Condições de repasse
+                    </h3>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        {{
+                            showPayoutRules
+                                ? 'Em branco, segue o padrão da imobiliária. Cada contrato ainda pode ter as suas.'
+                                : 'Segue o padrão da imobiliária.'
+                        }}
+                    </p>
+                </div>
+                <Button
+                    v-if="!showPayoutRules"
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    @click="showPayoutRules = true"
+                >
+                    Definir condições próprias
+                </Button>
+            </div>
+
+            <PayoutRulesFields
+                v-if="showPayoutRules"
+                :values="owner ?? null"
+                :inherited="payoutDefaults"
+                :errors="errors"
+            />
         </section>
 
         <DialogFooter class="border-t pt-6">

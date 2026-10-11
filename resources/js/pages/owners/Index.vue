@@ -51,7 +51,7 @@ import type { TableSort } from '@/lib/table-sort';
 import OwnerDetailsDialog from '@/pages/owners/OwnerDetailsDialog.vue';
 import OwnerForm from '@/pages/owners/OwnerForm.vue';
 import { destroy, index } from '@/routes/owners';
-import type { Owner, OwnerPaginator } from '@/types';
+import type { Owner, OwnerPaginator, PayoutRules } from '@/types';
 
 const can = usePermissions();
 
@@ -59,6 +59,8 @@ const props = defineProps<{
     owners: OwnerPaginator;
     filters: TableSort & { search: string };
     selected: Owner | null;
+    /** The agency payout defaults, for members who handle the money. */
+    payoutDefaults: PayoutRules | null;
 }>();
 
 defineOptions({
@@ -325,6 +327,7 @@ function confirmDelete() {
             <OwnerForm
                 :key="formDialogOwner?.id ?? 'create'"
                 :owner="formDialogOwner"
+                :payout-defaults="payoutDefaults"
                 @success="isFormDialogOpen = false"
             />
         </DialogScrollContent>

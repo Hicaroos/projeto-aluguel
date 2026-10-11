@@ -3,15 +3,17 @@
 namespace App\Http\Requests;
 
 use App\Concerns\NormalizesBrazilianNumbers;
+use App\Concerns\PayoutRuleOverrideRules;
 use App\Concerns\PersonQualificationRules;
 use App\Concerns\ValidatesSharedDocument;
+use App\Enums\PayoutRule;
 use App\Models\Owner;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class OwnerRequest extends FormRequest
 {
-    use NormalizesBrazilianNumbers, PersonQualificationRules, ValidatesSharedDocument;
+    use NormalizesBrazilianNumbers, PayoutRuleOverrideRules, PersonQualificationRules, ValidatesSharedDocument;
 
     /**
      * Store the document and phone as digits only, however they were typed.
@@ -46,6 +48,7 @@ class OwnerRequest extends FormRequest
             'phone' => ['required', 'string', self::PHONE_RULE],
             ...$this->qualificationRules(),
             'pix_key' => ['nullable', 'string', 'max:255'],
+            ...$this->payoutRuleOverrideRules(),
         ];
     }
 
@@ -59,6 +62,7 @@ class OwnerRequest extends FormRequest
         return [
             'phone' => __('celular'),
             'pix_key' => __('chave Pix'),
+            ...PayoutRule::labels(),
         ];
     }
 

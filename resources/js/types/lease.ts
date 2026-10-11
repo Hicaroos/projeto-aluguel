@@ -1,5 +1,6 @@
 import type { Paginator } from './pagination';
 import type { Payment } from './payment';
+import type { PayoutRuleOverrides } from './payout';
 import type { PersonQualification } from './person';
 import type { Property } from './property';
 import type { Tenant } from './tenant';
@@ -35,11 +36,14 @@ export type LeasePropertyOption = Pick<
     | 'state'
     | 'rent_amount'
     | 'status'
->;
+> & {
+    /** Loaded on the leases page: the payout rules the main owner sets otherwise. */
+    owner?: Partial<PayoutRuleOverrides> | null;
+};
 
 export type LeaseTenantOption = Pick<Tenant, 'id' | 'name'>;
 
-export type Lease = {
+export type Lease = Partial<PayoutRuleOverrides> & {
     id: number;
     account_id: number;
     property_id: number;

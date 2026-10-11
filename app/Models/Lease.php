@@ -9,6 +9,9 @@ use App\Enums\GuaranteeType;
 use App\Enums\LeasePurpose;
 use App\Enums\LeaseStatus;
 use App\Enums\PaymentStatus;
+use App\Enums\PayoutMode;
+use App\Enums\PayoutRule;
+use App\Enums\PayoutSchedule;
 use Carbon\CarbonImmutable;
 use Database\Factories\LeaseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -45,6 +48,17 @@ use Illuminate\Support\Carbon;
  * @property string|null $surety_policy_number
  * @property LeaseStatus $status
  * @property string|null $notes
+ * @property string|null $admin_fee_percent Payout rules set otherwise for the lease, see PayoutRule.
+ * @property string|null $intermediation_fee_percent
+ * @property string|null $renewal_fee_percent
+ * @property bool|null $admin_fee_with_intermediation
+ * @property bool|null $admin_fee_on_extra_charges
+ * @property bool|null $extra_charges_to_owner
+ * @property string|null $late_charges_owner_percent
+ * @property PayoutMode|null $payout_mode
+ * @property PayoutSchedule|null $payout_schedule
+ * @property int|null $payout_days
+ * @property int|null $payout_day
  * @property Carbon|null $deleted_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -82,6 +96,17 @@ use Illuminate\Support\Carbon;
     'surety_policy_number',
     'status',
     'notes',
+    'admin_fee_percent',
+    'intermediation_fee_percent',
+    'renewal_fee_percent',
+    'admin_fee_with_intermediation',
+    'admin_fee_on_extra_charges',
+    'extra_charges_to_owner',
+    'late_charges_owner_percent',
+    'payout_mode',
+    'payout_schedule',
+    'payout_days',
+    'payout_day',
 ])]
 class Lease extends Model
 {
@@ -377,6 +402,7 @@ class Lease extends Model
             'monthly_interest_percent' => 'decimal:2',
             'termination_fee_months' => 'integer',
             'status' => LeaseStatus::class,
+            ...PayoutRule::casts(),
         ];
     }
 }

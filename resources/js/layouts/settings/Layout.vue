@@ -9,6 +9,7 @@ import { toUrl } from '@/lib/utils';
 import { edit as editAgency } from '@/routes/agency';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editOwner } from '@/routes/owner';
+import { edit as editPayoutSettings } from '@/routes/payout-settings';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
 import type { NavItem } from '@/types';
@@ -24,7 +25,10 @@ const sidebarNavItems = computed<NavItem[]>(() => [
         ? [{ title: 'Dados do proprietário', href: editOwner() }]
         : []),
     ...(page.props.auth.can.manageAgency
-        ? [{ title: 'Dados da imobiliária', href: editAgency() }]
+        ? [
+              { title: 'Dados da imobiliária', href: editAgency() },
+              { title: 'Taxas e repasses', href: editPayoutSettings() },
+          ]
         : []),
     {
         title: 'Segurança',

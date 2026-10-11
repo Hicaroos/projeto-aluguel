@@ -3,10 +3,12 @@
 namespace App\Http\Requests;
 
 use App\Concerns\NormalizesBrazilianNumbers;
+use App\Concerns\PayoutRuleOverrideRules;
 use App\Concerns\PersonQualificationRules;
 use App\Enums\AdjustmentIndex;
 use App\Enums\GuaranteeType;
 use App\Enums\LeasePurpose;
+use App\Enums\PayoutRule;
 use App\Enums\PropertyStatus;
 use App\Models\Lease;
 use App\Models\Property;
@@ -19,7 +21,7 @@ use Illuminate\Validation\Rule;
 
 class LeaseRequest extends FormRequest
 {
-    use NormalizesBrazilianNumbers, PersonQualificationRules;
+    use NormalizesBrazilianNumbers, PayoutRuleOverrideRules, PersonQualificationRules;
 
     /**
      * Store the guarantor's documents and phone as digits only, however they were typed.
@@ -96,7 +98,18 @@ class LeaseRequest extends FormRequest
             'monthly_interest_percent' => ['sometimes', 'required', 'numeric', 'between:0,100'],
             'termination_fee_months' => ['sometimes', 'required', 'integer', 'between:0,12'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            ...$this->payoutRuleOverrideRules(),
         ];
+    }
+
+    /**
+     * Get custom attributes for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return PayoutRule::labels();
     }
 
     /**

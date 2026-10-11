@@ -8,6 +8,8 @@ use App\Actions\Leases\FinishLease;
 use App\Actions\Leases\UpdateLease;
 use App\Enums\ContractTemplateKind;
 use App\Enums\LeaseStatus;
+use App\Enums\PayoutRule;
+use App\Enums\Permission;
 use App\Enums\PropertyStatus;
 use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
 use App\Http\Controllers\Concerns\SortsTable;
@@ -40,6 +42,7 @@ class LeaseController extends Controller
         $status = $request->enum('status', LeaseStatus::class);
         $leases = fn (): Builder => Lease::where('account_id', $accountId)->withDetails();
         $withAdjustmentInfo = fn (?Lease $lease): ?Lease => $lease?->withAdjustmentInfo();
+        $showsPayoutRules = ($request->user()->account?->isAgency() ?? false) && $request->user()->can(Permission::ManageFinance->value);
 
         $list = $leases()
             ->when($status !== null, fn (Builder $query) => $query->where('status', $status))
@@ -69,7 +72,8 @@ class LeaseController extends Controller
             'properties' => Property::where('account_id', $accountId)
                 ->where(fn (Builder $query) => $query->where('for_rent', true)->orWhere('status', PropertyStatus::Rented))
                 ->orderBy('street')
-                ->get(['id', 'street', 'number', 'complement', 'neighborhood', 'city', 'state', 'rent_amount', 'status']),
+                ->when($showsPayoutRules, fn (Builder $query) => $query->with('owner:id,'.implode(',', PayoutRule::columns())))
+                ->get(['id', 'owner_id', 'street', 'number', 'complement', 'neighborhood', 'city', 'state', 'rent_amount', 'status']),
             'tenants' => Tenant::where('account_id', $accountId)
                 ->orderBy('name')
                 ->get(['id', 'name']),
@@ -78,6 +82,7 @@ class LeaseController extends Controller
                 ->orderByDesc('is_default')
                 ->orderBy('name')
                 ->get(['id', 'name', 'is_default']),
+            'payoutDefaults' => $showsPayoutRules ? $request->user()->account->only(PayoutRule::columns()) : null,
         ]);
     }
 

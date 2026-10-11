@@ -4,6 +4,9 @@ namespace App\Models;
 
 use App\Enums\AccountStatus;
 use App\Enums\AccountType;
+use App\Enums\PayoutMode;
+use App\Enums\PayoutRule;
+use App\Enums\PayoutSchedule;
 use Database\Factories\AccountFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -31,6 +34,17 @@ use Illuminate\Support\Carbon;
  * @property string|null $state
  * @property string|null $logo_path
  * @property string $sale_commission_percent The commission the agency usually charges on sales.
+ * @property string $admin_fee_percent Payout rule defaults, see PayoutRule.
+ * @property string $intermediation_fee_percent
+ * @property string $renewal_fee_percent
+ * @property bool $admin_fee_with_intermediation
+ * @property bool $admin_fee_on_extra_charges
+ * @property bool $extra_charges_to_owner
+ * @property string $late_charges_owner_percent
+ * @property PayoutMode $payout_mode
+ * @property PayoutSchedule $payout_schedule
+ * @property int $payout_days
+ * @property int $payout_day
  * @property string|null $plan
  * @property AccountStatus $status
  * @property Carbon|null $created_at
@@ -57,6 +71,17 @@ use Illuminate\Support\Carbon;
     'state',
     'logo_path',
     'sale_commission_percent',
+    'admin_fee_percent',
+    'intermediation_fee_percent',
+    'renewal_fee_percent',
+    'admin_fee_with_intermediation',
+    'admin_fee_on_extra_charges',
+    'extra_charges_to_owner',
+    'late_charges_owner_percent',
+    'payout_mode',
+    'payout_schedule',
+    'payout_days',
+    'payout_day',
     'plan',
     'status',
 ])]
@@ -174,6 +199,7 @@ class Account extends Model
             'type' => AccountType::class,
             'status' => AccountStatus::class,
             'sale_commission_percent' => 'decimal:2',
+            ...PayoutRule::casts(),
         ];
     }
 }

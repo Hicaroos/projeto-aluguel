@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Settings\AgencyController;
 use App\Http\Controllers\Settings\OwnerController;
+use App\Http\Controllers\Settings\PayoutSettingsController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Auth\Middleware\RequirePassword;
@@ -35,6 +36,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('settings/agency', [AgencyController::class, 'update'])->name('agency.update');
         Route::post('settings/agency/logo', [AgencyController::class, 'updateLogo'])->name('agency.logo.update');
         Route::delete('settings/agency/logo', [AgencyController::class, 'destroyLogo'])->name('agency.logo.destroy');
+        Route::get('settings/payouts', [PayoutSettingsController::class, 'edit'])->name('payout-settings.edit');
+        Route::patch('settings/payouts', [PayoutSettingsController::class, 'update'])->name('payout-settings.update');
     });
 
     Route::inertia('settings/appearance', 'settings/Appearance')->name('appearance.edit');
