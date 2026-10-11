@@ -208,8 +208,14 @@ const emit = defineEmits<{
                             <p
                                 class="truncate text-xs text-muted-foreground tabular-nums"
                             >
-                                {{ property.neighborhood }} ·
-                                {{ formatCurrency(property.rent_amount) }}
+                                {{ property.neighborhood }}
+                                <template v-if="property.rent_amount">
+                                    · {{ formatCurrency(property.rent_amount) }}
+                                </template>
+                                <template v-if="property.sale_price">
+                                    · venda
+                                    {{ formatCurrency(property.sale_price) }}
+                                </template>
                                 <template v-if="property.branch">
                                     · {{ property.branch.name }}
                                 </template>

@@ -35,7 +35,10 @@ import { MAX_SHARED_FILES, useFileSharing } from '@/composables/useFileSharing';
 import { usePermissions } from '@/composables/usePermissions';
 import { formatCurrency } from '@/lib/currency';
 import { resizeImage } from '@/lib/image-resize';
-import { propertyTypeLabels } from '@/lib/property-labels';
+import {
+    formatPropertyFeatures,
+    propertyTypeLabels,
+} from '@/lib/property-labels';
 import type { Property, PropertyPhoto } from '@/types';
 
 const MAX_PHOTOS = 20;
@@ -72,8 +75,16 @@ const shareText = computed(() => {
     return [
         `${propertyTypeLabels[property.type]} · ${property.street}, ${property.number}${complement}`,
         `${property.neighborhood}, ${property.city}/${property.state}`,
-        `Aluguel: ${formatCurrency(property.rent_amount)}/mês`,
-    ].join('\n');
+        formatPropertyFeatures(property),
+        property.for_rent && property.rent_amount
+            ? `Aluguel: ${formatCurrency(property.rent_amount)}/mês`
+            : '',
+        property.for_sale && property.sale_price
+            ? `Venda: ${formatCurrency(property.sale_price)}`
+            : '',
+    ]
+        .filter(Boolean)
+        .join('\n');
 });
 
 /** The photos split into groups the browser can share at once, e.g. "Fotos 11 a 15". */

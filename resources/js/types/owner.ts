@@ -31,7 +31,10 @@ export type OwnerProperty = Pick<
     | 'neighborhood'
     | 'city'
     | 'state'
+    | 'for_rent'
+    | 'for_sale'
     | 'rent_amount'
+    | 'sale_price'
     | 'status'
 > & {
     branch: { id: number; name: string } | null;

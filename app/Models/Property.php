@@ -25,6 +25,8 @@ use Illuminate\Support\Carbon;
  * @property int|null $branch_id
  * @property int $owner_id
  * @property PropertyType $type
+ * @property bool $for_rent
+ * @property bool $for_sale
  * @property string $zip_code
  * @property string $street
  * @property string $number
@@ -32,7 +34,18 @@ use Illuminate\Support\Carbon;
  * @property string $neighborhood
  * @property string $city
  * @property string $state
- * @property string $rent_amount
+ * @property string|null $rent_amount
+ * @property string|null $sale_price
+ * @property int|null $bedrooms
+ * @property int|null $suites
+ * @property int|null $bathrooms
+ * @property int|null $parking_spaces
+ * @property string|null $built_area
+ * @property string|null $land_area
+ * @property string|null $land_front The front of the land, in meters.
+ * @property string|null $land_depth The depth of the land, in meters.
+ * @property string|null $description
+ * @property string|null $registration_number The registration at the land registry office (matrícula).
  * @property PropertyStatus $status
  * @property Carbon|null $deleted_at
  * @property Carbon|null $created_at
@@ -50,6 +63,8 @@ use Illuminate\Support\Carbon;
     'branch_id',
     'owner_id',
     'type',
+    'for_rent',
+    'for_sale',
     'zip_code',
     'street',
     'number',
@@ -58,6 +73,17 @@ use Illuminate\Support\Carbon;
     'city',
     'state',
     'rent_amount',
+    'sale_price',
+    'bedrooms',
+    'suites',
+    'bathrooms',
+    'parking_spaces',
+    'built_area',
+    'land_area',
+    'land_front',
+    'land_depth',
+    'description',
+    'registration_number',
     'status',
 ])]
 class Property extends Model
@@ -66,10 +92,12 @@ class Property extends Model
     use BelongsToAccount, BelongsToVisibleBranches, HasFactory, SoftDeletes;
 
     /**
-     * @var array<string, string>
+     * @var array<string, string|bool>
      */
     protected $attributes = [
         'status' => 'available',
+        'for_rent' => true,
+        'for_sale' => false,
     ];
 
     /**
@@ -168,6 +196,28 @@ class Property extends Model
     }
 
     /**
+     * Scope the query to the properties of the rental portfolio: offered for rent and not sold.
+     *
+     * @param  Builder<Property>  $query
+     */
+    public function scopeRentable(Builder $query): void
+    {
+        $query->where($query->qualifyColumn('for_rent'), true)
+            ->where($query->qualifyColumn('status'), '!=', PropertyStatus::Sold);
+    }
+
+    /**
+     * Scope the query to properties offered for the given purpose: rent or sale.
+     *
+     * @param  Builder<Property>  $query
+     */
+    public function scopeOfferedFor(Builder $query, ?string $purpose): void
+    {
+        $query->when($purpose === 'rent', fn (Builder $query) => $query->where('for_rent', true))
+            ->when($purpose === 'sale', fn (Builder $query) => $query->where('for_sale', true));
+    }
+
+    /**
      * Scope the query to properties whose address matches the given term.
      *
      * @param  Builder<Property>  $query
@@ -222,7 +272,14 @@ class Property extends Model
         return [
             'type' => PropertyType::class,
             'status' => PropertyStatus::class,
+            'for_rent' => 'boolean',
+            'for_sale' => 'boolean',
             'rent_amount' => 'decimal:2',
+            'sale_price' => 'decimal:2',
+            'built_area' => 'decimal:2',
+            'land_area' => 'decimal:2',
+            'land_front' => 'decimal:2',
+            'land_depth' => 'decimal:2',
         ];
     }
 }

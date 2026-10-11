@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { FileText, MapPin, Pencil, UserRound, Wallet } from '@lucide/vue';
+import {
+    BadgeDollarSign,
+    FileText,
+    MapPin,
+    Pencil,
+    UserRound,
+    Wallet,
+} from '@lucide/vue';
 import { computed } from 'vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +32,7 @@ import {
     propertyTypeIcons,
     propertyTypeLabels,
 } from '@/lib/property-labels';
+import PropertyFeatures from '@/pages/properties/PropertyFeatures.vue';
 import PropertyPhotos from '@/pages/properties/PropertyPhotos.vue';
 import { index as leasesIndex } from '@/routes/leases';
 import { index as ownersIndex } from '@/routes/owners';
@@ -93,27 +101,49 @@ const emit = defineEmits<{
             </DialogHeader>
 
             <div
-                class="flex items-center gap-4 rounded-lg border bg-muted/40 p-4"
+                class="flex flex-wrap items-center gap-x-8 gap-y-3 rounded-lg border bg-muted/40 p-4"
             >
                 <div
-                    class="flex size-10 items-center justify-center rounded-full bg-background text-primary shadow-xs"
+                    v-if="property.for_rent && property.rent_amount"
+                    class="flex items-center gap-4"
                 >
-                    <Wallet class="size-5" />
+                    <div
+                        class="flex size-10 items-center justify-center rounded-full bg-background text-primary shadow-xs"
+                    >
+                        <Wallet class="size-5" />
+                    </div>
+                    <div>
+                        <p class="text-sm text-muted-foreground">
+                            Valor do aluguel
+                        </p>
+                        <p class="text-xl font-semibold tabular-nums">
+                            {{ formatCurrency(property.rent_amount) }}
+                            <span
+                                class="text-sm font-normal text-muted-foreground"
+                                >/mês</span
+                            >
+                        </p>
+                    </div>
                 </div>
-                <div>
-                    <p class="text-sm text-muted-foreground">
-                        Valor do aluguel
-                    </p>
-                    <p class="text-xl font-semibold tabular-nums">
-                        {{ formatCurrency(property.rent_amount) }}
-                        <span class="text-sm font-normal text-muted-foreground"
-                            >/mês</span
-                        >
-                    </p>
+                <div
+                    v-if="property.for_sale && property.sale_price"
+                    class="flex items-center gap-4"
+                >
+                    <div
+                        class="flex size-10 items-center justify-center rounded-full bg-background text-primary shadow-xs"
+                    >
+                        <BadgeDollarSign class="size-5" />
+                    </div>
+                    <div>
+                        <p class="text-sm text-muted-foreground">
+                            Preço de venda
+                        </p>
+                        <p class="text-xl font-semibold tabular-nums">
+                            {{ formatCurrency(property.sale_price) }}
+                        </p>
+                    </div>
                 </div>
             </div>
-
-            <PropertyPhotos :property="property" />
 
             <div class="space-y-3">
                 <h3
@@ -163,6 +193,12 @@ const emit = defineEmits<{
                             </Link>
                         </dd>
                     </div>
+                    <div v-if="property.registration_number">
+                        <dt class="text-muted-foreground">Matrícula</dt>
+                        <dd class="font-medium">
+                            {{ property.registration_number }}
+                        </dd>
+                    </div>
                     <div v-if="property.branch">
                         <dt class="text-muted-foreground">Unidade</dt>
                         <dd class="font-medium">{{ property.branch.name }}</dd>
@@ -175,6 +211,10 @@ const emit = defineEmits<{
                     </div>
                 </dl>
             </div>
+
+            <PropertyFeatures :property="property" />
+
+            <PropertyPhotos :property="property" />
 
             <div v-if="property.active_lease" class="space-y-3">
                 <h3

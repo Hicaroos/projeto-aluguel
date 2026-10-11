@@ -7,23 +7,38 @@ use App\Enums\PropertyType;
 use App\Models\Branch;
 use App\Models\Owner;
 use App\Models\Property;
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class PropertyRequest extends FormRequest
 {
     /**
+     * Read the purposes as booleans. Properties are for rent unless told otherwise.
+     */
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'for_rent' => $this->has('for_rent') ? $this->boolean('for_rent') : true,
+            'for_sale' => $this->boolean('for_sale'),
+        ]);
+    }
+
+    /**
      * Get the validation rules that apply to the request.
+     *
+     * The status of rented and sold properties follows their lease or sale, so it is kept as it is.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         $isAgency = $this->user()->account?->isAgency() ?? false;
-        $isRented = $this->property()?->status === PropertyStatus::Rented;
+        $isStatusLocked = in_array($this->property()?->status, [PropertyStatus::Rented, PropertyStatus::Sold], true);
 
         return [
             'type' => ['required', Rule::enum(PropertyType::class)],
@@ -44,10 +59,39 @@ class PropertyRequest extends FormRequest
             'neighborhood' => ['required', 'string', 'max:255'],
             'city' => ['required', 'string', 'max:255'],
             'state' => ['required', 'string', 'size:2'],
-            'rent_amount' => ['required', 'numeric', 'min:0'],
-            'status' => $isRented
+            'for_rent' => ['boolean'],
+            'for_sale' => ['boolean'],
+            'rent_amount' => [Rule::requiredIf($this->boolean('for_rent')), 'nullable', 'numeric', 'min:0', 'max:9999999'],
+            'sale_price' => [Rule::requiredIf($this->boolean('for_sale')), 'nullable', 'numeric', 'min:0', 'max:9999999999'],
+            'bedrooms' => ['nullable', 'integer', 'min:0', 'max:99'],
+            'suites' => ['nullable', 'integer', 'min:0', 'max:99'],
+            'bathrooms' => ['nullable', 'integer', 'min:0', 'max:99'],
+            'parking_spaces' => ['nullable', 'integer', 'min:0', 'max:99'],
+            'built_area' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+            'land_area' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+            'land_front' => ['nullable', 'numeric', 'min:0', 'max:999999'],
+            'land_depth' => ['nullable', 'numeric', 'min:0', 'max:999999'],
+            'description' => ['nullable', 'string', 'max:5000'],
+            'registration_number' => ['nullable', 'string', 'max:100'],
+            'status' => $isStatusLocked
                 ? ['exclude']
-                : ['required', Rule::enum(PropertyStatus::class)->except([PropertyStatus::Rented])],
+                : ['required', Rule::enum(PropertyStatus::class)->except([PropertyStatus::Rented, PropertyStatus::Sold])],
+        ];
+    }
+
+    /**
+     * Get the "after" validation callables for the request.
+     *
+     * @return array<int, Closure(Validator): void>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                if (! $this->boolean('for_rent') && ! $this->boolean('for_sale')) {
+                    $validator->errors()->add('for_rent', __('Marque se o imóvel é para alugar, para vender ou os dois.'));
+                }
+            },
         ];
     }
 
@@ -93,6 +137,8 @@ class PropertyRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'rent_amount.required' => __('Informe o valor do aluguel.'),
+            'sale_price.required' => __('Informe o preço de venda.'),
             'branch_id.required' => __('Selecione a unidade do imóvel.'),
             'branch_id.in' => __('Selecione uma unidade ativa.'),
         ];

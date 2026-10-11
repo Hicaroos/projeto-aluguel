@@ -1,9 +1,18 @@
 import type { Paginator } from './pagination';
 
-export type PropertyType = 'house' | 'apartment' | 'commercial' | 'land';
+export type PropertyType =
+    | 'house'
+    | 'apartment'
+    | 'commercial'
+    | 'office'
+    | 'warehouse'
+    | 'land'
+    | 'farm';
+
+export type PropertyPurpose = 'rent' | 'sale';
 
 export type PropertyStatus =
-    'available' | 'rented' | 'maintenance' | 'inactive';
+    'available' | 'rented' | 'maintenance' | 'inactive' | 'sold';
 
 export type PropertyOwnerOption = {
     id: number;
@@ -16,6 +25,8 @@ export type Property = {
     branch_id: number | null;
     owner_id: number;
     type: PropertyType;
+    for_rent: boolean;
+    for_sale: boolean;
     zip_code: string;
     street: string;
     number: string;
@@ -23,7 +34,19 @@ export type Property = {
     neighborhood: string;
     city: string;
     state: string;
-    rent_amount: string;
+    rent_amount: string | null;
+    sale_price: string | null;
+    bedrooms: number | null;
+    suites: number | null;
+    bathrooms: number | null;
+    parking_spaces: number | null;
+    built_area: string | null;
+    land_area: string | null;
+    land_front: string | null;
+    land_depth: string | null;
+    description: string | null;
+    /** The registration at the land registry office (matrícula). */
+    registration_number: string | null;
     status: PropertyStatus;
     created_at: string;
     updated_at: string;

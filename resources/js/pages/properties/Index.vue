@@ -57,6 +57,7 @@ import {
     propertyStatusDotClasses,
     propertyStatusLabels,
     propertyTypeIcons,
+    propertyPurposeLabels,
     propertyTypeLabels,
 } from '@/lib/property-labels';
 import { nextSort } from '@/lib/table-sort';
@@ -69,6 +70,7 @@ import type {
     Property,
     PropertyOwnerOption,
     PropertyPaginator,
+    PropertyPurpose,
     PropertyStatus,
     PropertyType,
 } from '@/types';
@@ -79,6 +81,7 @@ const props = defineProps<{
         search: string;
         type: PropertyType | null;
         status: PropertyStatus | null;
+        purpose: PropertyPurpose | null;
     };
     selected: Property | null;
     accountType: 'single_owner' | 'agency';
@@ -97,6 +100,7 @@ defineOptions({
 const search = ref(props.filters.search);
 const type = ref<PropertyType | 'all'>(props.filters.type ?? 'all');
 const status = ref<PropertyStatus | 'all'>(props.filters.status ?? 'all');
+const purpose = ref<PropertyPurpose | 'all'>(props.filters.purpose ?? 'all');
 
 function visit(overrides: Partial<TableSort> = {}) {
     router.get(
@@ -105,6 +109,7 @@ function visit(overrides: Partial<TableSort> = {}) {
             search: search.value || undefined,
             type: type.value === 'all' ? undefined : type.value,
             status: status.value === 'all' ? undefined : status.value,
+            purpose: purpose.value === 'all' ? undefined : purpose.value,
             sort: props.filters.sort,
             direction: props.filters.direction,
             ...overrides,
@@ -114,20 +119,21 @@ function visit(overrides: Partial<TableSort> = {}) {
 }
 
 watchDebounced(search, () => visit(), { debounce: 350 });
-watch([type, status], () => visit());
+watch([type, status, purpose], () => visit());
 
 function sortBy(column: string) {
     visit(nextSort(props.filters, column));
 }
 
 const isFiltering = computed(
-    () => !!props.filters.search || !!props.filters.type || !!props.filters.status,
+    () => !!props.filters.search || !!props.filters.type || !!props.filters.status || !!props.filters.purpose,
 );
 
 function clearFilters() {
     search.value = '';
     type.value = 'all';
     status.value = 'all';
+    purpose.value = 'all';
 }
 
 const isFormDialogOpen = ref(false);
@@ -219,6 +225,17 @@ function confirmDelete() {
         <div class="overflow-hidden rounded-xl border bg-card shadow-xs">
             <div class="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center">
                 <SearchInput v-model="search" placeholder="Buscar por rua, bairro, cidade ou CEP" />
+                <Select v-model="purpose">
+                    <SelectTrigger class="w-full sm:w-44">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Aluguel e venda</SelectItem>
+                        <SelectItem v-for="(label, key) in propertyPurposeLabels" :key="key" :value="key">
+                            {{ label }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
                 <Select v-model="type">
                     <SelectTrigger class="w-full sm:w-40">
                         <SelectValue />
@@ -262,7 +279,7 @@ function confirmDelete() {
                             class="hidden md:table-cell" @sort="sortBy" />
                         <SortableTableHead column="type" label="Tipo" :current="filters" class="hidden lg:table-cell"
                             @sort="sortBy" />
-                        <SortableTableHead column="rent_amount" label="Aluguel" :current="filters" align="right"
+                        <SortableTableHead column="rent_amount" label="Valor" :current="filters" align="right"
                             class="text-right" @sort="sortBy" />
                         <SortableTableHead column="status" label="Situação" :current="filters"
                             class="hidden sm:table-cell" @sort="sortBy" />
@@ -304,7 +321,14 @@ function confirmDelete() {
                             {{ propertyTypeLabels[property.type] }}
                         </TableCell>
                         <TableCell class="px-4 py-3 text-right font-medium tabular-nums">
-                            {{ formatCurrency(property.rent_amount) }}
+                            <p v-if="property.for_rent && property.rent_amount">
+                                {{ formatCurrency(property.rent_amount) }}
+                            </p>
+                            <p v-if="property.for_sale && property.sale_price"
+                                :class="{ 'text-sm font-normal text-muted-foreground': property.for_rent }">
+                                <span class="text-xs text-muted-foreground">Venda</span>
+                                {{ formatCurrency(property.sale_price) }}
+                            </p>
                         </TableCell>
                         <TableCell class="hidden px-4 py-3 sm:table-cell">
                             <Badge variant="outline" :class="propertyStatusBadgeClasses[property.status]

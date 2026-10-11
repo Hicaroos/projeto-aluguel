@@ -32,7 +32,7 @@ class OwnerController extends Controller
             ->withCount('properties')
             ->with([
                 'properties' => fn ($query) => $query
-                    ->select(['id', 'owner_id', 'branch_id', 'type', 'street', 'number', 'neighborhood', 'city', 'state', 'rent_amount', 'status'])
+                    ->select(['id', 'owner_id', 'branch_id', 'type', 'street', 'number', 'neighborhood', 'city', 'state', 'for_rent', 'for_sale', 'rent_amount', 'sale_price', 'status'])
                     ->orderBy('street'),
                 'properties.branch:id,name',
             ]);

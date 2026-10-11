@@ -65,7 +65,7 @@ class LeaseRequest extends FormRequest
 
                     $property = Property::whereKey($value)->first();
 
-                    if ($property !== null && $property->status !== PropertyStatus::Available) {
+                    if ($property !== null && ($property->status !== PropertyStatus::Available || ! $property->for_rent)) {
                         $fail(__('Este imóvel não está disponível para locação.'));
                     }
                 },

@@ -4,6 +4,7 @@ import { computed, nextTick, ref, watch } from 'vue';
 import PropertyController from '@/actions/App/Http/Controllers/PropertyController';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -70,8 +71,34 @@ const defaultBranchId = computed(() => {
 });
 
 const selectableStatusLabels = Object.fromEntries(
-    Object.entries(propertyStatusLabels).filter(([key]) => key !== 'rented'),
-) as Record<Exclude<PropertyStatus, 'rented'>, string>;
+    Object.entries(propertyStatusLabels).filter(
+        ([key]) => key !== 'rented' && key !== 'sold',
+    ),
+) as Record<Exclude<PropertyStatus, 'rented' | 'sold'>, string>;
+
+/** Rented and sold properties follow their lease or sale. */
+const lockedStatus = computed(() =>
+    props.property?.status === 'rented' || props.property?.status === 'sold'
+        ? props.property.status
+        : null,
+);
+
+const forRent = ref(props.property?.for_rent ?? true);
+const forSale = ref(props.property?.for_sale ?? false);
+
+const roomFields = [
+    { name: 'bedrooms', label: 'Quartos' },
+    { name: 'suites', label: 'Suítes' },
+    { name: 'bathrooms', label: 'Banheiros' },
+    { name: 'parking_spaces', label: 'Vagas' },
+] as const;
+
+const areaFields = [
+    { name: 'built_area', label: 'Área construída', unit: 'm²' },
+    { name: 'land_area', label: 'Área do terreno', unit: 'm²' },
+    { name: 'land_front', label: 'Frente', unit: 'm' },
+    { name: 'land_depth', label: 'Fundo', unit: 'm' },
+] as const;
 
 const zipCode = ref(maskZipCode(props.property?.zip_code ?? ''));
 const street = ref(props.property?.street ?? '');
@@ -151,19 +178,23 @@ watch(zipCode, async (value) => {
                     <InputError :message="errors.type" />
                 </div>
 
-                <div v-if="property?.status === 'rented'" class="grid gap-2">
+                <div v-if="lockedStatus" class="grid gap-2">
                     <Label>Situação</Label>
                     <div
                         class="flex h-9 items-center gap-2 rounded-md border bg-muted/40 px-3 text-sm"
                     >
                         <span
                             class="size-2 rounded-full"
-                            :class="propertyStatusDotClasses.rented"
+                            :class="propertyStatusDotClasses[lockedStatus]"
                         />
-                        {{ propertyStatusLabels.rented }}
+                        {{ propertyStatusLabels[lockedStatus] }}
                     </div>
                     <p class="text-xs text-muted-foreground">
-                        Controlada pelo contrato ativo deste imóvel.
+                        {{
+                            lockedStatus === 'rented'
+                                ? 'Controlada pelo contrato ativo deste imóvel.'
+                                : 'Este imóvel foi vendido.'
+                        }}
                     </p>
                 </div>
 
@@ -355,28 +386,164 @@ watch(zipCode, async (value) => {
             <h3
                 class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
             >
-                Valores
+                Finalidade e valores
             </h3>
 
-            <div class="grid gap-2 sm:max-w-xs">
-                <Label for="rent_amount">Valor do aluguel</Label>
-                <div class="relative">
-                    <span
-                        class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground"
-                        >R$</span
-                    >
-                    <Input
-                        id="rent_amount"
-                        name="rent_amount"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0,00"
-                        class="pl-10 tabular-nums"
-                        :default-value="property?.rent_amount"
-                    />
+            <input type="hidden" name="for_rent" :value="forRent ? 1 : 0" />
+            <input type="hidden" name="for_sale" :value="forSale ? 1 : 0" />
+
+            <div class="flex flex-wrap gap-3">
+                <Label
+                    class="flex items-center gap-3 rounded-md border p-3 font-normal"
+                >
+                    <Checkbox v-model="forRent" />
+                    Para alugar
+                </Label>
+                <Label
+                    class="flex items-center gap-3 rounded-md border p-3 font-normal"
+                >
+                    <Checkbox v-model="forSale" />
+                    À venda
+                </Label>
+            </div>
+            <InputError :message="errors.for_rent" />
+
+            <div class="grid items-start gap-4 sm:grid-cols-2">
+                <div v-if="forRent" class="grid gap-2">
+                    <Label for="rent_amount">Valor do aluguel</Label>
+                    <div class="relative">
+                        <span
+                            class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground"
+                            >R$</span
+                        >
+                        <Input
+                            id="rent_amount"
+                            name="rent_amount"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0,00"
+                            class="pl-10 tabular-nums"
+                            :default-value="property?.rent_amount ?? ''"
+                        />
+                    </div>
+                    <InputError :message="errors.rent_amount" />
                 </div>
-                <InputError :message="errors.rent_amount" />
+
+                <div v-if="forSale" class="grid gap-2">
+                    <Label for="sale_price">Preço de venda</Label>
+                    <div class="relative">
+                        <span
+                            class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground"
+                            >R$</span
+                        >
+                        <Input
+                            id="sale_price"
+                            name="sale_price"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0,00"
+                            class="pl-10 tabular-nums"
+                            :default-value="property?.sale_price ?? ''"
+                        />
+                    </div>
+                    <InputError :message="errors.sale_price" />
+                </div>
+            </div>
+        </section>
+
+        <section class="grid gap-4">
+            <div>
+                <h3
+                    class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                >
+                    Características
+                </h3>
+                <p class="mt-1 text-sm text-muted-foreground">
+                    Opcional. Ajuda a apresentar o imóvel a quem quer comprar ou
+                    alugar.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-2 items-start gap-4 sm:grid-cols-4">
+                <div
+                    v-for="field in roomFields"
+                    :key="field.name"
+                    class="grid gap-2"
+                >
+                    <Label :for="field.name">{{ field.label }}</Label>
+                    <Input
+                        :id="field.name"
+                        :name="field.name"
+                        type="number"
+                        min="0"
+                        max="99"
+                        inputmode="numeric"
+                        class="tabular-nums"
+                        :default-value="property?.[field.name] ?? ''"
+                    />
+                    <InputError :message="errors[field.name]" />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 items-start gap-4 sm:grid-cols-4">
+                <div
+                    v-for="field in areaFields"
+                    :key="field.name"
+                    class="grid gap-2"
+                >
+                    <Label :for="field.name">{{ field.label }}</Label>
+                    <div class="relative">
+                        <Input
+                            :id="field.name"
+                            :name="field.name"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            class="pr-10 tabular-nums"
+                            :default-value="property?.[field.name] ?? ''"
+                        />
+                        <span
+                            class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground"
+                            >{{ field.unit }}</span
+                        >
+                    </div>
+                    <InputError :message="errors[field.name]" />
+                </div>
+            </div>
+
+            <div class="grid gap-2 sm:max-w-sm">
+                <Label for="registration_number">
+                    Matrícula
+                    <span class="font-normal text-muted-foreground"
+                        >(opcional)</span
+                    >
+                </Label>
+                <Input
+                    id="registration_number"
+                    name="registration_number"
+                    placeholder="Ex.: 12.345 do CRI de Ouricuri"
+                    :default-value="property?.registration_number ?? ''"
+                />
+                <p class="text-xs text-muted-foreground">
+                    Aparece no contrato de compra e venda.
+                </p>
+                <InputError :message="errors.registration_number" />
+            </div>
+
+            <div class="grid gap-2">
+                <Label for="description">Descrição</Label>
+                <textarea
+                    id="description"
+                    name="description"
+                    rows="4"
+                    maxlength="5000"
+                    placeholder="Ex.: casa térrea com quintal amplo, cozinha planejada, perto do centro…"
+                    class="w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
+                    :value="property?.description ?? ''"
+                />
+                <InputError :message="errors.description" />
             </div>
         </section>
 

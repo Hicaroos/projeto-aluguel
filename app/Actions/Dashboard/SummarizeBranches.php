@@ -34,9 +34,9 @@ class SummarizeBranches
                 'received' => $month['received'],
                 'overdue' => $overdue['overdue'],
                 'overdueCount' => $overdue['overdue_count'],
-                'properties' => Property::query()->count(),
-                'rentedProperties' => Property::query()->where('status', PropertyStatus::Rented)->count(),
-                'vacantProperties' => Property::query()->where('status', PropertyStatus::Available)->count(),
+                'properties' => Property::query()->rentable()->count(),
+                'rentedProperties' => Property::query()->rentable()->where('status', PropertyStatus::Rented)->count(),
+                'vacantProperties' => Property::query()->rentable()->where('status', PropertyStatus::Available)->count(),
                 'activeLeases' => Lease::query()->active()->count(),
                 'endingLeases' => Lease::query()->endingWithin(60)->count(),
             ];

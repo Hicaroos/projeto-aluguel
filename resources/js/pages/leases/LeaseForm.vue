@@ -97,7 +97,7 @@ watch(propertyId, (selectedId) => {
     );
 
     if (property) {
-        amount.value = property.rent_amount;
+        amount.value = property.rent_amount ?? '';
     }
 });
 </script>

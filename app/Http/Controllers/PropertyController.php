@@ -31,20 +31,22 @@ class PropertyController extends Controller
         $search = $request->string('search')->trim()->toString();
         $type = $request->enum('type', PropertyType::class);
         $status = $request->enum('status', PropertyStatus::class);
+        $purpose = in_array($request->query('purpose'), ['rent', 'sale'], true) ? $request->query('purpose') : null;
         $account = $request->user()->account;
         $properties = fn (): Builder => Property::where('account_id', $request->user()->account_id)->withDetails();
 
         $list = $properties()
             ->search($search)
+            ->offeredFor($purpose)
             ->when($type !== null, fn (Builder $query) => $query->where('type', $type))
             ->when($status !== null, fn (Builder $query) => $query->where('status', $status));
 
         $sorting = $this->applySort($list, $request, [
             'street' => fn (Builder $query, SortDirection $direction) => $query->orderBy('street', $direction)->orderBy('number', $direction),
             'city' => fn (Builder $query, SortDirection $direction) => $query->orderBy('city', $direction)->orderBy('state', $direction),
-            'type' => fn (Builder $query, SortDirection $direction) => $query->orderBy(new Expression("CASE type WHEN 'apartment' THEN 0 WHEN 'house' THEN 1 WHEN 'commercial' THEN 2 ELSE 3 END"), $direction),
+            'type' => fn (Builder $query, SortDirection $direction) => $query->orderBy(new Expression("CASE type WHEN 'apartment' THEN 0 WHEN 'house' THEN 1 WHEN 'farm' THEN 2 WHEN 'commercial' THEN 3 WHEN 'office' THEN 4 WHEN 'warehouse' THEN 5 ELSE 6 END"), $direction),
             'rent_amount' => fn (Builder $query, SortDirection $direction) => $query->orderBy('rent_amount', $direction),
-            'status' => fn (Builder $query, SortDirection $direction) => $query->orderBy(new Expression("CASE status WHEN 'available' THEN 0 WHEN 'rented' THEN 1 WHEN 'maintenance' THEN 2 ELSE 3 END"), $direction),
+            'status' => fn (Builder $query, SortDirection $direction) => $query->orderBy(new Expression("CASE status WHEN 'available' THEN 0 WHEN 'rented' THEN 1 WHEN 'maintenance' THEN 2 WHEN 'inactive' THEN 3 ELSE 4 END"), $direction),
         ], default: 'street');
 
         return Inertia::render('properties/Index', [
@@ -56,6 +58,7 @@ class PropertyController extends Controller
                 'search' => $search,
                 'type' => $type?->value,
                 'status' => $status?->value,
+                'purpose' => $purpose,
                 ...$sorting,
             ],
             'accountType' => $account?->type->value,

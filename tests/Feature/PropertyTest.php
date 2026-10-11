@@ -7,6 +7,7 @@ use App\Models\Branch;
 use App\Models\Lease;
 use App\Models\Owner;
 use App\Models\Property;
+use App\Models\Tenant;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -253,4 +254,109 @@ test('index filters properties by type and status', function () {
             ->where('filters.type', 'apartment')
             ->where('filters.status', 'available')
         );
+});
+
+test('properties can be offered only for sale, with their characteristics', function () {
+    $account = Account::factory()->create();
+    Owner::factory()->for($account, 'account')->create();
+    $user = User::factory()->for($account, 'account')->create();
+
+    $this->actingAs($user)
+        ->post(route('properties.store'), validPropertyPayload([
+            'type' => PropertyType::Farm->value,
+            'for_rent' => '0',
+            'for_sale' => '1',
+            'rent_amount' => '',
+            'sale_price' => '350000.00',
+            'bedrooms' => '3',
+            'suites' => '1',
+            'bathrooms' => '2',
+            'parking_spaces' => '4',
+            'built_area' => '180.5',
+            'land_area' => '5000',
+            'land_front' => '50',
+            'land_depth' => '100',
+            'description' => 'Chácara com pomar e açude.',
+        ]))
+        ->assertSessionHasNoErrors();
+
+    $property = Property::where('account_id', $account->id)->sole();
+
+    expect($property->for_rent)->toBeFalse()
+        ->and($property->for_sale)->toBeTrue()
+        ->and($property->rent_amount)->toBeNull()
+        ->and($property->sale_price)->toBe('350000.00')
+        ->and($property->bedrooms)->toBe(3)
+        ->and($property->land_area)->toBe('5000.00')
+        ->and($property->land_front)->toBe('50.00')
+        ->and($property->land_depth)->toBe('100.00')
+        ->and($property->type)->toBe(PropertyType::Farm);
+});
+
+test('properties need a purpose and the price of each purpose', function () {
+    $account = Account::factory()->create();
+    Owner::factory()->for($account, 'account')->create();
+    $user = User::factory()->for($account, 'account')->create();
+
+    $this->actingAs($user)
+        ->post(route('properties.store'), validPropertyPayload(['for_rent' => '0', 'for_sale' => '0']))
+        ->assertSessionHasErrors(['for_rent' => 'Marque se o imóvel é para alugar, para vender ou os dois.']);
+
+    $this->actingAs($user)
+        ->post(route('properties.store'), validPropertyPayload(['for_rent' => '1', 'for_sale' => '1', 'rent_amount' => '', 'sale_price' => '']))
+        ->assertSessionHasErrors([
+            'rent_amount' => 'Informe o valor do aluguel.',
+            'sale_price' => 'Informe o preço de venda.',
+        ]);
+});
+
+test('index filters properties for rent or for sale', function () {
+    $account = Account::factory()->create();
+    $user = User::factory()->for($account, 'account')->create();
+    $forRent = Property::factory()->for($account, 'account')->create();
+    $forSale = Property::factory()->for($account, 'account')->create(['for_rent' => false, 'for_sale' => true, 'rent_amount' => null, 'sale_price' => 200000]);
+
+    $this->actingAs($user)
+        ->get(route('properties.index', ['purpose' => 'sale']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('properties.data', 1)
+            ->where('properties.data.0.id', $forSale->id)
+            ->where('filters.purpose', 'sale')
+        );
+
+    $this->actingAs($user)
+        ->get(route('properties.index', ['purpose' => 'rent']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('properties.data', 1)
+            ->where('properties.data.0.id', $forRent->id)
+        );
+});
+
+test('properties only for sale cannot be rented', function () {
+    $account = Account::factory()->create();
+    $user = User::factory()->for($account, 'account')->create();
+    $property = Property::factory()->for($account, 'account')->create(['for_rent' => false, 'for_sale' => true, 'rent_amount' => null, 'sale_price' => 200000]);
+    $tenant = Tenant::factory()->for($account, 'account')->create();
+
+    $this->actingAs($user)
+        ->post(route('leases.store'), [
+            'property_id' => $property->id,
+            'tenant_id' => $tenant->id,
+            'start_date' => '2026-01-01',
+            'end_date' => '2028-06-30',
+            'amount' => '1800.00',
+            'due_day' => 10,
+            'guarantee_type' => 'none',
+        ])
+        ->assertSessionHasErrors(['property_id' => 'Este imóvel não está disponível para locação.']);
+});
+
+test('the sold status cannot be set manually', function () {
+    $account = Account::factory()->create();
+    Owner::factory()->for($account, 'account')->create();
+    $user = User::factory()->for($account, 'account')->create();
+
+    $this->actingAs($user)
+        ->post(route('properties.store'), validPropertyPayload(['status' => PropertyStatus::Sold->value]))
+        ->assertSessionHasErrors('status');
 });

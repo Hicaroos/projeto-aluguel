@@ -8,4 +8,7 @@ enum PropertyStatus: string
     case Rented = 'rented';
     case Maintenance = 'maintenance';
     case Inactive = 'inactive';
+
+    /** Sold and out of the portfolio, kept for its history. */
+    case Sold = 'sold';
 }
