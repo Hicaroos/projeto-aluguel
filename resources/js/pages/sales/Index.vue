@@ -79,7 +79,7 @@ onMounted(() => {
     window.history.replaceState(window.history.state, '', url);
 });
 
-/** Keep the open details in sync with the reloaded page, e.g. after editing the sale. */
+/** Keep the open details in sync with the reloaded page, e.g. after attaching documents. */
 watch(
     () => [props.sales, props.selected],
     () => {

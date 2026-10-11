@@ -33,6 +33,7 @@ import { formatDate, formatDocument, formatPhone } from '@/lib/formatters';
 import { propertyTypeIcons, propertyTypeLabels } from '@/lib/property-labels';
 import { paymentPlanLabels } from '@/lib/sales-labels';
 import SaleDocumentButtons from '@/pages/sales/SaleDocumentButtons.vue';
+import SaleDocuments from '@/pages/sales/SaleDocuments.vue';
 import { index as dealsIndex } from '@/routes/deals';
 import { index as propertiesIndex } from '@/routes/properties';
 import type { ContractTemplate, Sale } from '@/types';
@@ -300,6 +301,8 @@ const emit = defineEmits<{
                     </button>
                 </p>
             </section>
+
+            <SaleDocuments :sale="sale" />
 
             <DialogFooter class="flex-wrap gap-2 border-t pt-6">
                 <Button

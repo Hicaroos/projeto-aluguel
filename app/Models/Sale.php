@@ -11,9 +11,11 @@ use Carbon\CarbonInterface;
 use Database\Factories\SaleFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -57,6 +59,7 @@ use Illuminate\Support\Carbon;
  * @property-read Deal|null $deal
  * @property-read Owner|null $seller
  * @property-read User|null $user
+ * @property-read Collection<int, SaleDocument> $documents
  */
 #[Fillable([
     'account_id',
@@ -126,6 +129,16 @@ class Sale extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the attached documents, the latest first.
+     *
+     * @return HasMany<SaleDocument, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(SaleDocument::class)->latest('id');
     }
 
     /**

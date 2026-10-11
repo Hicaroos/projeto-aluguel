@@ -35,6 +35,7 @@ class SaleController extends Controller
             'property:id,type,street,number,complement,neighborhood,city,state,deleted_at',
             'seller:id,name,cpf_cnpj,phone,deleted_at',
             'user:id,name',
+            'documents',
         ]);
 
         $sales = $withDetails()

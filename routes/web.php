@@ -53,6 +53,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('deals', [DealController::class, 'index'])->name('deals.index');
     Route::get('sales', [SaleController::class, 'index'])->name('sales.index');
     Route::get('sales/{sale}/generate/{kind}', [SaleDocumentController::class, 'generate'])->name('sales.generate');
+    Route::get('sale-documents/{document}', [SaleDocumentController::class, 'show'])->name('sale-documents.show');
+    Route::get('sale-documents/{document}/download', [SaleDocumentController::class, 'download'])->name('sale-documents.download');
 
     Route::middleware('can:manage-sales')->group(function () {
         Route::resource('leads', LeadController::class)->only(['store', 'update', 'destroy']);
@@ -69,6 +71,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('sales', [SaleController::class, 'storeDirect'])->name('sales.store');
         Route::put('sales/{sale}', [SaleController::class, 'update'])->name('sales.update');
         Route::delete('sales/{sale}', [SaleController::class, 'destroy'])->name('sales.destroy');
+        Route::post('sales/{sale}/documents', [SaleDocumentController::class, 'store'])->name('sales.documents.store');
+        Route::delete('sale-documents/{document}', [SaleDocumentController::class, 'destroy'])->name('sale-documents.destroy');
     });
 
     Route::middleware('can:manage-rentals')->group(function () {

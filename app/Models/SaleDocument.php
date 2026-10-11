@@ -1,0 +1,119 @@
+<?php
+
+namespace App\Models;
+
+use App\Concerns\BelongsToAccount;
+use App\Concerns\BelongsToVisibleBranches;
+use App\Enums\SaleDocumentType;
+use Database\Factories\SaleDocumentFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+
+/**
+ * A file attached to a sale, such as the signed contract, the down payment receipt or the deed.
+ *
+ * @property int $id
+ * @property int $account_id
+ * @property int $sale_id
+ * @property SaleDocumentType $type
+ * @property string $name The file name as uploaded.
+ * @property string $path
+ * @property string $mime_type
+ * @property int $size In bytes.
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read string $url
+ * @property-read string $download_url
+ * @property-read Account $account
+ * @property-read Sale $sale
+ */
+#[Fillable(['account_id', 'sale_id', 'type', 'name', 'path', 'mime_type', 'size'])]
+class SaleDocument extends Model
+{
+    /** @use HasFactory<SaleDocumentFactory> */
+    use BelongsToAccount, BelongsToVisibleBranches, HasFactory;
+
+    /**
+     * The most documents a single sale can have.
+     */
+    public const int MAX_PER_SALE = 30;
+
+    /**
+     * Documents are private files, served only to their own account.
+     */
+    public const string DISK = 'local';
+
+    /**
+     * @var list<string>
+     */
+    protected $hidden = ['path'];
+
+    /**
+     * @var list<string>
+     */
+    protected $appends = ['url', 'download_url'];
+
+    /**
+     * Remove the stored file together with the document.
+     */
+    protected static function booted(): void
+    {
+        static::deleted(function (SaleDocument $document): void {
+            Storage::disk(self::DISK)->delete($document->path);
+        });
+    }
+
+    /**
+     * @return BelongsTo<Sale, $this>
+     */
+    public function sale(): BelongsTo
+    {
+        return $this->belongsTo(Sale::class);
+    }
+
+    /**
+     * @return Attribute<string, never>
+     */
+    protected function url(): Attribute
+    {
+        return Attribute::make(get: fn (): string => route('sale-documents.show', $this));
+    }
+
+    /**
+     * @return Attribute<string, never>
+     */
+    protected function downloadUrl(): Attribute
+    {
+        return Attribute::make(get: fn (): string => route('sale-documents.download', $this));
+    }
+
+    /**
+     * Limit the query to the documents of the sales of the given branches.
+     *
+     * @param  Builder<static>  $query
+     * @param  array<int, int>  $branchIds
+     */
+    public static function restrictToBranches(Builder $query, array $branchIds): void
+    {
+        $query->whereIn($query->qualifyColumn('sale_id'), Sale::withoutGlobalScopes()->whereIn('property_id', Property::idsInBranches($branchIds))->select('id'));
+    }
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'type' => SaleDocumentType::class,
+            'size' => 'integer',
+        ];
+    }
+}

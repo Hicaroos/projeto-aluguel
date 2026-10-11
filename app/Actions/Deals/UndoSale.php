@@ -49,6 +49,7 @@ class UndoSale
                     ->each(fn (Deal $lostDeal) => $this->moveDeal->handle($lostDeal, $openStages->first()));
             }
 
+            $sale->documents()->withoutGlobalScopes()->get()->each->delete();
             $sale->delete();
         });
     }

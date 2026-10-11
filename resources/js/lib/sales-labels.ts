@@ -4,6 +4,7 @@ import type {
     LeadSource,
     PaymentPlan,
     ProposalStatus,
+    SaleDocumentType,
     VisitStatus,
 } from '@/types';
 
@@ -77,3 +78,12 @@ export function formatVisitTime(value: string): string {
 
     return `${new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(date)} às ${new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(date)}`;
 }
+
+export const saleDocumentTypeLabels: Record<SaleDocumentType, string> = {
+    signed_contract: 'Contrato assinado',
+    down_payment_receipt: 'Recibo do sinal',
+    deed: 'Escritura',
+    property_registration: 'Matrícula do imóvel',
+    buyer_document: 'Documento do comprador',
+    other: 'Outro',
+};

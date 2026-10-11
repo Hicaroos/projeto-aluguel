@@ -1,3 +1,4 @@
+import type { AttachedDocument } from './document';
 import type { Paginator } from './pagination';
 import type { MaritalStatus } from './person';
 import type { Property, PropertyType } from './property';
@@ -206,6 +207,7 @@ export type Sale = {
         phone: string | null;
     } | null;
     user: TeamMemberOption | null;
+    documents?: AttachedDocument[];
 };
 
 export type SalesSummary = {
@@ -213,3 +215,11 @@ export type SalesSummary = {
     total: number;
     commission: number;
 };
+
+export type SaleDocumentType =
+    | 'signed_contract'
+    | 'down_payment_receipt'
+    | 'deed'
+    | 'property_registration'
+    | 'buyer_document'
+    | 'other';

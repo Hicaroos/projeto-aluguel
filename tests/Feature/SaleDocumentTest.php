@@ -11,7 +11,10 @@ use App\Models\ContractTemplate;
 use App\Models\Owner;
 use App\Models\Property;
 use App\Models\Sale;
+use App\Models\SaleDocument;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     $this->travelTo('2026-10-15 09:00:00');
@@ -141,6 +144,42 @@ test('sale documents of other accounts are out of reach', function () {
     $this->actingAs($stranger)
         ->get(route('sales.generate', ['sale' => $sale->id, 'kind' => 'sale_contract']))
         ->assertNotFound();
+});
+
+test('signed documents are attached to the sale and removed with it', function () {
+    Storage::fake(SaleDocument::DISK);
+    ['user' => $user, 'sale' => $sale] = saleDocumentScenario();
+
+    $this->actingAs($user)
+        ->post(route('sales.documents.store', $sale), [
+            'type' => 'signed_contract',
+            'file' => UploadedFile::fake()->create('contrato.pdf', 300, 'application/pdf'),
+        ])
+        ->assertRedirect(route('sales.index', ['month' => '2026-10', 'show' => $sale->id]));
+
+    $document = SaleDocument::where('sale_id', $sale->id)->sole();
+
+    Storage::disk(SaleDocument::DISK)->assertExists($document->path);
+
+    $this->actingAs($user)->get(route('sale-documents.show', $document))->assertOk();
+    $this->actingAs($user)->get(route('sale-documents.download', $document))->assertDownload('contrato.pdf');
+
+    $this->actingAs($user)->delete(route('sales.destroy', $sale));
+
+    $this->assertModelMissing($document);
+    Storage::disk(SaleDocument::DISK)->assertMissing($document->path);
+});
+
+test('only pdfs and images are attached to sales', function () {
+    Storage::fake(SaleDocument::DISK);
+    ['user' => $user, 'sale' => $sale] = saleDocumentScenario();
+
+    $this->actingAs($user)
+        ->post(route('sales.documents.store', $sale), [
+            'type' => 'deed',
+            'file' => UploadedFile::fake()->create('planilha.xlsx', 100, 'application/vnd.ms-excel'),
+        ])
+        ->assertSessionHasErrors(['file' => 'Envie um PDF ou uma imagem (JPG, PNG ou WebP).']);
 });
 
 test('sales can be edited to complete the details for the contract', function () {
