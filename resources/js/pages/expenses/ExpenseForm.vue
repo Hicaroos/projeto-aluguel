@@ -3,6 +3,7 @@ import { Form, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import ExpenseController from '@/actions/App/Http/Controllers/ExpenseController';
 import InputError from '@/components/InputError.vue';
+import MaskedInput from '@/components/MaskedInput.vue';
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import type { SearchableSelectOption } from '@/components/SearchableSelect.vue';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ import {
     expensePayerLabels,
     expenseTypeIcons,
     expenseTypeLabels,
+    isServiceExpense,
 } from '@/lib/expense-labels';
 import { todayIsoDate } from '@/lib/formatters';
 import type {
@@ -148,6 +150,49 @@ const propertyOptions = computed<SearchableSelectOption[]>(() =>
                 :default-value="expense?.description ?? ''"
             />
             <InputError :message="errors.description" />
+        </div>
+
+        <div
+            v-if="isServiceExpense(type)"
+            class="grid items-start gap-4 sm:grid-cols-2"
+        >
+            <div class="grid gap-2">
+                <Label for="provider_name">
+                    Prestador do serviço
+                    <span class="font-normal text-muted-foreground"
+                        >(opcional)</span
+                    >
+                </Label>
+                <Input
+                    id="provider_name"
+                    name="provider_name"
+                    placeholder="Ex.: José Eletricista"
+                    :default-value="expense?.provider_name ?? ''"
+                />
+                <InputError :message="errors.provider_name" />
+            </div>
+
+            <div class="grid gap-2">
+                <Label for="provider_document">
+                    CPF/CNPJ do prestador
+                    <span class="font-normal text-muted-foreground"
+                        >(opcional)</span
+                    >
+                </Label>
+                <MaskedInput
+                    id="provider_document"
+                    mask="document"
+                    name="provider_document"
+                    placeholder="000.000.000-00"
+                    :default-value="expense?.provider_document ?? ''"
+                />
+                <InputError :message="errors.provider_document" />
+            </div>
+
+            <p class="text-xs text-muted-foreground sm:col-span-2">
+                Saem no recibo que o prestador assina. Se ficarem em branco, o
+                recibo traz linhas para preencher à mão.
+            </p>
         </div>
 
         <div class="grid items-start gap-4 sm:grid-cols-2">

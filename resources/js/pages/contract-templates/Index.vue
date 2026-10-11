@@ -4,6 +4,7 @@ import {
     FileSignature,
     HandCoins,
     Handshake,
+    HardHat,
     MoreHorizontal,
     Pencil,
     Plus,
@@ -67,6 +68,11 @@ const kindDetails: Record<
         description:
             'Comprova o sinal pago pelo comprador. Gerado nos detalhes da venda.',
     },
+    service_receipt: {
+        icon: HardHat,
+        description:
+            'Assinado pelo prestador que fez um serviço no imóvel. Gerado nos detalhes da despesa.',
+    },
 };
 
 const sections = computed(() =>
@@ -109,7 +115,7 @@ function confirmDelete() {
     <div class="flex flex-1 flex-col gap-8 p-4 md:p-6">
         <PageHeader
             title="Modelos de contrato"
-            description="Textos usados para gerar os documentos em PDF: contratos de aluguel, contratos de compra e venda e recibos de sinal."
+            description="Textos usados para gerar os documentos em PDF: contratos de aluguel, contratos de compra e venda, recibos de sinal e recibos de serviço."
         />
 
         <section

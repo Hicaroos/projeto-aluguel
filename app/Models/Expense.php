@@ -12,10 +12,13 @@ use Carbon\CarbonInterface;
 use Database\Factories\ExpenseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @property int $id
@@ -23,6 +26,8 @@ use Illuminate\Support\Carbon;
  * @property int $property_id
  * @property ExpenseType $type
  * @property string|null $description
+ * @property string|null $provider_name Who did the job, for the receipt they sign.
+ * @property string|null $provider_document The provider's CPF or CNPJ, as digits.
  * @property ExpensePayer $charged_to Who bears the expense: the owner, out of their payouts, or the agency.
  * @property string $amount
  * @property Carbon $due_date
@@ -32,8 +37,9 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read Account $account
  * @property-read Property $property
+ * @property-read Collection<int, ExpenseDocument> $documents
  */
-#[Fillable(['account_id', 'property_id', 'type', 'description', 'charged_to', 'amount', 'due_date', 'payment_date', 'status'])]
+#[Fillable(['account_id', 'property_id', 'type', 'description', 'provider_name', 'provider_document', 'charged_to', 'amount', 'due_date', 'payment_date', 'status'])]
 class Expense extends Model
 {
     /** @use HasFactory<ExpenseFactory> */
@@ -48,11 +54,14 @@ class Expense extends Model
     ];
 
     /**
-     * Keep the owners' running accounts in line with the expense when it is paid, changed or removed.
+     * Keep the owners' running accounts in line with the expense when it is paid, changed or removed,
+     * and remove its attached files with it.
      */
     protected static function booted(): void
     {
         static::saved(fn (Expense $expense) => app(PostExpenseToLedger::class)->handle($expense));
+
+        static::deleted(fn (Expense $expense) => Storage::disk(ExpenseDocument::DISK)->deleteDirectory("expenses/{$expense->id}"));
     }
 
     /**
@@ -61,6 +70,16 @@ class Expense extends Model
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class)->withTrashed();
+    }
+
+    /**
+     * Get the attached documents, the latest first.
+     *
+     * @return HasMany<ExpenseDocument, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(ExpenseDocument::class)->latest('id');
     }
 
     /**

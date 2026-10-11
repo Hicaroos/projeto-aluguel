@@ -3,14 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Actions\ContractTemplates\EnsureDefaultContractTemplate;
+use App\Actions\ContractTemplates\RenderExpenseDocument;
 use App\Actions\ContractTemplates\RenderLeaseContract;
 use App\Actions\ContractTemplates\RenderSaleDocument;
 use App\Actions\ContractTemplates\SanitizeContractTemplate;
 use App\Enums\ContractTemplateKind;
 use App\Enums\ContractVariable;
+use App\Enums\ExpenseType;
 use App\Enums\LeaseStatus;
 use App\Http\Requests\ContractTemplateRequest;
 use App\Models\ContractTemplate;
+use App\Models\Expense;
 use App\Models\Lease;
 use App\Models\Sale;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -112,14 +115,15 @@ class ContractTemplateController extends Controller
     }
 
     /**
-     * Preview a template body as PDF before saving it, filled with the account's most recent lease
-     * or sale, or with the variable labels when there is none yet.
+     * Preview a template body as PDF before saving it, filled with the account's most recent lease,
+     * sale or service expense, or with the variable labels when there is none yet.
      */
     public function preview(
         Request $request,
         SanitizeContractTemplate $sanitizeContractTemplate,
         RenderLeaseContract $renderLeaseContract,
         RenderSaleDocument $renderSaleDocument,
+        RenderExpenseDocument $renderExpenseDocument,
     ): SymfonyResponse {
         $kind = $request->enum('kind', ContractTemplateKind::class) ?? ContractTemplateKind::Lease;
         $validated = $request->validate(['body' => ContractTemplateRequest::bodyRules($kind)]);
@@ -127,6 +131,14 @@ class ContractTemplateController extends Controller
 
         if ($kind->isForSales()) {
             $html = $renderSaleDocument->render($body, Sale::query()->latest('sold_on')->latest('id')->first(), $kind);
+        } elseif ($kind->isForExpenses()) {
+            $expense = Expense::where('account_id', $request->user()->account_id)
+                ->whereIn('type', [ExpenseType::Maintenance, ExpenseType::Other])
+                ->latest('due_date')
+                ->latest('id')
+                ->first();
+
+            $html = $renderExpenseDocument->render($body, $expense);
         } else {
             $lease = Lease::where('account_id', $request->user()->account_id)
                 ->orderByRaw('status = ? desc', [LeaseStatus::Active->value])

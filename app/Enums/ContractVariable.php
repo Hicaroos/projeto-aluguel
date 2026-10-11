@@ -80,11 +80,22 @@ enum ContractVariable: string
     case SaleIntermediationClause = 'sale.intermediation_clause';
     case SaleNotes = 'sale.notes';
 
+    case ProviderName = 'provider.name';
+    case ProviderDocument = 'provider.document';
+
+    case ServiceDescription = 'service.description';
+    case ServiceAmount = 'service.amount';
+    case ServiceAmountInWords = 'service.amount_in_words';
+    case ServicePaymentDate = 'service.payment_date';
+    case ServiceContractor = 'service.contractor';
+    case ServicePropertyOwner = 'service.property_owner';
+
     case Today = 'general.today';
     case Court = 'general.court';
     case Signatures = 'general.signatures';
     case SaleSignatures = 'general.sale_signatures';
     case ReceiptSignature = 'general.receipt_signature';
+    case ServiceSignature = 'general.service_signature';
 
     /**
      * Get the label shown on the variable tag in the editor.
@@ -157,11 +168,20 @@ enum ContractVariable: string
             self::SaleDeedDeadline => 'Prazo para a escritura',
             self::SaleIntermediationClause => 'Cláusula de intermediação',
             self::SaleNotes => 'Observações da venda',
+            self::ProviderName => 'Nome do prestador',
+            self::ProviderDocument => 'CPF/CNPJ do prestador',
+            self::ServiceDescription => 'Descrição do serviço',
+            self::ServiceAmount => 'Valor do serviço',
+            self::ServiceAmountInWords => 'Valor do serviço por extenso',
+            self::ServicePaymentDate => 'Data do pagamento',
+            self::ServiceContractor => 'Contratante (quem paga o serviço)',
+            self::ServicePropertyOwner => 'Proprietário do imóvel',
             self::Today => 'Data de hoje',
             self::Court => 'Foro (cidade/UF do imóvel)',
             self::Signatures => 'Assinaturas (partes, fiador e testemunhas)',
             self::SaleSignatures => 'Assinaturas (vendedor, comprador e testemunhas)',
             self::ReceiptSignature => 'Assinatura de quem recebe o sinal',
+            self::ServiceSignature => 'Assinatura do prestador',
         };
     }
 
@@ -179,6 +199,8 @@ enum ContractVariable: string
             'lease' => 'Contrato',
             'guarantee', 'guarantor' => 'Garantia',
             'sale' => 'Venda',
+            'provider' => 'Prestador',
+            'service' => 'Serviço',
             default => 'Geral',
         };
     }
@@ -197,10 +219,13 @@ enum ContractVariable: string
             self::PropertyRegistration, self::PropertyFeatures => $sales,
             self::SaleSignatures => [ContractTemplateKind::SaleContract],
             self::ReceiptSignature => [ContractTemplateKind::DownPaymentReceipt],
+            self::ServiceSignature => [ContractTemplateKind::ServiceReceipt],
             self::Signatures => [ContractTemplateKind::Lease],
-            default => in_array(explode('.', $this->value)[0], ['seller', 'buyer', 'sale'], true)
-                ? $sales
-                : [ContractTemplateKind::Lease],
+            default => match (explode('.', $this->value)[0]) {
+                'seller', 'buyer', 'sale' => $sales,
+                'provider', 'service' => [ContractTemplateKind::ServiceReceipt],
+                default => [ContractTemplateKind::Lease],
+            },
         };
     }
 

@@ -1,3 +1,4 @@
+import type { AttachedDocument } from './document';
 import type { Paginator } from './pagination';
 import type { Property } from './property';
 
@@ -10,6 +11,9 @@ export type ExpenseType =
 export type ExpenseStatus = 'pending' | 'paid' | 'canceled';
 
 export type ExpenseDisplayStatus = ExpenseStatus | 'overdue';
+
+export type ExpenseDocumentType =
+    'signed_receipt' | 'invoice' | 'payment_proof' | 'bill' | 'photo' | 'other';
 
 export type ExpensePropertyOption = Pick<
     Property,
@@ -28,6 +32,10 @@ export type Expense = {
     property_id: number;
     type: ExpenseType;
     description: string | null;
+    /** Who did the job, for the receipt they sign. */
+    provider_name: string | null;
+    /** The provider's CPF or CNPJ, as digits. */
+    provider_document: string | null;
     charged_to: ExpensePayer;
     amount: string;
     due_date: string;
@@ -36,6 +44,7 @@ export type Expense = {
     created_at: string;
     updated_at: string;
     property: ExpensePropertyOption & Pick<Property, 'type'>;
+    documents?: AttachedDocument[];
 };
 
 export type ExpensePaginator = Paginator<Expense>;

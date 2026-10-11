@@ -4,6 +4,7 @@ import { daysUntil } from '@/lib/formatters';
 import type {
     Expense,
     ExpenseDisplayStatus,
+    ExpenseDocumentType,
     ExpensePayer,
     ExpenseType,
 } from '@/types';
@@ -23,6 +24,20 @@ export const expenseTypeLabels: Record<ExpenseType, string> = {
     condo_fee: 'Condomínio',
     maintenance: 'Manutenção',
     other: 'Outra',
+};
+
+/** Whether the expense pays someone for a job, so the provider signs a receipt for it. */
+export function isServiceExpense(type: ExpenseType): boolean {
+    return type === 'maintenance' || type === 'other';
+}
+
+export const expenseDocumentTypeLabels: Record<ExpenseDocumentType, string> = {
+    signed_receipt: 'Recibo assinado',
+    invoice: 'Nota fiscal',
+    payment_proof: 'Comprovante de pagamento',
+    bill: 'Boleto ou conta',
+    photo: 'Foto do serviço',
+    other: 'Outro',
 };
 
 export const expenseTypeIcons: Record<ExpenseType, LucideIcon> = {

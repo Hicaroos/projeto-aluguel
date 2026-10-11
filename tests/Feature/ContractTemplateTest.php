@@ -26,8 +26,8 @@ test('index creates the standard template of each kind once for the account', fu
         ->get(route('contract-templates.index'))
         ->assertInertia(fn (Assert $page) => $page
             ->component('contract-templates/Index')
-            ->has('templates', 3)
-            ->has('kinds', 3)
+            ->has('templates', 4)
+            ->has('kinds', 4)
             ->where('templates', fn ($templates) => collect($templates)->every(fn (array $template): bool => $template['is_default']))
         );
 
@@ -35,11 +35,12 @@ test('index creates the standard template of each kind once for the account', fu
 
     $templates = $account->contractTemplates()->get()->keyBy(fn (ContractTemplate $template): string => $template->kind->value);
 
-    expect($templates)->toHaveCount(3)
+    expect($templates)->toHaveCount(4)
         ->and($templates['lease']->name)->toBe('Contrato residencial padrão')
         ->and($templates['lease']->body)->toContain('data-variable="tenant.qualification"')
         ->and($templates['sale_contract']->body)->toContain('data-variable="buyer.qualification"')
-        ->and($templates['down_payment_receipt']->body)->toContain('data-variable="sale.down_payment"');
+        ->and($templates['down_payment_receipt']->body)->toContain('data-variable="sale.down_payment"')
+        ->and($templates['service_receipt']->body)->toContain('data-variable="provider.name"');
 });
 
 test('templates only use the variables of their kind', function () {

@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Expenses\SummarizeExpenses;
+use App\Enums\ContractTemplateKind;
 use App\Enums\ExpenseStatus;
 use App\Enums\ExpenseType;
 use App\Http\Controllers\Concerns\ResolvesMonthFilter;
 use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
 use App\Http\Controllers\Concerns\SortsTable;
 use App\Http\Requests\ExpenseRequest;
+use App\Models\ContractTemplate;
 use App\Models\Expense;
 use App\Models\Property;
 use Illuminate\Database\Eloquent\Builder;
@@ -36,7 +38,7 @@ class ExpenseController extends Controller
         $type = $request->enum('type', ExpenseType::class);
 
         $monthExpenses = fn (): Builder => Expense::where('account_id', $accountId)->dueInMonth($month);
-        $withDetails = ['property:id,type,street,number,complement,neighborhood,city,state,deleted_at'];
+        $withDetails = ['property:id,type,street,number,complement,neighborhood,city,state,deleted_at', 'documents'];
 
         $list = $monthExpenses()
             ->with($withDetails)
@@ -74,6 +76,11 @@ class ExpenseController extends Controller
                 'type' => $type?->value,
                 ...$sorting,
             ],
+            'templates' => ContractTemplate::where('account_id', $accountId)
+                ->where('kind', ContractTemplateKind::ServiceReceipt)
+                ->orderByDesc('is_default')
+                ->orderBy('name')
+                ->get(['id', 'kind', 'name', 'is_default']),
             'properties' => Property::where('account_id', $accountId)
                 ->orderBy('street')
                 ->get(['id', 'street', 'number', 'complement', 'neighborhood', 'city', 'state']),

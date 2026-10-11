@@ -8,6 +8,7 @@ use App\Http\Controllers\DealController;
 use App\Http\Controllers\DealProposalController;
 use App\Http\Controllers\DealVisitController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\ExpenseDocumentController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\LeaseAdjustmentController;
@@ -113,6 +114,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::resource('expenses', ExpenseController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::patch('expenses/{expense}/pay', [ExpenseController::class, 'pay'])->name('expenses.pay');
+        Route::get('expenses/{expense}/service-receipt', [ExpenseDocumentController::class, 'receipt'])->name('expenses.service-receipt');
+        Route::post('expenses/{expense}/documents', [ExpenseDocumentController::class, 'store'])->name('expenses.documents.store');
+        Route::get('expense-documents/{document}', [ExpenseDocumentController::class, 'show'])->name('expense-documents.show');
+        Route::get('expense-documents/{document}/download', [ExpenseDocumentController::class, 'download'])->name('expense-documents.download');
+        Route::delete('expense-documents/{document}', [ExpenseDocumentController::class, 'destroy'])->name('expense-documents.destroy');
 
         Route::get('payouts', [PayoutController::class, 'index'])->name('payouts.index');
         Route::get('payouts/{owner}', [PayoutController::class, 'show'])->name('payouts.show');

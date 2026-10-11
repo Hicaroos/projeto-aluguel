@@ -3,6 +3,7 @@
 namespace App\Actions\Accounts;
 
 use App\Models\Account;
+use App\Models\ExpenseDocument;
 use App\Models\LeaseDocument;
 use App\Models\PropertyPhoto;
 use App\Models\SaleDocument;
@@ -32,6 +33,7 @@ class DeleteAccount
         'lease_documents',
         'leases',
         'property_photos',
+        'expense_documents',
         'expenses',
         'properties',
         'branches',
@@ -70,6 +72,7 @@ class DeleteAccount
         $propertyIds = DB::table('properties')->where('account_id', $account->id)->pluck('id');
         $leaseIds = DB::table('leases')->where('account_id', $account->id)->pluck('id');
         $saleIds = DB::table('sales')->where('account_id', $account->id)->pluck('id');
+        $expenseIds = DB::table('expenses')->where('account_id', $account->id)->pluck('id');
 
         DB::transaction(function () use ($account, $propertyIds, $leaseIds): void {
             foreach (['branch_tenant', 'branch_user'] as $pivot) {
@@ -94,6 +97,7 @@ class DeleteAccount
         $propertyIds->each(fn (int $id) => Storage::disk(PropertyPhoto::DISK)->deleteDirectory("properties/{$id}"));
         $leaseIds->each(fn (int $id) => Storage::disk(LeaseDocument::DISK)->deleteDirectory("leases/{$id}"));
         $saleIds->each(fn (int $id) => Storage::disk(SaleDocument::DISK)->deleteDirectory("sales/{$id}"));
+        $expenseIds->each(fn (int $id) => Storage::disk(ExpenseDocument::DISK)->deleteDirectory("expenses/{$id}"));
         Storage::disk(Account::LOGO_DISK)->deleteDirectory("accounts/{$account->id}");
     }
 }

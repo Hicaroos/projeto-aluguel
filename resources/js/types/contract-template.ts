@@ -1,5 +1,5 @@
 export type ContractTemplateKind =
-    'lease' | 'sale_contract' | 'down_payment_receipt';
+    'lease' | 'sale_contract' | 'down_payment_receipt' | 'service_receipt';
 
 export type ContractTemplate = {
     id: number;

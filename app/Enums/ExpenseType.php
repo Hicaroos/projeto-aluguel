@@ -21,4 +21,12 @@ enum ExpenseType: string
             self::Other => 'Outra despesa',
         };
     }
+
+    /**
+     * Determine whether the expense pays someone for a job, so a service provider signs a receipt for it.
+     */
+    public function isService(): bool
+    {
+        return in_array($this, [self::Maintenance, self::Other], true);
+    }
 }

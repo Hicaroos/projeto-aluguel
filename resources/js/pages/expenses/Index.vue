@@ -6,6 +6,7 @@ import {
     Coins,
     Eye,
     MoreHorizontal,
+    Paperclip,
     Pencil,
     Plus,
     SearchX,
@@ -72,6 +73,7 @@ import ExpenseForm from '@/pages/expenses/ExpenseForm.vue';
 import PayExpenseDialog from '@/pages/expenses/PayExpenseDialog.vue';
 import { destroy, index } from '@/routes/expenses';
 import type {
+    ContractTemplateOption,
     Expense,
     ExpenseDisplayStatus,
     ExpensePaginator,
@@ -90,6 +92,7 @@ const props = defineProps<{
         type: ExpenseType | null;
     };
     selected: Expense | null;
+    templates: ContractTemplateOption[];
     properties: ExpensePropertyOption[];
 }>();
 
@@ -184,6 +187,22 @@ const expenseToShow = ref<Expense | null>(null);
 useOpenSelectedRecord(
     () => props.selected,
     (expense) => (expenseToShow.value = expense),
+);
+
+/** Keep the open details in sync with the reloaded page, e.g. after attaching documents. */
+watch(
+    () => [props.expenses, props.selected],
+    () => {
+        const shown = expenseToShow.value;
+
+        if (!shown) {
+            return;
+        }
+
+        expenseToShow.value =
+            props.expenses.data.find((expense) => expense.id === shown.id) ??
+            (props.selected?.id === shown.id ? props.selected : shown);
+    },
 );
 
 /**
@@ -376,8 +395,18 @@ function confirmDelete() {
                                     />
                                 </div>
                                 <div class="min-w-0">
-                                    <p class="truncate font-medium">
+                                    <p
+                                        class="flex items-center gap-1.5 truncate font-medium"
+                                    >
                                         {{ expenseTypeLabels[expense.type] }}
+                                        <span
+                                            v-if="expense.documents?.length"
+                                            class="inline-flex items-center gap-0.5 text-xs font-normal text-muted-foreground"
+                                            :title="`${expense.documents.length} ${expense.documents.length === 1 ? 'documento anexado' : 'documentos anexados'}`"
+                                        >
+                                            <Paperclip class="size-3.5" />
+                                            {{ expense.documents.length }}
+                                        </span>
                                     </p>
                                     <p
                                         class="truncate text-sm text-muted-foreground"
@@ -551,6 +580,7 @@ function confirmDelete() {
 
     <ExpenseDetailsDialog
         :expense="expenseToShow"
+        :templates="templates"
         @close="expenseToShow = null"
         @edit="fromDetails(openEditDialog, $event)"
         @pay="fromDetails((expense) => (expenseToPay = expense), $event)"
