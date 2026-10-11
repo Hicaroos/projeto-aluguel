@@ -2,11 +2,15 @@
 
 use App\Enums\DealOutcome;
 use App\Enums\DealType;
+use App\Enums\ProposalStatus;
 use App\Enums\Role;
+use App\Enums\VisitStatus;
 use App\Models\Account;
 use App\Models\Branch;
 use App\Models\Deal;
+use App\Models\DealProposal;
 use App\Models\DealStage;
+use App\Models\DealVisit;
 use App\Models\Lead;
 use App\Models\Property;
 use App\Models\User;
@@ -286,11 +290,64 @@ test('stages still holding deals cannot be removed', function () {
     $this->assertModelExists($stages[1]);
 });
 
+test('visits are scheduled and told how they went', function () {
+    ['user' => $user, 'account' => $account, 'lead' => $lead, 'stages' => $stages] = pipelineScenario();
+    $deal = Deal::factory()->for($account, 'account')->for($lead, 'lead')->create(['deal_stage_id' => $stages[0]->id]);
+
+    $this->actingAs($user)
+        ->post(route('deals.visits.store', $deal), ['scheduled_at' => '2026-10-17T14:30'])
+        ->assertSessionHasNoErrors();
+
+    $visit = DealVisit::where('deal_id', $deal->id)->sole();
+
+    expect($visit->scheduled_at->format('Y-m-d H:i'))->toBe('2026-10-17 14:30')
+        ->and($visit->status)->toBe(VisitStatus::Scheduled);
+
+    $this->actingAs($user)
+        ->put(route('deal-visits.update', $visit), [
+            'scheduled_at' => '2026-10-17T14:30',
+            'status' => 'done',
+            'feedback' => 'Gostou da casa.',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($visit->refresh()->status)->toBe(VisitStatus::Done)
+        ->and($visit->feedback)->toBe('Gostou da casa.');
+});
+
+test('accepting a proposal sets the value of the deal', function () {
+    ['user' => $user, 'account' => $account, 'lead' => $lead, 'stages' => $stages] = pipelineScenario();
+    $deal = Deal::factory()->for($account, 'account')->for($lead, 'lead')->create(['deal_stage_id' => $stages[0]->id, 'value' => 300000]);
+
+    $this->actingAs($user)
+        ->post(route('deals.proposals.store', $deal), [
+            'amount' => '280000',
+            'payment_plan' => 'financing',
+            'conditions' => 'Entrada de 20%',
+            'proposed_on' => '2026-10-15',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $proposal = DealProposal::where('deal_id', $deal->id)->sole();
+
+    $this->actingAs($user)
+        ->put(route('deal-proposals.update', $proposal), [
+            'amount' => '280000',
+            'proposed_on' => '2026-10-15',
+            'status' => 'accepted',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($proposal->refresh()->status)->toBe(ProposalStatus::Accepted)
+        ->and($deal->refresh()->value)->toBe('280000.00');
+});
+
 test('deals of other accounts are out of reach', function () {
     ['user' => $user] = pipelineScenario();
     $stranger = Deal::factory()->create();
 
     $this->actingAs($user)->delete(route('deals.destroy', $stranger))->assertNotFound();
+    $this->actingAs($user)->post(route('deals.visits.store', $stranger), ['scheduled_at' => '2026-10-17T14:30'])->assertNotFound();
 });
 
 test('removing a lead removes their deals', function () {

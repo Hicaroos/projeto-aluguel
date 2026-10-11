@@ -2,7 +2,9 @@
 import { Head, router } from '@inertiajs/vue3';
 import {
     ArrowRightLeft,
+    CalendarClock,
     Columns3,
+    FileText,
     Handshake,
     House,
     MoreHorizontal,
@@ -33,7 +35,7 @@ import { getInitials } from '@/composables/useInitials';
 import { useOpenSelectedRecord } from '@/composables/useOpenSelectedRecord';
 import { usePermissions } from '@/composables/usePermissions';
 import { formatCurrency } from '@/lib/currency';
-import { dealTypeLabels } from '@/lib/sales-labels';
+import { dealTypeLabels, formatVisitTime } from '@/lib/sales-labels';
 import DealDetailsDialog from '@/pages/deals/DealDetailsDialog.vue';
 import DealForm from '@/pages/deals/DealForm.vue';
 import DealStagesDialog from '@/pages/deals/DealStagesDialog.vue';
@@ -91,7 +93,7 @@ useOpenSelectedRecord(
     (deal) => (dealToShow.value = deal),
 );
 
-/** Keep the open details in sync with the reloaded page, e.g. after editing the deal. */
+/** Keep the open details in sync with the reloaded page, e.g. after scheduling a visit. */
 watch(
     () => [props.stages, props.selected],
     () => {
@@ -252,6 +254,13 @@ function drop(stage: FunnelStage) {
 
 function stageTotal(stage: FunnelStage): number {
     return stage.deals.reduce((sum, deal) => sum + Number(deal.value ?? 0), 0);
+}
+
+/** The next visit still to happen, if any. */
+function nextVisit(deal: Deal) {
+    return [...deal.visits]
+        .filter((visit) => visit.status === 'scheduled')
+        .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))[0];
 }
 
 function columnClasses(stage: FunnelStage): string {
@@ -440,6 +449,14 @@ function confirmDelete() {
                                     >
                                         {{ dealTypeLabels[deal.type] }}
                                     </Badge>
+                                    <span
+                                        v-if="deal.proposals.length > 0"
+                                        class="flex items-center gap-0.5 text-xs text-muted-foreground"
+                                        :title="`${deal.proposals.length} proposta(s)`"
+                                    >
+                                        <FileText class="size-3" />
+                                        {{ deal.proposals.length }}
+                                    </span>
                                     <Avatar
                                         v-if="deal.user"
                                         class="size-6"
@@ -454,6 +471,18 @@ function confirmDelete() {
                                 </div>
                             </div>
 
+                            <p
+                                v-if="nextVisit(deal)"
+                                class="mt-2 flex items-center gap-1 rounded-md bg-sky-50 px-2 py-1 text-xs text-sky-700 dark:bg-sky-950/60 dark:text-sky-300"
+                            >
+                                <CalendarClock class="size-3" />
+                                Visita
+                                {{
+                                    formatVisitTime(
+                                        nextVisit(deal)!.scheduled_at,
+                                    )
+                                }}
+                            </p>
                             <p
                                 v-if="deal.lost_reason"
                                 class="mt-2 truncate text-xs text-rose-700 dark:text-rose-300"
@@ -552,6 +581,6 @@ function confirmDelete() {
         <span class="font-medium text-foreground">{{
             dealToDelete?.lead.name
         }}</span>
-        será removida.
+        e as visitas e propostas dela serão removidas.
     </ConfirmDeleteDialog>
 </template>

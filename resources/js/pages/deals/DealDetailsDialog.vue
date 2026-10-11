@@ -25,6 +25,8 @@ import { formatCurrency } from '@/lib/currency';
 import { formatDate, formatPhone } from '@/lib/formatters';
 import { propertyTypeIcons } from '@/lib/property-labels';
 import { dealTypeLabels } from '@/lib/sales-labels';
+import DealProposals from '@/pages/deals/DealProposals.vue';
+import DealVisits from '@/pages/deals/DealVisits.vue';
 import { index as leadsIndex } from '@/routes/leads';
 import { index as propertiesIndex } from '@/routes/properties';
 import type { Deal, DealStage, TeamMemberOption } from '@/types';
@@ -187,6 +189,10 @@ function stageOf(deal: Deal): DealStage | undefined {
                     </Button>
                 </li>
             </ul>
+
+            <DealVisits :deal="deal" :users="users" />
+
+            <DealProposals :deal="deal" />
 
             <DialogFooter
                 v-if="can.manageSales"

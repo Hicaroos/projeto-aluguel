@@ -5,6 +5,8 @@ use App\Http\Controllers\BranchSelectionController;
 use App\Http\Controllers\ContractTemplateController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DealController;
+use App\Http\Controllers\DealProposalController;
+use App\Http\Controllers\DealVisitController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\LeadController;
@@ -53,6 +55,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('deal-stages', [DealController::class, 'updateStages'])->name('deal-stages.update');
         Route::resource('deals', DealController::class)->only(['store', 'update', 'destroy']);
         Route::patch('deals/{deal}/move', [DealController::class, 'move'])->name('deals.move');
+        Route::post('deals/{deal}/visits', [DealVisitController::class, 'store'])->name('deals.visits.store');
+        Route::put('deal-visits/{visit}', [DealVisitController::class, 'update'])->name('deal-visits.update');
+        Route::delete('deal-visits/{visit}', [DealVisitController::class, 'destroy'])->name('deal-visits.destroy');
+        Route::post('deals/{deal}/proposals', [DealProposalController::class, 'store'])->name('deals.proposals.store');
+        Route::put('deal-proposals/{proposal}', [DealProposalController::class, 'update'])->name('deal-proposals.update');
+        Route::delete('deal-proposals/{proposal}', [DealProposalController::class, 'destroy'])->name('deal-proposals.destroy');
     });
 
     Route::middleware('can:manage-rentals')->group(function () {
