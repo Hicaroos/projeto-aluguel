@@ -1,6 +1,29 @@
 import type { Lease } from './lease';
 import type { Property } from './property';
 
+export type DashboardSalesOverview = {
+    count: number;
+    total: number;
+    commission: number;
+    openDeals: number;
+    upcomingVisits: {
+        id: number;
+        deal_id: number;
+        scheduled_at: string;
+        deal: {
+            id: number;
+            lead: { id: number; name: string };
+            property: {
+                id: number;
+                street: string;
+                number: string;
+                neighborhood: string;
+            } | null;
+        };
+        user: { id: number; name: string } | null;
+    }[];
+};
+
 export type DashboardStats = {
     expected: number;
     received: number;

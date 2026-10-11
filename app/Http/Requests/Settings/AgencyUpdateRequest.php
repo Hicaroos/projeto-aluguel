@@ -42,6 +42,7 @@ class AgencyUpdateRequest extends FormRequest
             'neighborhood' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
             'state' => ['nullable', 'string', 'size:2'],
+            'sale_commission_percent' => ['sometimes', 'required', 'numeric', 'min:0', 'max:100'],
         ];
     }
 
@@ -58,6 +59,7 @@ class AgencyUpdateRequest extends FormRequest
             'document' => __('CNPJ'),
             'creci' => __('CRECI'),
             'phone' => __('telefone'),
+            'sale_commission_percent' => __('comissão de venda'),
         ];
     }
 

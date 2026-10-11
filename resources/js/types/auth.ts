@@ -15,6 +15,7 @@ export type Account = {
     city: string | null;
     state: string | null;
     logo_url: string | null;
+    sale_commission_percent: string;
     plan: string | null;
     status: string;
 };

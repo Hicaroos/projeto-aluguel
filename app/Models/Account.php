@@ -30,6 +30,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $city
  * @property string|null $state
  * @property string|null $logo_path
+ * @property string $sale_commission_percent The commission the agency usually charges on sales.
  * @property string|null $plan
  * @property AccountStatus $status
  * @property Carbon|null $created_at
@@ -55,6 +56,7 @@ use Illuminate\Support\Carbon;
     'city',
     'state',
     'logo_path',
+    'sale_commission_percent',
     'plan',
     'status',
 ])]
@@ -171,6 +173,7 @@ class Account extends Model
         return [
             'type' => AccountType::class,
             'status' => AccountStatus::class,
+            'sale_commission_percent' => 'decimal:2',
         ];
     }
 }

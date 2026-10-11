@@ -268,6 +268,41 @@ function removeLogo() {
                 <h3
                     class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
                 >
+                    Vendas
+                </h3>
+
+                <div class="grid gap-2 sm:max-w-xs">
+                    <Label for="sale_commission_percent">
+                        Comissão padrão sobre vendas
+                    </Label>
+                    <div class="relative">
+                        <Input
+                            id="sale_commission_percent"
+                            name="sale_commission_percent"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="100"
+                            class="pr-8 tabular-nums"
+                            :default-value="agency.sale_commission_percent"
+                        />
+                        <span
+                            class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground"
+                            >%</span
+                        >
+                    </div>
+                    <p class="text-xs text-muted-foreground">
+                        Já vem preenchida ao registrar uma venda, e pode ser
+                        mudada em cada uma.
+                    </p>
+                    <InputError :message="errors.sale_commission_percent" />
+                </div>
+            </section>
+
+            <section class="grid gap-4">
+                <h3
+                    class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                >
                     Endereço da sede
                 </h3>
 

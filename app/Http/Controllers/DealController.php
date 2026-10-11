@@ -60,6 +60,7 @@ class DealController extends Controller
             'leads' => Lead::query()->orderBy('name')->get(['id', 'name', 'interest']),
             'properties' => $this->dealPropertyOptions(),
             'users' => $this->teamMemberOptions($request),
+            'saleCommissionPercent' => $account->isAgency() ? $account->sale_commission_percent : null,
         ]);
     }
 

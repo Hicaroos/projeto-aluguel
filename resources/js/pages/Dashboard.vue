@@ -2,7 +2,9 @@
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     ArrowRight,
+    CalendarClock,
     CalendarPlus,
+    ChevronRight,
     CircleCheck,
     FileText,
     HandCoins,
@@ -39,11 +41,13 @@ import {
     paymentRemainingAmount,
 } from '@/lib/payment-labels';
 import { propertyTypeIcons } from '@/lib/property-labels';
+import { formatVisitTime } from '@/lib/sales-labels';
 import LeaseDetailsDialog from '@/pages/leases/LeaseDetailsDialog.vue';
 import PaymentDetailsDialog from '@/pages/payments/PaymentDetailsDialog.vue';
 import ReceiptFormDialog from '@/pages/payments/ReceiptFormDialog.vue';
 import PropertyDetailsDialog from '@/pages/properties/PropertyDetailsDialog.vue';
 import { dashboard } from '@/routes';
+import { index as dealsIndex } from '@/routes/deals';
 import { index as leasesIndex } from '@/routes/leases';
 import {
     destroy as destroyPayment,
@@ -57,6 +61,7 @@ import type {
     DashboardEndingLease,
     DashboardStats,
     DashboardVacantProperty,
+    DashboardSalesOverview,
     Lease,
     MonthlyRevenue,
     Payment,
@@ -74,6 +79,7 @@ const props = defineProps<{
     vacantProperties: DashboardVacantProperty[];
     vacantPropertiesCount: number;
     contractTemplates: ContractTemplateOption[];
+    sales: DashboardSalesOverview | null;
 }>();
 
 defineOptions({
@@ -746,6 +752,100 @@ const clickableRow =
                 </ul>
             </DashboardPanel>
         </div>
+
+        <DashboardPanel
+            v-if="sales"
+            title="Vendas"
+            :description="`Negociações e visitas · ${formatMonthYear(month).toLowerCase()}`"
+        >
+            <template #action>
+                <Button variant="ghost" size="sm" as-child>
+                    <Link :href="dealsIndex()">
+                        Ver funil
+                        <ChevronRight class="size-4" />
+                    </Link>
+                </Button>
+            </template>
+
+            <div class="grid gap-0 lg:grid-cols-5">
+                <dl
+                    class="grid grid-cols-2 border-b lg:col-span-2 lg:border-r lg:border-b-0"
+                >
+                    <div class="border-r p-5">
+                        <dt class="text-xs text-muted-foreground">
+                            Vendas no mês
+                        </dt>
+                        <dd class="text-xl font-semibold tabular-nums">
+                            {{ sales.count }}
+                        </dd>
+                        <dd class="text-xs text-muted-foreground tabular-nums">
+                            {{ formatCurrency(sales.total) }}
+                        </dd>
+                    </div>
+                    <div class="p-5">
+                        <dt class="text-xs text-muted-foreground">
+                            Negociações abertas
+                        </dt>
+                        <dd class="text-xl font-semibold tabular-nums">
+                            {{ sales.openDeals }}
+                        </dd>
+                        <dd
+                            v-if="sales.commission > 0"
+                            class="text-xs text-muted-foreground tabular-nums"
+                        >
+                            {{ formatCurrency(sales.commission) }} em comissões
+                        </dd>
+                    </div>
+                </dl>
+                <div class="lg:col-span-3">
+                    <p
+                        v-if="sales.upcomingVisits.length === 0"
+                        class="p-5 text-sm text-muted-foreground"
+                    >
+                        Nenhuma visita agendada para os próximos 7 dias.
+                    </p>
+                    <ul v-else class="divide-y">
+                        <li
+                            v-for="visit in sales.upcomingVisits"
+                            :key="visit.id"
+                        >
+                            <Link
+                                :href="
+                                    dealsIndex({
+                                        query: { show: visit.deal_id },
+                                    })
+                                "
+                                class="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/50"
+                            >
+                                <CalendarClock
+                                    class="size-4 shrink-0 text-sky-600"
+                                />
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-sm font-medium">
+                                        {{ visit.deal.lead.name }}
+                                    </p>
+                                    <p
+                                        class="truncate text-xs text-muted-foreground"
+                                    >
+                                        {{
+                                            visit.deal.property
+                                                ? `${visit.deal.property.street}, ${visit.deal.property.number}`
+                                                : 'Imóvel a definir'
+                                        }}
+                                        <template v-if="visit.user">
+                                            · {{ visit.user.name }}
+                                        </template>
+                                    </p>
+                                </div>
+                                <p class="text-xs font-medium tabular-nums">
+                                    {{ formatVisitTime(visit.scheduled_at) }}
+                                </p>
+                            </Link>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </DashboardPanel>
 
         <DashboardPanel
             v-if="formerTenantDebts.length > 0"

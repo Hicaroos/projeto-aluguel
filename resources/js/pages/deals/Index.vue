@@ -40,6 +40,7 @@ import DealDetailsDialog from '@/pages/deals/DealDetailsDialog.vue';
 import DealForm from '@/pages/deals/DealForm.vue';
 import DealStagesDialog from '@/pages/deals/DealStagesDialog.vue';
 import LostDealDialog from '@/pages/deals/LostDealDialog.vue';
+import SaleDialog from '@/pages/deals/SaleDialog.vue';
 import { destroy, index, move } from '@/routes/deals';
 import type {
     Deal,
@@ -55,6 +56,7 @@ const props = defineProps<{
     leads: DealLeadOption[];
     properties: DealPropertyOption[];
     users: TeamMemberOption[];
+    saleCommissionPercent: string | null;
 }>();
 
 defineOptions({
@@ -125,6 +127,7 @@ function openEditDialog(deal: Deal) {
 
 const isStagesDialogOpen = ref(false);
 const dealToLose = ref<Deal | null>(null);
+const dealToSell = ref<Deal | null>(null);
 
 function openLostDialog(deal: Deal) {
     dealToShow.value = null;
@@ -134,6 +137,12 @@ function openLostDialog(deal: Deal) {
 function win(deal: Deal) {
     dealToShow.value = null;
 
+    if (deal.type === 'sale') {
+        dealToSell.value = deal;
+
+        return;
+    }
+
     if (wonStage.value) {
         router.patch(
             move(deal).url,
@@ -142,9 +151,7 @@ function win(deal: Deal) {
                 preserveScroll: true,
                 onSuccess: () =>
                     toast.success(
-                        deal.type === 'rent'
-                            ? 'Locação fechada. Agora cadastre o contrato de aluguel.'
-                            : 'Venda fechada.',
+                        'Locação fechada. Agora cadastre o contrato de aluguel.',
                     ),
             },
         );
@@ -152,8 +159,8 @@ function win(deal: Deal) {
 }
 
 /**
- * Move a deal to a place of a stage. Closing stages go through their own flow: a loss asks for
- * the reason first.
+ * Move a deal to a place of a stage. Closing stages ask for what they need first: the reason
+ * of a loss, or the details of a sale.
  */
 function moveTo(deal: Deal, stage: FunnelStage, position?: number) {
     if (stage.outcome === 'lost') {
@@ -568,6 +575,13 @@ function confirmDelete() {
         :deal="dealToLose"
         :lost-stage="lostStage"
         @close="dealToLose = null"
+    />
+
+    <SaleDialog
+        :deal="dealToSell"
+        :users="users"
+        :sale-commission-percent="saleCommissionPercent"
+        @close="dealToSell = null"
     />
 
     <ConfirmDeleteDialog

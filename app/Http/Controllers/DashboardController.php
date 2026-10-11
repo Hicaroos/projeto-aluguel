@@ -9,14 +9,19 @@ use App\Actions\Payments\SummarizePayments;
 use App\Enums\LeaseStatus;
 use App\Enums\Permission;
 use App\Enums\PropertyStatus;
+use App\Enums\VisitStatus;
 use App\Models\ContractTemplate;
+use App\Models\Deal;
+use App\Models\DealVisit;
 use App\Models\Expense;
 use App\Models\Lease;
 use App\Models\Payment;
 use App\Models\Property;
+use App\Models\Sale;
 use App\Models\Tenant;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -107,6 +112,41 @@ class DashboardController extends Controller
                 ->orderByDesc('is_default')
                 ->orderBy('name')
                 ->get(['id', 'name', 'is_default']),
+            'sales' => $this->salesOverview($month),
         ]);
+    }
+
+    /**
+     * Summarize the sales of the month, the open deals and the visits of the coming week, once
+     * the account uses the funnel.
+     *
+     * @return array{count: int, total: float, commission: float, openDeals: int, upcomingVisits: Collection<int, DealVisit>}|null
+     */
+    private function salesOverview(CarbonImmutable $month): ?array
+    {
+        if (! Deal::query()->exists() && ! Sale::query()->exists()) {
+            return null;
+        }
+
+        $sales = Sale::query()->soldInMonth($month)->get(['id', 'price', 'commission_amount']);
+
+        return [
+            'count' => $sales->count(),
+            'total' => round($sales->sum(fn (Sale $sale): float => (float) $sale->price), 2),
+            'commission' => round($sales->sum(fn (Sale $sale): float => (float) $sale->commission_amount), 2),
+            'openDeals' => Deal::query()->whereNull('closed_at')->count(),
+            'upcomingVisits' => DealVisit::query()
+                ->where('status', VisitStatus::Scheduled)
+                ->whereBetween('scheduled_at', [now()->startOfDay(), now()->addDays(7)->endOfDay()])
+                ->with([
+                    'deal:id,lead_id,property_id',
+                    'deal.lead:id,name',
+                    'deal.property:id,street,number,neighborhood,deleted_at',
+                    'user:id,name',
+                ])
+                ->orderBy('scheduled_at')
+                ->limit(6)
+                ->get(),
+        ];
     }
 }

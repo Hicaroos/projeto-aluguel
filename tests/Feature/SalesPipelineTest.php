@@ -151,6 +151,7 @@ test('finance members look at the funnel without changing it', function () {
 
     $this->actingAs($finance)->get(route('leads.index'))->assertOk();
     $this->actingAs($finance)->get(route('deals.index'))->assertOk();
+    $this->actingAs($finance)->get(route('sales.index'))->assertOk();
     $this->actingAs($finance)->post(route('leads.store'), leadPayload())->assertForbidden();
 });
 
@@ -165,6 +166,7 @@ test('the funnel starts with the default stages', function () {
             ->where('stages.0.name', 'Novo contato')
             ->where('stages.4.outcome', 'won')
             ->where('stages.5.outcome', 'lost')
+            ->where('saleCommissionPercent', null)
         );
 });
 
@@ -242,16 +244,21 @@ test('lost deals need a reason and are closed until they come back to the funnel
         ->and($deal->lost_reason)->toBeNull();
 });
 
-test('deals close when they are won', function () {
+test('sales are closed by registering the sale, while rentals close right away', function () {
     ['user' => $user, 'account' => $account, 'lead' => $lead, 'stages' => $stages] = pipelineScenario();
     $wonStage = $stages->firstWhere('outcome', DealOutcome::Won);
-    $deal = Deal::factory()->for($account, 'account')->for($lead, 'lead')->create(['deal_stage_id' => $stages[0]->id, 'type' => DealType::Rent]);
+    $sale = Deal::factory()->for($account, 'account')->for($lead, 'lead')->create(['deal_stage_id' => $stages[0]->id]);
+    $rent = Deal::factory()->for($account, 'account')->for($lead, 'lead')->create(['deal_stage_id' => $stages[0]->id, 'type' => DealType::Rent]);
 
     $this->actingAs($user)
-        ->patch(route('deals.move', $deal), ['deal_stage_id' => $wonStage->id])
+        ->patch(route('deals.move', $sale), ['deal_stage_id' => $wonStage->id])
+        ->assertSessionHasErrors(['deal_stage_id' => 'Registre a venda para fechar esta negociação.']);
+
+    $this->actingAs($user)
+        ->patch(route('deals.move', $rent), ['deal_stage_id' => $wonStage->id])
         ->assertSessionHasNoErrors();
 
-    expect($deal->refresh()->closed_at)->not->toBeNull();
+    expect($rent->refresh()->closed_at)->not->toBeNull();
 });
 
 test('each account shapes its own funnel', function () {

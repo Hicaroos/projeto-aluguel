@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 import {
+    BadgeCheck,
     Building2,
     ChartPie,
     Coins,
@@ -40,6 +41,7 @@ import { index as leases } from '@/routes/leases';
 import { index as owners } from '@/routes/owners';
 import { index as payments } from '@/routes/payments';
 import { index as properties } from '@/routes/properties';
+import { index as sales } from '@/routes/sales';
 import { index as team } from '@/routes/team';
 import { index as tenants } from '@/routes/tenants';
 import type { NavItem } from '@/types';
@@ -112,6 +114,11 @@ const salesNavItems: NavItem[] = [
         title: 'Interessados',
         href: leads(),
         icon: UserSearch,
+    },
+    {
+        title: 'Vendas',
+        href: sales(),
+        icon: BadgeCheck,
     },
 ];
 

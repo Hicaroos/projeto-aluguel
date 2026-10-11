@@ -1,4 +1,5 @@
 import type { Paginator } from './pagination';
+import type { MaritalStatus } from './person';
 import type { Property, PropertyType } from './property';
 
 export type LeadSource =
@@ -129,6 +130,8 @@ export type Deal = {
     user: TeamMemberOption | null;
     visits: DealVisit[];
     proposals: DealProposal[];
+    /** The sale that closed the deal, if any. */
+    sale: { id: number; deal_id: number } | null;
 };
 
 export type FunnelStage = DealStage & {
@@ -153,3 +156,60 @@ export type DealPropertyOption = Pick<
 >;
 
 export type DealLeadOption = Pick<Lead, 'id' | 'name' | 'interest'>;
+
+export type Sale = {
+    id: number;
+    property_id: number;
+    deal_id: number | null;
+    lead_id: number | null;
+    seller_owner_id: number | null;
+    user_id: number | null;
+    buyer_name: string;
+    buyer_document: string | null;
+    buyer_phone: string | null;
+    buyer_email: string | null;
+    buyer_rg: string | null;
+    buyer_nationality: string | null;
+    buyer_marital_status: MaritalStatus | null;
+    buyer_profession: string | null;
+    buyer_zip_code: string | null;
+    buyer_street: string | null;
+    buyer_number: string | null;
+    buyer_complement: string | null;
+    buyer_neighborhood: string | null;
+    buyer_city: string | null;
+    buyer_state: string | null;
+    price: string;
+    down_payment: string | null;
+    deed_deadline: string | null;
+    sold_on: string;
+    payment_plan: PaymentPlan | null;
+    commission_percent: string | null;
+    commission_amount: string | null;
+    notes: string | null;
+    rental_outcome: 'terminate' | 'keep' | null;
+    property: Pick<
+        Property,
+        | 'id'
+        | 'type'
+        | 'street'
+        | 'number'
+        | 'complement'
+        | 'neighborhood'
+        | 'city'
+        | 'state'
+    >;
+    seller: {
+        id: number;
+        name: string;
+        cpf_cnpj: string | null;
+        phone: string | null;
+    } | null;
+    user: TeamMemberOption | null;
+};
+
+export type SalesSummary = {
+    count: number;
+    total: number;
+    commission: number;
+};

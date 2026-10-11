@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 import {
+    BadgeCheck,
     BadgeDollarSign,
     FileText,
     MapPin,
@@ -36,6 +37,7 @@ import PropertyFeatures from '@/pages/properties/PropertyFeatures.vue';
 import PropertyPhotos from '@/pages/properties/PropertyPhotos.vue';
 import { index as leasesIndex } from '@/routes/leases';
 import { index as ownersIndex } from '@/routes/owners';
+import { index as salesIndex } from '@/routes/sales';
 import { index as tenantsIndex } from '@/routes/tenants';
 import type { Property } from '@/types';
 
@@ -295,6 +297,20 @@ const emit = defineEmits<{
                 <DialogClose as-child>
                     <Button variant="outline">Fechar</Button>
                 </DialogClose>
+                <Button
+                    v-if="
+                        can.manageSales &&
+                        property.for_sale &&
+                        property.status !== 'sold'
+                    "
+                    variant="outline"
+                    as-child
+                >
+                    <Link :href="salesIndex({ query: { sell: property.id } })">
+                        <BadgeCheck class="size-4" />
+                        Registrar venda
+                    </Link>
+                </Button>
                 <Button
                     v-if="can.manageRentals"
                     @click="emit('edit', property)"

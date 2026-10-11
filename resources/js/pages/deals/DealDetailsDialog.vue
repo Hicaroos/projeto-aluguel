@@ -29,6 +29,7 @@ import DealProposals from '@/pages/deals/DealProposals.vue';
 import DealVisits from '@/pages/deals/DealVisits.vue';
 import { index as leadsIndex } from '@/routes/leads';
 import { index as propertiesIndex } from '@/routes/properties';
+import { index as salesIndex } from '@/routes/sales';
 import type { Deal, DealStage, TeamMemberOption } from '@/types';
 
 const props = defineProps<{
@@ -194,6 +195,13 @@ function stageOf(deal: Deal): DealStage | undefined {
 
             <DealProposals :deal="deal" />
 
+            <Button v-if="deal.sale" variant="outline" class="w-fit" as-child>
+                <Link :href="salesIndex({ query: { show: deal.sale.id } })">
+                    <BadgeCheck class="size-4" />
+                    Ver venda
+                </Link>
+            </Button>
+
             <DialogFooter
                 v-if="can.manageSales"
                 class="flex-wrap gap-2 border-t pt-6"
@@ -219,7 +227,7 @@ function stageOf(deal: Deal): DealStage | undefined {
                         <BadgeCheck class="size-4" />
                         {{
                             deal.type === 'sale'
-                                ? 'Fechar venda'
+                                ? 'Registrar venda'
                                 : 'Fechar locação'
                         }}
                     </Button>

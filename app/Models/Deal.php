@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -38,6 +39,7 @@ use Illuminate\Support\Carbon;
  * @property-read User|null $user
  * @property-read Collection<int, DealVisit> $visits
  * @property-read Collection<int, DealProposal> $proposals
+ * @property-read Sale|null $sale
  */
 #[Fillable([
     'account_id',
@@ -97,6 +99,16 @@ class Deal extends Model
     }
 
     /**
+     * Get the sale that closed the deal, if any.
+     *
+     * @return HasOne<Sale, $this>
+     */
+    public function sale(): HasOne
+    {
+        return $this->hasOne(Sale::class);
+    }
+
+    /**
      * Get the visits, the latest first.
      *
      * @return HasMany<DealVisit, $this>
@@ -129,6 +141,7 @@ class Deal extends Model
             'user:id,name',
             'visits.user:id,name',
             'proposals',
+            'sale:id,deal_id',
         ]);
     }
 
