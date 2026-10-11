@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\ContractTemplates\BuildDocumentPdf;
 use App\Actions\ContractTemplates\EnsureDefaultContractTemplate;
 use App\Actions\ContractTemplates\RenderSaleDocument;
 use App\Enums\ContractTemplateKind;
@@ -9,7 +10,6 @@ use App\Http\Requests\SaleDocumentRequest;
 use App\Models\ContractTemplate;
 use App\Models\Sale;
 use App\Models\SaleDocument;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -32,6 +32,7 @@ class SaleDocumentController extends Controller
         string $kind,
         EnsureDefaultContractTemplate $ensureDefaultContractTemplate,
         RenderSaleDocument $renderSaleDocument,
+        BuildDocumentPdf $buildDocumentPdf,
     ): Response {
         $kind = ContractTemplateKind::tryFrom($kind);
 
@@ -41,11 +42,8 @@ class SaleDocumentController extends Controller
             ? ContractTemplate::where('kind', $kind)->whereKey($request->integer('template'))->firstOrFail()
             : $ensureDefaultContractTemplate->handle($sale->account, $kind);
 
-        return Pdf::loadView('pdf.lease-contract', [
-            'title' => "{$kind->label()} — {$sale->buyer_name}",
-            'body' => $renderSaleDocument->handle($template, $sale),
-        ])
-            ->setPaper('a4')
+        return $buildDocumentPdf
+            ->handle("{$kind->label()} — {$sale->buyer_name}", $renderSaleDocument->handle($template, $sale))
             ->stream(Str::slug($kind->label()).'-'.Str::slug($sale->buyer_name).'.pdf');
     }
 

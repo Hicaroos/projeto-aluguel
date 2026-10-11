@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\ContractTemplates\BuildDocumentPdf;
 use App\Actions\ContractTemplates\EnsureDefaultContractTemplate;
 use App\Actions\ContractTemplates\RenderLeaseContract;
 use App\Enums\ContractTemplateKind;
 use App\Models\ContractTemplate;
 use App\Models\Lease;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -23,6 +23,7 @@ class LeaseContractController extends Controller
         Lease $lease,
         EnsureDefaultContractTemplate $ensureDefaultContractTemplate,
         RenderLeaseContract $renderLeaseContract,
+        BuildDocumentPdf $buildDocumentPdf,
     ): Response {
         Gate::authorize('view', $lease);
 
@@ -34,11 +35,8 @@ class LeaseContractController extends Controller
 
         $lease->loadMissing('tenant');
 
-        return Pdf::loadView('pdf.lease-contract', [
-            'title' => "Contrato de locação — {$lease->tenant->name}",
-            'body' => $renderLeaseContract->handle($template, $lease),
-        ])
-            ->setPaper('a4')
+        return $buildDocumentPdf
+            ->handle("Contrato de locação — {$lease->tenant->name}", $renderLeaseContract->handle($template, $lease))
             ->stream('contrato-'.Str::slug($lease->tenant->name).'.pdf');
     }
 }

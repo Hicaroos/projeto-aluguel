@@ -15,20 +15,6 @@
             color: #111;
         }
 
-        footer {
-            position: fixed;
-            bottom: -1.6cm;
-            left: 0;
-            right: 0;
-            text-align: center;
-            font-size: 8.5pt;
-            color: #666;
-        }
-
-        footer .page-number:after {
-            content: "Página " counter(page) " de " counter(pages);
-        }
-
         h1 {
             font-size: 14pt;
             text-align: center;
@@ -82,8 +68,6 @@
     </style>
 </head>
 <body>
-    <footer><span class="page-number"></span></footer>
-
     <main>
         {!! $body !!}
     </main>

@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\ContractTemplates\BuildDocumentPdf;
 use App\Actions\Leases\RenderLeaseRenewalAmendment;
 use App\Actions\Leases\RenewLease;
 use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
 use App\Http\Requests\LeaseRenewalRequest;
 use App\Models\Lease;
 use App\Models\LeaseRenewal;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -44,17 +44,14 @@ class LeaseRenewalController extends Controller
     /**
      * Generate the amendment extending the lease term, to be signed by the parties.
      */
-    public function amendment(Lease $lease, LeaseRenewal $renewal, RenderLeaseRenewalAmendment $renderAmendment): Response
+    public function amendment(Lease $lease, LeaseRenewal $renewal, RenderLeaseRenewalAmendment $renderAmendment, BuildDocumentPdf $buildDocumentPdf): Response
     {
         Gate::authorize('view', $lease);
 
         $lease->loadMissing('tenant');
 
-        return Pdf::loadView('pdf.lease-contract', [
-            'title' => "Termo aditivo de prorrogação — {$lease->tenant->name}",
-            'body' => $renderAmendment->handle($renewal->setRelation('lease', $lease)),
-        ])
-            ->setPaper('a4')
+        return $buildDocumentPdf
+            ->handle("Termo aditivo de prorrogação — {$lease->tenant->name}", $renderAmendment->handle($renewal->setRelation('lease', $lease)))
             ->stream('aditivo-prorrogacao-'.Str::slug($lease->tenant->name).'-'.$renewal->new_end_date->format('Y-m-d').'.pdf');
     }
 }

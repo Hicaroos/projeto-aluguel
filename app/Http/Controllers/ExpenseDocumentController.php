@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\ContractTemplates\BuildDocumentPdf;
 use App\Actions\ContractTemplates\EnsureDefaultContractTemplate;
 use App\Actions\ContractTemplates\RenderExpenseDocument;
 use App\Enums\ContractTemplateKind;
@@ -10,7 +11,6 @@ use App\Http\Requests\ExpenseDocumentRequest;
 use App\Models\ContractTemplate;
 use App\Models\Expense;
 use App\Models\ExpenseDocument;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -34,6 +34,7 @@ class ExpenseDocumentController extends Controller
         Expense $expense,
         EnsureDefaultContractTemplate $ensureDefaultContractTemplate,
         RenderExpenseDocument $renderExpenseDocument,
+        BuildDocumentPdf $buildDocumentPdf,
     ): Response {
         abort_unless($expense->type->isService(), 404);
 
@@ -45,11 +46,8 @@ class ExpenseDocumentController extends Controller
 
         $provider = $expense->provider_name ?? $expense->type->label();
 
-        return Pdf::loadView('pdf.lease-contract', [
-            'title' => "{$kind->label()} — {$provider}",
-            'body' => $renderExpenseDocument->handle($template, $expense),
-        ])
-            ->setPaper('a4')
+        return $buildDocumentPdf
+            ->handle("{$kind->label()} — {$provider}", $renderExpenseDocument->handle($template, $expense))
             ->stream('recibo-de-servico-'.Str::slug($provider).'.pdf');
     }
 

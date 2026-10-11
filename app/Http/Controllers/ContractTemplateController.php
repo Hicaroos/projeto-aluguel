@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\ContractTemplates\BuildDocumentPdf;
 use App\Actions\ContractTemplates\EnsureDefaultContractTemplate;
 use App\Actions\ContractTemplates\RenderExpenseDocument;
 use App\Actions\ContractTemplates\RenderLeaseContract;
@@ -16,7 +17,6 @@ use App\Models\ContractTemplate;
 use App\Models\Expense;
 use App\Models\Lease;
 use App\Models\Sale;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -124,6 +124,7 @@ class ContractTemplateController extends Controller
         RenderLeaseContract $renderLeaseContract,
         RenderSaleDocument $renderSaleDocument,
         RenderExpenseDocument $renderExpenseDocument,
+        BuildDocumentPdf $buildDocumentPdf,
     ): SymfonyResponse {
         $kind = $request->enum('kind', ContractTemplateKind::class) ?? ContractTemplateKind::Lease;
         $validated = $request->validate(['body' => ContractTemplateRequest::bodyRules($kind)]);
@@ -148,12 +149,7 @@ class ContractTemplateController extends Controller
             $html = $renderLeaseContract->render($body, $lease);
         }
 
-        return Pdf::loadView('pdf.lease-contract', [
-            'title' => 'Pré-visualização',
-            'body' => $html,
-        ])
-            ->setPaper('a4')
-            ->stream('pre-visualizacao.pdf');
+        return $buildDocumentPdf->handle('Pré-visualização', $html)->stream('pre-visualizacao.pdf');
     }
 
     /**
