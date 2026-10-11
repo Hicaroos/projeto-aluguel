@@ -11,6 +11,7 @@ export * from './pagination';
 export * from './payment';
 export * from './person';
 export * from './property';
+export * from './sales';
 export * from './team';
 export * from './tenant';
 export * from './ui';

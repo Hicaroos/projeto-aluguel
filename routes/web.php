@@ -4,8 +4,10 @@ use App\Http\Controllers\BranchController;
 use App\Http\Controllers\BranchSelectionController;
 use App\Http\Controllers\ContractTemplateController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DealController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\InvitationController;
+use App\Http\Controllers\LeadController;
 use App\Http\Controllers\LeaseAdjustmentController;
 use App\Http\Controllers\LeaseContractController;
 use App\Http\Controllers\LeaseController;
@@ -42,6 +44,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('leases/{lease}/renewals/{renewal}/amendment', [LeaseRenewalController::class, 'amendment'])->scopeBindings()->name('leases.renewals.amendment');
     Route::get('lease-documents/{document}', [LeaseDocumentController::class, 'show'])->name('lease-documents.show');
     Route::get('lease-documents/{document}/download', [LeaseDocumentController::class, 'download'])->name('lease-documents.download');
+
+    Route::get('leads', [LeadController::class, 'index'])->name('leads.index');
+    Route::get('deals', [DealController::class, 'index'])->name('deals.index');
+
+    Route::middleware('can:manage-sales')->group(function () {
+        Route::resource('leads', LeadController::class)->only(['store', 'update', 'destroy']);
+        Route::put('deal-stages', [DealController::class, 'updateStages'])->name('deal-stages.update');
+        Route::resource('deals', DealController::class)->only(['store', 'update', 'destroy']);
+        Route::patch('deals/{deal}/move', [DealController::class, 'move'])->name('deals.move');
+    });
 
     Route::middleware('can:manage-rentals')->group(function () {
         Route::post('owners/link', [OwnerController::class, 'link'])->name('owners.link');

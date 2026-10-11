@@ -43,6 +43,8 @@ export type Auth = {
         registerReceipts: boolean;
         /** Extra charges, undoing receipts, deposits, expenses and revenue figures. */
         manageFinance: boolean;
+        /** Follow leads through the funnel: deals, visits, proposals and sales. */
+        manageSales: boolean;
     };
     /** Whether the user created the account, and so may delete it. */
     isAccountOwner: boolean;

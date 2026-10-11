@@ -4,6 +4,7 @@ import {
     Building2,
     ChartPie,
     Coins,
+    Columns3,
     Contact,
     FileSignature,
     FileText,
@@ -12,6 +13,7 @@ import {
     ReceiptText,
     UserCog,
     Users,
+    UserSearch,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
@@ -31,7 +33,9 @@ import { usePermissions } from '@/composables/usePermissions';
 import { dashboard, management } from '@/routes';
 import { index as branches } from '@/routes/branches';
 import { index as contractTemplates } from '@/routes/contract-templates';
+import { index as deals } from '@/routes/deals';
 import { index as expenses } from '@/routes/expenses';
+import { index as leads } from '@/routes/leads';
 import { index as leases } from '@/routes/leases';
 import { index as owners } from '@/routes/owners';
 import { index as payments } from '@/routes/payments';
@@ -98,6 +102,19 @@ const mainNavItems = computed<NavItem[]>(() => [
         : []),
 ]);
 
+const salesNavItems: NavItem[] = [
+    {
+        title: 'Funil',
+        href: deals(),
+        icon: Columns3,
+    },
+    {
+        title: 'Interessados',
+        href: leads(),
+        icon: UserSearch,
+    },
+];
+
 const managementNavItems = computed<NavItem[]>(() =>
     can.value.manageAgency
         ? [
@@ -149,6 +166,7 @@ const footerNavItems = computed<NavItem[]>(() =>
 
         <SidebarContent>
             <NavMain :items="mainNavItems" />
+            <NavMain label="Vendas" :items="salesNavItems" />
             <NavMain
                 v-if="managementNavItems.length > 0"
                 label="Gestão"

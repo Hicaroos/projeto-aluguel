@@ -18,4 +18,7 @@ enum Permission: string
 
     /** Handle the money: extra charges, undoing receipts, deposits, expenses and revenue figures. */
     case ManageFinance = 'manage-finance';
+
+    /** Follow leads through the funnel: deals, visits, proposals and closed sales. */
+    case ManageSales = 'manage-sales';
 }
