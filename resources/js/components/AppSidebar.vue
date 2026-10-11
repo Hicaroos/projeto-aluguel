@@ -9,6 +9,7 @@ import {
     Contact,
     FileSignature,
     FileText,
+    HandCoins,
     House,
     LayoutGrid,
     ReceiptText,
@@ -40,6 +41,7 @@ import { index as leads } from '@/routes/leads';
 import { index as leases } from '@/routes/leases';
 import { index as owners } from '@/routes/owners';
 import { index as payments } from '@/routes/payments';
+import { index as payouts } from '@/routes/payouts';
 import { index as properties } from '@/routes/properties';
 import { index as sales } from '@/routes/sales';
 import { index as team } from '@/routes/team';
@@ -99,6 +101,15 @@ const mainNavItems = computed<NavItem[]>(() => [
                   title: 'Despesas',
                   href: expenses(),
                   icon: Coins,
+              },
+          ]
+        : []),
+    ...(isAgency.value && can.value.manageFinance
+        ? [
+              {
+                  title: 'Repasses',
+                  href: payouts(),
+                  icon: HandCoins,
               },
           ]
         : []),

@@ -16,9 +16,11 @@ use App\Http\Controllers\LeaseController;
 use App\Http\Controllers\LeaseDepositController;
 use App\Http\Controllers\LeaseDocumentController;
 use App\Http\Controllers\LeaseRenewalController;
+use App\Http\Controllers\LedgerAdjustmentController;
 use App\Http\Controllers\ManagementController;
 use App\Http\Controllers\OwnerController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PayoutController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\PropertyPhotoController;
 use App\Http\Controllers\ReceiptController;
@@ -111,6 +113,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::resource('expenses', ExpenseController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::patch('expenses/{expense}/pay', [ExpenseController::class, 'pay'])->name('expenses.pay');
+
+        Route::get('payouts', [PayoutController::class, 'index'])->name('payouts.index');
+        Route::get('payouts/{owner}', [PayoutController::class, 'show'])->name('payouts.show');
+        Route::get('payouts/{owner}/pdf', [PayoutController::class, 'pdf'])->name('payouts.pdf');
+        Route::post('payouts/{owner}', [PayoutController::class, 'store'])->name('payouts.store');
+        Route::delete('owner-payouts/{payout}', [PayoutController::class, 'destroy'])->name('owner-payouts.destroy');
+        Route::post('payouts/{owner}/adjustments', [LedgerAdjustmentController::class, 'store'])->name('payouts.adjustments.store');
+        Route::delete('ledger-entries/{entry}', [LedgerAdjustmentController::class, 'destroy'])->name('ledger-entries.destroy');
     });
 
     Route::middleware('can:manage-agency')->group(function () {
