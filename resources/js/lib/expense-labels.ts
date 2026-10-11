@@ -1,7 +1,22 @@
 import { CircleEllipsis, Landmark, Building2, Wrench } from '@lucide/vue';
 import type { LucideIcon } from '@lucide/vue';
 import { daysUntil } from '@/lib/formatters';
-import type { Expense, ExpenseDisplayStatus, ExpenseType } from '@/types';
+import type {
+    Expense,
+    ExpenseDisplayStatus,
+    ExpensePayer,
+    ExpenseType,
+} from '@/types';
+
+export const expensePayerLabels: Record<ExpensePayer, string> = {
+    owner: 'Proprietário',
+    agency: 'Imobiliária',
+};
+
+export const expensePayerDescriptions: Record<ExpensePayer, string> = {
+    owner: 'Quando for paga, o valor é descontado do repasse do proprietário.',
+    agency: 'Custo da própria imobiliária, sem afetar o repasse.',
+};
 
 export const expenseTypeLabels: Record<ExpenseType, string> = {
     property_tax: 'IPTU',

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Actions\Payouts\PostSaleToLedger;
 use App\Concerns\BelongsToAccount;
 use App\Concerns\BelongsToVisibleBranches;
 use App\Enums\MaritalStatus;
@@ -44,6 +45,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $buyer_city
  * @property string|null $buyer_state
  * @property string|null $down_payment The amount the buyer paid upfront to secure the deal (sinal).
+ * @property bool $down_payment_received_by_agency Whether the agency received the down payment and owes it to the seller, less its commission.
  * @property Carbon|null $deed_deadline The date by which the deed must be signed.
  * @property string $price
  * @property Carbon $sold_on
@@ -84,6 +86,7 @@ use Illuminate\Support\Carbon;
     'buyer_city',
     'buyer_state',
     'down_payment',
+    'down_payment_received_by_agency',
     'deed_deadline',
     'price',
     'sold_on',
@@ -98,6 +101,14 @@ class Sale extends Model
 {
     /** @use HasFactory<SaleFactory> */
     use BelongsToAccount, BelongsToVisibleBranches, HasFactory;
+
+    /**
+     * Keep the seller's running account in line with the sale when the agency received the down payment.
+     */
+    protected static function booted(): void
+    {
+        static::saved(fn (Sale $sale) => app(PostSaleToLedger::class)->handle($sale));
+    }
 
     /**
      * @return BelongsTo<Property, $this>
@@ -206,6 +217,7 @@ class Sale extends Model
             'down_payment' => 'decimal:2',
             'deed_deadline' => 'date:Y-m-d',
             'property_was_for_rent' => 'boolean',
+            'down_payment_received_by_agency' => 'boolean',
             'rental_outcome' => RentalOutcome::class,
         ];
     }

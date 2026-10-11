@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property int $lease_id
  * @property PaymentType $type
  * @property string|null $description
+ * @property bool|null $pass_to_owner Whether an extra charge goes to the owner, over the payout rules.
  * @property Carbon|null $reference_month Null for extra charges.
  * @property Carbon $due_date
  * @property string $amount
@@ -39,6 +40,7 @@ use Illuminate\Support\Carbon;
     'lease_id',
     'type',
     'description',
+    'pass_to_owner',
     'reference_month',
     'due_date',
     'amount',
@@ -239,6 +241,7 @@ class Payment extends Model
             'amount' => 'decimal:2',
             'type' => PaymentType::class,
             'status' => PaymentStatus::class,
+            'pass_to_owner' => 'boolean',
         ];
     }
 }

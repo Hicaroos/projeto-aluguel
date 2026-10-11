@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form } from '@inertiajs/vue3';
+import { Form, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import ExpenseController from '@/actions/App/Http/Controllers/ExpenseController';
 import InputError from '@/components/InputError.vue';
@@ -17,9 +17,19 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
-import { expenseTypeIcons, expenseTypeLabels } from '@/lib/expense-labels';
+import {
+    expensePayerDescriptions,
+    expensePayerLabels,
+    expenseTypeIcons,
+    expenseTypeLabels,
+} from '@/lib/expense-labels';
 import { todayIsoDate } from '@/lib/formatters';
-import type { Expense, ExpensePropertyOption, ExpenseType } from '@/types';
+import type {
+    Expense,
+    ExpensePayer,
+    ExpensePropertyOption,
+    ExpenseType,
+} from '@/types';
 
 const props = defineProps<{
     expense?: Expense | null;
@@ -38,6 +48,13 @@ const formAction = computed(() =>
 
 const propertyId = ref(props.expense ? String(props.expense.property_id) : '');
 const type = ref<ExpenseType>(props.expense?.type ?? 'condo_fee');
+const chargedTo = ref<ExpensePayer>(props.expense?.charged_to ?? 'owner');
+
+const page = usePage();
+
+const isAgency = computed(
+    () => page.props.auth.user.account?.type === 'agency',
+);
 
 const propertyOptions = computed<SearchableSelectOption[]>(() =>
     props.properties.map((property) => ({
@@ -161,6 +178,28 @@ const propertyOptions = computed<SearchableSelectOption[]>(() =>
                 />
                 <InputError :message="errors.payment_date" />
             </div>
+        </div>
+
+        <div v-if="isAgency" class="grid gap-2">
+            <Label for="charged_to">Quem paga</Label>
+            <Select v-model="chargedTo" name="charged_to">
+                <SelectTrigger id="charged_to" class="w-full">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem
+                        v-for="(label, key) in expensePayerLabels"
+                        :key="key"
+                        :value="key"
+                    >
+                        {{ label }}
+                    </SelectItem>
+                </SelectContent>
+            </Select>
+            <p class="text-xs text-muted-foreground">
+                {{ expensePayerDescriptions[chargedTo] }}
+            </p>
+            <InputError :message="errors.charged_to" />
         </div>
 
         <DialogFooter class="border-t pt-6">

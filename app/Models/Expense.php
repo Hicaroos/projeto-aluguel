@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Actions\Payouts\PostExpenseToLedger;
 use App\Concerns\BelongsToAccount;
 use App\Concerns\BelongsToVisibleBranches;
+use App\Enums\ExpensePayer;
 use App\Enums\ExpenseStatus;
 use App\Enums\ExpenseType;
 use Carbon\CarbonInterface;
@@ -21,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property int $property_id
  * @property ExpenseType $type
  * @property string|null $description
+ * @property ExpensePayer $charged_to Who bears the expense: the owner, out of their payouts, or the agency.
  * @property string $amount
  * @property Carbon $due_date
  * @property Carbon|null $payment_date
@@ -30,7 +33,7 @@ use Illuminate\Support\Carbon;
  * @property-read Account $account
  * @property-read Property $property
  */
-#[Fillable(['account_id', 'property_id', 'type', 'description', 'amount', 'due_date', 'payment_date', 'status'])]
+#[Fillable(['account_id', 'property_id', 'type', 'description', 'charged_to', 'amount', 'due_date', 'payment_date', 'status'])]
 class Expense extends Model
 {
     /** @use HasFactory<ExpenseFactory> */
@@ -41,7 +44,16 @@ class Expense extends Model
      */
     protected $attributes = [
         'status' => 'pending',
+        'charged_to' => 'owner',
     ];
+
+    /**
+     * Keep the owners' running accounts in line with the expense when it is paid, changed or removed.
+     */
+    protected static function booted(): void
+    {
+        static::saved(fn (Expense $expense) => app(PostExpenseToLedger::class)->handle($expense));
+    }
 
     /**
      * @return BelongsTo<Property, $this>
@@ -130,6 +142,7 @@ class Expense extends Model
     {
         return [
             'type' => ExpenseType::class,
+            'charged_to' => ExpensePayer::class,
             'amount' => 'decimal:2',
             'due_date' => 'date:Y-m-d',
             'payment_date' => 'date:Y-m-d',

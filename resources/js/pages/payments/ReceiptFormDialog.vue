@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form } from '@inertiajs/vue3';
+import { Form, usePage } from '@inertiajs/vue3';
 import { HandCoins, TimerReset } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import ReceiptController from '@/actions/App/Http/Controllers/ReceiptController';
@@ -24,6 +24,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { usePermissions } from '@/composables/usePermissions';
 import { formatCurrency } from '@/lib/currency';
 import { todayIsoDate } from '@/lib/formatters';
 import {
@@ -32,6 +33,8 @@ import {
     paymentReferenceLabel,
     paymentRemainingAmount,
 } from '@/lib/payment-labels';
+import { lateChargesDestinationLabels } from '@/lib/payout-labels';
+import type { LateChargesDestination } from '@/lib/payout-labels';
 import type { Payment } from '@/types';
 
 const props = defineProps<{
@@ -109,6 +112,41 @@ watch(lateCharges, () => {
         applyCalculatedCharges();
     }
 });
+
+const page = usePage();
+const can = usePermissions();
+
+/** Agencies choose case by case who keeps the late charges, over the payout rules. */
+const choosesLateChargesShare = computed(
+    () =>
+        page.props.auth.user.account?.type === 'agency' &&
+        can.value.manageFinance,
+);
+
+const hasLateCharges = computed(
+    () => (Number(lateFee.value) || 0) + (Number(interest.value) || 0) > 0,
+);
+
+const lateChargesDestination = ref<LateChargesDestination | 'rules'>('rules');
+const lateChargesOwnerShare = ref('50');
+
+const lateChargesOwnerPercent = computed(() => {
+    switch (lateChargesDestination.value) {
+        case 'owner':
+            return '100';
+        case 'agency':
+            return '0';
+        case 'split':
+            return lateChargesOwnerShare.value;
+        default:
+            return '';
+    }
+});
+
+watch(
+    () => props.payment?.id,
+    () => (lateChargesDestination.value = 'rules'),
+);
 </script>
 
 <template>
@@ -275,6 +313,70 @@ watch(lateCharges, () => {
                                 />
                             </div>
                             <InputError :message="errors.interest_amount" />
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="choosesLateChargesShare && hasLateCharges"
+                        class="grid items-start gap-4 sm:grid-cols-2"
+                    >
+                        <div class="grid gap-2">
+                            <Label for="receipt_late_charges_destination">
+                                Multa e juros ficam com
+                            </Label>
+                            <input
+                                type="hidden"
+                                name="late_charges_owner_percent"
+                                :value="lateChargesOwnerPercent"
+                            />
+                            <Select v-model="lateChargesDestination">
+                                <SelectTrigger
+                                    id="receipt_late_charges_destination"
+                                    class="w-full bg-background"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="rules">
+                                        Conforme o contrato
+                                    </SelectItem>
+                                    <SelectItem
+                                        v-for="(
+                                            label, key
+                                        ) in lateChargesDestinationLabels"
+                                        :key="key"
+                                        :value="key"
+                                    >
+                                        {{ label }}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <InputError
+                                :message="errors.late_charges_owner_percent"
+                            />
+                        </div>
+                        <div
+                            v-if="lateChargesDestination === 'split'"
+                            class="grid gap-2"
+                        >
+                            <Label for="receipt_late_charges_owner_share">
+                                Parte do proprietário
+                            </Label>
+                            <div class="relative">
+                                <Input
+                                    id="receipt_late_charges_owner_share"
+                                    v-model="lateChargesOwnerShare"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    max="100"
+                                    class="bg-background pr-8 tabular-nums"
+                                />
+                                <span
+                                    class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground"
+                                    >%</span
+                                >
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -76,6 +76,7 @@ class SaleRequest extends FormRequest
             ...$this->qualificationRules('buyer.'),
             'price' => ['required', 'numeric', 'gt:0', 'max:9999999999'],
             'down_payment' => ['nullable', 'numeric', 'min:0', 'lte:price'],
+            'down_payment_received_by_agency' => $isAgency ? ['boolean'] : ['exclude'],
             'sold_on' => ['required', 'date', 'before_or_equal:today'],
             'deed_deadline' => ['nullable', 'date', 'after_or_equal:sold_on'],
             'payment_plan' => ['nullable', Rule::enum(PaymentPlan::class)],

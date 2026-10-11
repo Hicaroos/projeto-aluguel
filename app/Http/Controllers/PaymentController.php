@@ -123,6 +123,7 @@ class PaymentController extends Controller
             'description' => $request->string('description')->toString(),
             'amount' => $request->validated('amount'),
             'due_date' => $request->validated('due_date'),
+            'pass_to_owner' => $request->validated('pass_to_owner') === null ? null : $request->boolean('pass_to_owner'),
         ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Cobrança avulsa cadastrada com sucesso.')]);

@@ -1,6 +1,9 @@
 import type { Paginator } from './pagination';
 import type { Property } from './property';
 
+/** Who bears an expense of a property an agency manages. */
+export type ExpensePayer = 'owner' | 'agency';
+
 export type ExpenseType =
     'property_tax' | 'condo_fee' | 'maintenance' | 'other';
 
@@ -25,6 +28,7 @@ export type Expense = {
     property_id: number;
     type: ExpenseType;
     description: string | null;
+    charged_to: ExpensePayer;
     amount: string;
     due_date: string;
     payment_date: string | null;

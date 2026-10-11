@@ -10,6 +10,7 @@ import PersonQualificationFields from '@/components/PersonQualificationFields.vu
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import type { SearchableSelectOption } from '@/components/SearchableSelect.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogClose,
@@ -84,6 +85,16 @@ const price = ref('');
 const commissionPercent = ref('');
 const paymentPlan = ref<string>(NONE);
 const userId = ref<string>(NONE);
+const downPaymentReceivedByAgency = ref(false);
+
+watch(
+    () => [props.deal, props.sale, props.direct] as const,
+    () => {
+        downPaymentReceivedByAgency.value =
+            props.sale?.down_payment_received_by_agency ?? false;
+    },
+    { immediate: true },
+);
 const directPropertyId = ref('');
 
 const propertyOptions = computed<SearchableSelectOption[]>(() =>
@@ -531,6 +542,27 @@ const textareaClass =
                                 :default-value="sale?.deed_deadline ?? ''"
                             />
                             <InputError :message="errors.deed_deadline" />
+                        </div>
+                    </div>
+                    <div v-if="isAgency" class="flex items-start gap-3">
+                        <input
+                            type="hidden"
+                            name="down_payment_received_by_agency"
+                            :value="downPaymentReceivedByAgency ? 1 : 0"
+                        />
+                        <Checkbox
+                            id="down_payment_received_by_agency"
+                            v-model="downPaymentReceivedByAgency"
+                            class="mt-0.5"
+                        />
+                        <div class="grid gap-1">
+                            <Label for="down_payment_received_by_agency">
+                                O sinal foi recebido pela imobiliária
+                            </Label>
+                            <p class="text-xs text-muted-foreground">
+                                Ele entra no repasse do proprietário, já
+                                descontada a comissão.
+                            </p>
                         </div>
                     </div>
                     <p class="text-sm font-medium">Qualificação do comprador</p>

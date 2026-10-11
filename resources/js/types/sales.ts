@@ -182,6 +182,8 @@ export type Sale = {
     buyer_state: string | null;
     price: string;
     down_payment: string | null;
+    /** Whether the agency received the down payment and owes it to the seller, less its commission. */
+    down_payment_received_by_agency: boolean;
     deed_deadline: string | null;
     sold_on: string;
     payment_plan: PaymentPlan | null;

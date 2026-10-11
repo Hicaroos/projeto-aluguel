@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\PaymentMethod;
+use App\Enums\Permission;
 use App\Models\Payment;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -24,6 +25,9 @@ class ReceiptRequest extends FormRequest
             'amount' => ['required', 'numeric', 'gt:0', 'max:'.$payment->remainingAmount()],
             'late_fee_amount' => ['nullable', 'numeric', 'min:0'],
             'interest_amount' => ['nullable', 'numeric', 'min:0'],
+            'late_charges_owner_percent' => ($this->user()->account?->isAgency() ?? false) && $this->user()->can(Permission::ManageFinance->value)
+                ? ['nullable', 'numeric', 'between:0,100']
+                : ['exclude'],
             'date' => ['required', 'date', 'before_or_equal:today'],
             'payment_method' => ['required', Rule::enum(PaymentMethod::class)->except([PaymentMethod::Deposit])],
             'notes' => ['nullable', 'string', 'max:255'],
@@ -45,6 +49,7 @@ class ReceiptRequest extends FormRequest
             ...$this->validated(),
             'late_fee_amount' => $chargesLateFees ? (float) ($this->validated('late_fee_amount') ?? 0) : 0,
             'interest_amount' => $chargesLateFees ? (float) ($this->validated('interest_amount') ?? 0) : 0,
+            'late_charges_owner_percent' => $chargesLateFees ? $this->validated('late_charges_owner_percent') : null,
         ];
     }
 

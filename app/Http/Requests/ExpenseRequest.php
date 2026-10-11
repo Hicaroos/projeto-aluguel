@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\ExpensePayer;
 use App\Enums\ExpenseStatus;
 use App\Enums\ExpenseType;
 use App\Models\Property;
@@ -36,6 +37,9 @@ class ExpenseRequest extends FormRequest
             'amount' => ['required', 'numeric', 'gt:0'],
             'due_date' => ['required', 'date'],
             'payment_date' => ['nullable', 'date', 'before_or_equal:today'],
+            'charged_to' => ($this->user()->account?->isAgency() ?? false)
+                ? ['sometimes', 'required', Rule::enum(ExpensePayer::class)]
+                : ['exclude'],
         ];
     }
 

@@ -27,6 +27,7 @@ class ExtraChargeRequest extends FormRequest
             'description' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'gt:0'],
             'due_date' => ['required', 'date'],
+            'pass_to_owner' => ($this->user()->account?->isAgency() ?? false) ? ['nullable', 'boolean'] : ['exclude'],
         ];
     }
 
