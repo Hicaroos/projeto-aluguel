@@ -17,6 +17,11 @@ class DeleteAccount
      * @var list<string>
      */
     private const array ACCOUNT_TABLES = [
+        'deal_proposals',
+        'deal_visits',
+        'deals',
+        'deal_stages',
+        'leads',
         'receipts',
         'payments',
         'lease_documents',

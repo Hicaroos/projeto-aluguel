@@ -102,6 +102,14 @@ class Account extends Model
     }
 
     /**
+     * @return HasMany<DealStage, $this>
+     */
+    public function dealStages(): HasMany
+    {
+        return $this->hasMany(DealStage::class);
+    }
+
+    /**
      * @return HasMany<Owner, $this>
      */
     public function owners(): HasMany
