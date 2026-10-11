@@ -2,6 +2,7 @@ export * from './auth';
 export * from './branch';
 export * from './contract-template';
 export * from './dashboard';
+export * from './document';
 export * from './expense';
 export * from './lease';
 export * from './management';
