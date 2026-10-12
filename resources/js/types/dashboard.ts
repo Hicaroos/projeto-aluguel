@@ -89,3 +89,18 @@ export type DashboardAgencyFinances = {
         over60: number;
     };
 };
+
+/** What may need attention today, each kind listed only when the user may handle it. */
+export type DashboardAgendaKey =
+    | 'overdue_payments'
+    | 'payments_due_today'
+    | 'payouts_available'
+    | 'expenses_due'
+    | 'leases_ending'
+    | 'adjustments_due'
+    | 'proposals_pending';
+
+export type DashboardAgenda = {
+    items: { key: DashboardAgendaKey; count: number; amount: number | null }[];
+    visits: DashboardSalesOverview['upcomingVisits'];
+};

@@ -22,6 +22,7 @@ import { computed, ref } from 'vue';
 import AgencyFinancesPanels from '@/components/AgencyFinancesPanels.vue';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue';
 import DashboardPanel from '@/components/DashboardPanel.vue';
+import DayAgenda from '@/components/DayAgenda.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import RevenueChart from '@/components/RevenueChart.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -60,6 +61,7 @@ import { index as tenantsIndex } from '@/routes/tenants';
 import type {
     ContractTemplateOption,
     DashboardAdjustmentLease,
+    DashboardAgenda,
     DashboardAgencyFinances,
     DashboardEndingLease,
     DashboardStats,
@@ -83,6 +85,8 @@ const props = defineProps<{
     vacantPropertiesCount: number;
     contractTemplates: ContractTemplateOption[];
     sales: DashboardSalesOverview | null;
+    /** Only for agencies: what needs attention today, as far as the user's permissions go. */
+    agenda: DashboardAgenda | null;
     /** Only for agency members who handle the money. */
     agencyFinances: DashboardAgencyFinances | null;
 }>();
@@ -281,6 +285,8 @@ const clickableRow =
                 </li>
             </ol>
         </DashboardPanel>
+
+        <DayAgenda v-if="agenda" :agenda="agenda" :today="page.props.today" />
 
         <div
             class="grid gap-4 sm:grid-cols-2"
@@ -502,6 +508,7 @@ const clickableRow =
             </DashboardPanel>
 
             <DashboardPanel
+                id="atencao"
                 title="Precisam de atenção"
                 description="Cobranças atrasadas ou que vencem em até 7 dias."
                 class="lg:col-span-2"
@@ -585,6 +592,7 @@ const clickableRow =
 
         <DashboardPanel
             v-if="adjustmentLeases.length > 0"
+            id="reajustes"
             title="Reajustes disponíveis"
             description="Contratos que completam (ou já completaram) mais um ano e podem ter o aluguel reajustado."
         >
@@ -663,6 +671,7 @@ const clickableRow =
 
         <div class="grid gap-6 lg:grid-cols-2">
             <DashboardPanel
+                id="contratos-terminando"
                 title="Contratos terminando"
                 description="Contratos ativos que terminam nos próximos 60 dias."
             >

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Dashboard\BuildDayAgenda;
 use App\Actions\Dashboard\GetMonthlyRevenue;
 use App\Actions\Dashboard\SummarizeAgencyFinances;
 use App\Actions\Expenses\SummarizeExpenses;
@@ -41,6 +42,7 @@ class DashboardController extends Controller
         SummarizeExpenses $summarizeExpenses,
         GetMonthlyRevenue $getMonthlyRevenue,
         SummarizeAgencyFinances $summarizeAgencyFinances,
+        BuildDayAgenda $buildDayAgenda,
     ): Response {
         $accountId = $request->user()->account_id;
 
@@ -121,6 +123,7 @@ class DashboardController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name', 'is_default']),
             'sales' => Owner::ignoringSelection(fn (): ?array => $this->salesOverview($month)),
+            'agenda' => ($request->user()->account?->isAgency() ?? false) ? $buildDayAgenda->handle($request->user()) : null,
             'agencyFinances' => ($request->user()->account?->isAgency() ?? false) && $request->user()->can(Permission::ManageFinance->value)
                 ? $summarizeAgencyFinances->handle($month)
                 : null,
