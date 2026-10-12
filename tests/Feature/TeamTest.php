@@ -17,7 +17,7 @@ function teamScenario(): array
 
     return [
         'account' => $account,
-        'owner' => User::factory()->for($account, 'account')->create(),
+        'owner' => User::factory()->for($account, 'account')->create(['name' => 'Rafael Dono']),
         'ouricuri' => Branch::factory()->for($account, 'account')->create(['name' => 'Ouricuri']),
         'araripina' => Branch::factory()->for($account, 'account')->create(['name' => 'Araripina']),
     ];

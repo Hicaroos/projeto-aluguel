@@ -120,7 +120,7 @@ test('the amendment describes the parties, the previous and the new term', funct
 
     expect($html)
         ->toContain('TERMO ADITIVO DE PRORROGAÇÃO')
-        ->toContain($lease->tenant->name)
+        ->toContain(e($lease->tenant->name))
         ->toContain('Carlos Fiador')
         ->toContain('terminaria em 30 de setembro de 2026')
         ->toContain('12 meses, passando a terminar em')
