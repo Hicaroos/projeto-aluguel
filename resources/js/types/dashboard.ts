@@ -39,6 +39,8 @@ export type DashboardStats = {
     rentedProperties: number;
     activeLeases: number;
     tenants: number;
+    /** Agencies register the owners before their properties. */
+    owners: number;
 };
 
 export type MonthlyRevenue = {

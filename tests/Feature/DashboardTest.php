@@ -68,6 +68,7 @@ test('the dashboard summarizes the account figures', function () {
             ->where('stats.properties', 3)
             ->where('stats.rentedProperties', 1)
             ->where('stats.activeLeases', 1)
+            ->where('stats.owners', 1)
             ->has('monthlyRevenue', 6)
             ->where('monthlyRevenue.4.month', '2026-09-01')
             ->where('monthlyRevenue.4.received', 1000)

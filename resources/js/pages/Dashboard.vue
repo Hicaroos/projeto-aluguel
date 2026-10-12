@@ -15,6 +15,7 @@ import {
     Scale,
     TrendingUp,
     TriangleAlert,
+    UserRound,
     Users,
     Wallet,
 } from '@lucide/vue';
@@ -53,6 +54,7 @@ import PropertyDetailsDialog from '@/pages/properties/PropertyDetailsDialog.vue'
 import { dashboard } from '@/routes';
 import { index as dealsIndex } from '@/routes/deals';
 import { index as leasesIndex } from '@/routes/leases';
+import { index as ownersIndex } from '@/routes/owners';
 import {
     destroy as destroyPayment,
     index as paymentsIndex,
@@ -115,15 +117,32 @@ function percentage(part: number, total: number): number {
     return total > 0 ? Math.min(100, Math.round((part / total) * 100)) : 0;
 }
 
+const isAgency = computed(
+    () => page.props.auth.user.account?.type === 'agency',
+);
+
+/** Agencies register the owners first, as every property needs one. */
 const onboardingSteps = computed(() => [
+    ...(isAgency.value
+        ? [
+              {
+                  title: 'Cadastre os proprietários',
+                  done: props.stats.owners > 0,
+                  href: ownersIndex(),
+                  icon: UserRound,
+              },
+          ]
+        : []),
     {
-        title: 'Cadastre seus imóveis',
+        title: isAgency.value ? 'Cadastre os imóveis' : 'Cadastre seus imóveis',
         done: props.stats.properties > 0,
         href: propertiesIndex(),
         icon: House,
     },
     {
-        title: 'Cadastre seus inquilinos',
+        title: isAgency.value
+            ? 'Cadastre os inquilinos'
+            : 'Cadastre seus inquilinos',
         done: props.stats.tenants > 0,
         href: tenantsIndex(),
         icon: Users,
@@ -248,7 +267,14 @@ const clickableRow =
             title="Primeiros passos"
             description="Complete estas etapas para o sistema começar a gerar as cobranças."
         >
-            <ol class="grid gap-3 p-5 md:grid-cols-3">
+            <ol
+                class="grid gap-3 p-5"
+                :class="
+                    onboardingSteps.length === 4
+                        ? 'md:grid-cols-2 xl:grid-cols-4'
+                        : 'md:grid-cols-3'
+                "
+            >
                 <li
                     v-for="(step, stepIndex) in onboardingSteps"
                     :key="step.title"

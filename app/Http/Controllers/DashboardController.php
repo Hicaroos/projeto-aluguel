@@ -69,6 +69,7 @@ class DashboardController extends Controller
                 'properties' => $properties()->count(),
                 'rentedProperties' => $properties()->where('status', PropertyStatus::Rented)->count(),
                 'activeLeases' => Lease::where('account_id', $accountId)->active()->count(),
+                'owners' => Owner::where('account_id', $accountId)->count(),
                 'tenants' => Tenant::where('account_id', $accountId)
                     ->when(Owner::selectedId(), fn (Builder $query, int $ownerId) => Tenant::restrictToOwner($query, $ownerId))
                     ->count(),
