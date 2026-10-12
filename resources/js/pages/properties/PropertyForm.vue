@@ -4,6 +4,7 @@ import { Plus, Trash2 } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import PropertyController from '@/actions/App/Http/Controllers/PropertyController';
 import InputError from '@/components/InputError.vue';
+import MaskedInput from '@/components/MaskedInput.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DialogClose, DialogFooter } from '@/components/ui/dialog';
@@ -422,14 +423,13 @@ watch(zipCode, async (value) => {
                 <div class="grid gap-2 sm:col-span-2">
                     <Label for="zip_code">CEP</Label>
                     <div class="relative">
-                        <Input
+                        <MaskedInput
                             id="zip_code"
                             v-model="zipCode"
+                            mask="zip"
                             name="zip_code"
-                            inputmode="numeric"
                             autocomplete="postal-code"
                             placeholder="00000-000"
-                            maxlength="9"
                             class="pr-9"
                         />
                         <Spinner

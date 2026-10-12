@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import MaskedInput from '@/components/MaskedInput.vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
@@ -76,14 +77,13 @@ watch(zipCode, async (value) => {
         <div class="grid gap-2 sm:col-span-2">
             <Label :for="inputId('zip_code')">CEP</Label>
             <div class="relative">
-                <Input
+                <MaskedInput
                     :id="inputId('zip_code')"
                     v-model="zipCode"
+                    mask="zip"
                     :name="inputName('zip_code')"
-                    inputmode="numeric"
                     autocomplete="postal-code"
                     placeholder="00000-000"
-                    maxlength="9"
                     class="pr-9"
                 />
                 <Spinner
