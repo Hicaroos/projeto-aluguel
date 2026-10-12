@@ -6,33 +6,28 @@ use App\Actions\Payouts\SummarizeOwnerBalances;
 use App\Enums\ExpensePayer;
 use App\Enums\ExpenseStatus;
 use App\Enums\LedgerEntryType;
-use App\Enums\PaymentStatus;
 use App\Models\Expense;
 use App\Models\Owner;
 use App\Models\OwnerLedgerEntry;
-use App\Models\Payment;
 use App\Models\Property;
 use App\Models\Receipt;
 use App\Models\Sale;
 use Carbon\CarbonImmutable;
-use Closure;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
  * @phpstan-type AgencyRevenue array{adminFees: float, intermediationFees: float, renewalFees: float, saleCommissions: float, lateCharges: float, extraCharges: float, expenses: float, result: float}
  * @phpstan-type OwnersMoney array{received: float, available: float, pending: float, advanced: float, paidOut: float}
- * @phpstan-type Delinquency array{total: float, count: int, rate: float, upTo30: float, upTo60: float, over60: float}
  */
 class SummarizeAgencyFinances
 {
     public function __construct(private SummarizeOwnerBalances $summarizeOwnerBalances) {}
 
     /**
-     * Summarize the agency's month: what it earned itself, the owners' money it holds and the rent the
-     * tenants owe. With an owner picked in the owner selector, only what concerns them, by their share
-     * of each property.
+     * Summarize the agency's month: what it earned itself and the owners' money it holds. With an owner
+     * picked in the owner selector, only what concerns them, by their share of each property.
      *
-     * @return array{revenue: AgencyRevenue, owners: OwnersMoney, delinquency: Delinquency}
+     * @return array{revenue: AgencyRevenue, owners: OwnersMoney}
      */
     public function handle(CarbonImmutable $month): array
     {
@@ -113,50 +108,7 @@ class SummarizeAgencyFinances
                     ->whereBetween('occurred_on', $period)
                     ->sum('amount')),
             ],
-            'delinquency' => $this->delinquency($month, $share),
         ];
-    }
-
-    /**
-     * Sum up the rent overdue by how late it is, and how much of what fell due this month is still unpaid.
-     *
-     * @param  Closure(?int): float  $share
-     * @return Delinquency
-     */
-    private function delinquency(CarbonImmutable $month, Closure $share): array
-    {
-        $outstanding = fn (Payment $payment): float => max(0, (float) $payment->amount - (float) $payment->received_amount)
-            * $share($payment->lease->property_id);
-
-        $overdue = $this->payments()->overdue()->get(['id', 'lease_id', 'amount', 'due_date']);
-        $daysLate = fn (Payment $payment): int => (int) $payment->due_date->diffInDays(today());
-
-        $dueSoFar = $this->payments()
-            ->dueInMonth($month)
-            ->whereDate('due_date', '<', today())
-            ->get(['id', 'lease_id', 'amount', 'due_date']);
-        $expected = $dueSoFar->sum(fn (Payment $payment): float => (float) $payment->amount * $share($payment->lease->property_id));
-
-        return [
-            'total' => $this->cents($overdue->sum($outstanding)),
-            'count' => $overdue->count(),
-            'rate' => $expected > 0 ? round($dueSoFar->sum($outstanding) / $expected * 100, 1) : 0.0,
-            'upTo30' => $this->cents($overdue->filter(fn (Payment $payment): bool => $daysLate($payment) <= 30)->sum($outstanding)),
-            'upTo60' => $this->cents($overdue->filter(fn (Payment $payment): bool => $daysLate($payment) > 30 && $daysLate($payment) <= 60)->sum($outstanding)),
-            'over60' => $this->cents($overdue->filter(fn (Payment $payment): bool => $daysLate($payment) > 60)->sum($outstanding)),
-        ];
-    }
-
-    /**
-     * @return Builder<Payment>
-     */
-    private function payments(): Builder
-    {
-        return Payment::query()
-            ->whereHas('lease')
-            ->where('status', '!=', PaymentStatus::Canceled)
-            ->withSum('receipts as received_amount', 'amount')
-            ->with(['lease' => fn ($query) => $query->select(['id', 'property_id'])]);
     }
 
     /**

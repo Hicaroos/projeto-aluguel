@@ -23,8 +23,7 @@ beforeEach(function () {
 });
 
 /**
- * An agency's October: fees, a sale, late and extra charges partly kept, an expense it bore,
- * a payout, and rent overdue for a few days and for months.
+ * An agency's October: fees, a sale, late and extra charges partly kept, an expense it bore and a payout.
  *
  * @return array{account: Account, user: User, owner: Owner, house: Property}
  */
@@ -56,8 +55,6 @@ function agencyFinancesScenario(): array
     Receipt::factory()->for($rent)->create(['amount' => 2000, 'late_fee_amount' => 40, 'interest_amount' => 10, 'date' => '2026-10-12']);
     $extra = Payment::factory()->for($lease)->create(['type' => PaymentType::Extra, 'reference_month' => null, 'amount' => 150, 'due_date' => '2026-10-12', 'status' => PaymentStatus::Paid]);
     Receipt::factory()->for($extra)->create(['amount' => 150, 'date' => '2026-10-12']);
-    Payment::factory()->for($lease)->create(['amount' => 1200, 'due_date' => '2026-10-05', 'reference_month' => '2026-09-01']);
-    Payment::factory()->for($lease)->create(['amount' => 900, 'due_date' => '2026-08-01', 'reference_month' => '2026-08-01']);
 
     Sale::factory()->for($account, 'account')->create(['commission_amount' => 6000, 'sold_on' => '2026-10-02']);
     Expense::factory()->paid()->for($account, 'account')->for($house)->create(['charged_to' => ExpensePayer::Agency, 'amount' => 80, 'due_date' => '2026-10-08', 'payment_date' => '2026-10-08']);
@@ -98,21 +95,6 @@ test('the dashboard shows the owners money the agency holds, the expenses they b
             ->where('agencyFinances.owners.available', 830)
             ->where('agencyFinances.owners.pending', 1000)
             ->where('agencyFinances.owners.paidOut', 300)
-        );
-});
-
-test('the dashboard sums up the overdue rent by how late it is', function () {
-    ['user' => $user] = agencyFinancesScenario();
-
-    $this->actingAs($user)
-        ->get(route('dashboard'))
-        ->assertInertia(fn (Assert $page) => $page
-            ->where('agencyFinances.delinquency.total', 2100)
-            ->where('agencyFinances.delinquency.count', 2)
-            ->where('agencyFinances.delinquency.upTo30', 1200)
-            ->where('agencyFinances.delinquency.upTo60', 0)
-            ->where('agencyFinances.delinquency.over60', 900)
-            ->where('agencyFinances.delinquency.rate', 35.8)
         );
 });
 

@@ -19,10 +19,11 @@ import {
     Wallet,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
-import AgencyFinancesPanels from '@/components/AgencyFinancesPanels.vue';
+import AgencyRevenueDialog from '@/components/AgencyRevenueDialog.vue';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue';
 import DashboardPanel from '@/components/DashboardPanel.vue';
 import DayAgenda from '@/components/DayAgenda.vue';
+import OwnersMoneyPanel from '@/components/OwnersMoneyPanel.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import RevenueChart from '@/components/RevenueChart.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -107,6 +108,8 @@ const can = usePermissions();
 const firstName = computed(
     () => page.props.auth.user.name.trim().split(/\s+/)[0],
 );
+
+const isRevenueOpen = ref(false);
 
 function percentage(part: number, total: number): number {
     return total > 0 ? Math.min(100, Math.round((part / total) * 100)) : 0;
@@ -387,22 +390,24 @@ const clickableRow =
                 </div>
             </div>
 
-            <div
+            <button
                 v-if="agencyFinances"
-                class="rounded-xl border bg-card p-5 shadow-xs"
+                type="button"
+                class="rounded-xl border bg-card p-5 text-left shadow-xs transition-colors hover:border-primary/40 hover:bg-accent/40 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                @click="isRevenueOpen = true"
             >
-                <div class="flex items-center justify-between">
-                    <p class="text-sm text-muted-foreground">
+                <span class="flex items-center justify-between">
+                    <span class="text-sm text-muted-foreground">
                         Receita da imobiliária
-                    </p>
-                    <div
+                    </span>
+                    <span
                         class="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary"
                     >
                         <Briefcase class="size-4" />
-                    </div>
-                </div>
-                <p
-                    class="mt-2 text-2xl font-semibold tabular-nums"
+                    </span>
+                </span>
+                <span
+                    class="mt-2 block text-2xl font-semibold tabular-nums"
                     :class="
                         agencyFinances.revenue.result < 0
                             ? 'text-rose-600 dark:text-rose-400'
@@ -410,21 +415,17 @@ const clickableRow =
                     "
                 >
                     {{ formatCurrency(agencyFinances.revenue.result) }}
-                </p>
-                <p class="text-sm text-muted-foreground">
+                </span>
+                <span class="block text-sm text-muted-foreground">
                     Taxas e comissões, menos as despesas da imobiliária
-                </p>
-                <dl class="mt-3 space-y-1 border-t pt-3 text-xs tabular-nums">
-                    <div class="flex items-center justify-between gap-2">
-                        <dt class="text-muted-foreground">A repassar hoje</dt>
-                        <dd class="font-medium">
-                            {{
-                                formatCurrency(agencyFinances.owners.available)
-                            }}
-                        </dd>
-                    </div>
-                </dl>
-            </div>
+                </span>
+                <span
+                    class="mt-3 flex items-center gap-1 border-t pt-3 text-xs font-medium text-primary"
+                >
+                    Ver detalhes
+                    <ChevronRight class="size-3.5" />
+                </span>
+            </button>
 
             <div
                 v-else-if="can.manageFinance"
@@ -490,10 +491,17 @@ const clickableRow =
             </div>
         </div>
 
-        <AgencyFinancesPanels
+        <OwnersMoneyPanel
             v-if="agencyFinances"
-            :finances="agencyFinances"
+            :owners="agencyFinances.owners"
+        />
+
+        <AgencyRevenueDialog
+            v-if="agencyFinances"
+            :open="isRevenueOpen"
+            :revenue="agencyFinances.revenue"
             :month-label="formatMonthYear(month).toLowerCase()"
+            @close="isRevenueOpen = false"
         />
 
         <div class="grid gap-6 lg:grid-cols-5">
