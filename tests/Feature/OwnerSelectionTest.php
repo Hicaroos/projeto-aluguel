@@ -104,6 +104,21 @@ test('picking an owner shows only their properties, co-owned ones included, and 
     );
 });
 
+test('the dashboard counts only the share of the picked owner', function () {
+    ['user' => $user, 'joao' => $joao] = ownerSelectionScenario();
+
+    $this->actingAs($user)
+        ->withSession([User::SELECTED_OWNER_SESSION_KEY => $joao->id])
+        ->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('stats.expected', 800)
+            ->where('stats.expensesPaid', 200)
+            ->where('stats.properties', 1)
+            ->where('stats.activeLeases', 1)
+            ->where('stats.tenants', 1)
+        );
+});
+
 test('leases still offer every tenant, so a new tenant can rent the owner property', function () {
     ['user' => $user, 'account' => $account, 'joao' => $joao] = ownerSelectionScenario();
     Tenant::factory()->for($account, 'account')->create();

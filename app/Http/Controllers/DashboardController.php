@@ -47,10 +47,11 @@ class DashboardController extends Controller
         }
 
         $month = CarbonImmutable::today()->startOfMonth();
+        $shares = $this->selectedOwnerShares();
         $accountPayments = fn (): Builder => Payment::where('account_id', $accountId)->whereHas('lease');
-        $monthSummary = $summarizePayments->handle($accountPayments()->dueInMonth($month));
-        $overdueSummary = $summarizePayments->handle($accountPayments()->overdue());
-        $expensesSummary = $summarizeExpenses->handle(Expense::where('account_id', $accountId)->dueInMonth($month));
+        $monthSummary = $summarizePayments->handle($accountPayments()->dueInMonth($month), $shares['leases'] ?? null);
+        $overdueSummary = $summarizePayments->handle($accountPayments()->overdue(), $shares['leases'] ?? null);
+        $expensesSummary = $summarizeExpenses->handle(Expense::where('account_id', $accountId)->dueInMonth($month), $shares['properties'] ?? null);
         $properties = fn (): Builder => Property::where('account_id', $accountId)->rentable();
 
         return Inertia::render('Dashboard', [
@@ -73,7 +74,7 @@ class DashboardController extends Controller
                     'netIncome' => round($monthSummary['received'] + $monthSummary['charges'] - $expensesSummary['paid'], 2),
                 ] : []),
             ],
-            'monthlyRevenue' => $getMonthlyRevenue->handle($accountId, $month),
+            'monthlyRevenue' => $getMonthlyRevenue->handle($accountId, $month, leaseShares: $shares['leases'] ?? null),
             'attentionPayments' => $accountPayments()
                 ->open()
                 ->whereHas('lease', fn (Builder $query) => $query->where('status', LeaseStatus::Active))
@@ -119,6 +120,32 @@ class DashboardController extends Controller
                 ->get(['id', 'name', 'is_default']),
             'sales' => Owner::ignoringSelection(fn (): ?array => $this->salesOverview($month)),
         ]);
+    }
+
+    /**
+     * Get the share the owner picked in the owner selector holds of each of their leases and properties,
+     * so the money figures show only their part. Null when no owner is picked.
+     *
+     * @return array{leases: array<int, float>, properties: array<int, float>}|null
+     */
+    private function selectedOwnerShares(): ?array
+    {
+        $ownerId = Owner::selectedId();
+
+        if ($ownerId === null) {
+            return null;
+        }
+
+        $properties = Owner::sharesOf($ownerId);
+
+        return [
+            'leases' => Lease::withoutGlobalScopes()
+                ->whereIn('property_id', array_keys($properties))
+                ->pluck('property_id', 'id')
+                ->map(fn (int $propertyId): float => $properties[$propertyId])
+                ->all(),
+            'properties' => $properties,
+        ];
     }
 
     /**
