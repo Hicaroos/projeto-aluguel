@@ -2,6 +2,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     ArrowRight,
+    Briefcase,
     CalendarClock,
     CalendarPlus,
     ChevronRight,
@@ -18,6 +19,7 @@ import {
     Wallet,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import AgencyFinancesPanels from '@/components/AgencyFinancesPanels.vue';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue';
 import DashboardPanel from '@/components/DashboardPanel.vue';
 import PageHeader from '@/components/PageHeader.vue';
@@ -58,6 +60,7 @@ import { index as tenantsIndex } from '@/routes/tenants';
 import type {
     ContractTemplateOption,
     DashboardAdjustmentLease,
+    DashboardAgencyFinances,
     DashboardEndingLease,
     DashboardStats,
     DashboardVacantProperty,
@@ -80,6 +83,8 @@ const props = defineProps<{
     vacantPropertiesCount: number;
     contractTemplates: ContractTemplateOption[];
     sales: DashboardSalesOverview | null;
+    /** Only for agency members who handle the money. */
+    agencyFinances: DashboardAgencyFinances | null;
 }>();
 
 defineOptions({
@@ -377,7 +382,46 @@ const clickableRow =
             </div>
 
             <div
-                v-if="can.manageFinance"
+                v-if="agencyFinances"
+                class="rounded-xl border bg-card p-5 shadow-xs"
+            >
+                <div class="flex items-center justify-between">
+                    <p class="text-sm text-muted-foreground">
+                        Receita da imobiliária
+                    </p>
+                    <div
+                        class="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                    >
+                        <Briefcase class="size-4" />
+                    </div>
+                </div>
+                <p
+                    class="mt-2 text-2xl font-semibold tabular-nums"
+                    :class="
+                        agencyFinances.revenue.result < 0
+                            ? 'text-rose-600 dark:text-rose-400'
+                            : ''
+                    "
+                >
+                    {{ formatCurrency(agencyFinances.revenue.result) }}
+                </p>
+                <p class="text-sm text-muted-foreground">
+                    Taxas e comissões, menos as despesas da imobiliária
+                </p>
+                <dl class="mt-3 space-y-1 border-t pt-3 text-xs tabular-nums">
+                    <div class="flex items-center justify-between gap-2">
+                        <dt class="text-muted-foreground">A repassar hoje</dt>
+                        <dd class="font-medium">
+                            {{
+                                formatCurrency(agencyFinances.owners.available)
+                            }}
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+
+            <div
+                v-else-if="can.manageFinance"
                 class="rounded-xl border bg-card p-5 shadow-xs"
             >
                 <div class="flex items-center justify-between">
@@ -439,6 +483,12 @@ const clickableRow =
                 </dl>
             </div>
         </div>
+
+        <AgencyFinancesPanels
+            v-if="agencyFinances"
+            :finances="agencyFinances"
+            :month-label="formatMonthYear(month).toLowerCase()"
+        />
 
         <div class="grid gap-6 lg:grid-cols-5">
             <DashboardPanel

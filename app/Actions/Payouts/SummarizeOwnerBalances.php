@@ -67,10 +67,13 @@ class SummarizeOwnerBalances
 
     /**
      * Get the guaranteed rent credited to owners that the tenants still owe the agency.
+     *
+     * @param  list<int>|null  $ownerIds  Only these owners, or every owner of the account.
      */
-    private function advancedRent(): float
+    public function advancedRent(?array $ownerIds = null): float
     {
         $credits = OwnerLedgerEntry::query()
+            ->when($ownerIds !== null, fn ($query) => $query->whereIn('owner_id', $ownerIds))
             ->where('type', LedgerEntryType::Rent)
             ->where('is_guaranteed', true)
             ->whereHas('payment', fn ($query) => $query->withoutGlobalScopes()->whereIn('status', [PaymentStatus::Pending, PaymentStatus::Partial]))

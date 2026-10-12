@@ -54,3 +54,38 @@ export type DashboardAdjustmentLease = Lease;
 
 /** Dashboard properties carry everything their details show, so they open right on the dashboard. */
 export type DashboardVacantProperty = Property;
+
+/** What the agency earned itself in the month, the owners' money it holds and the rent owed to it. */
+export type DashboardAgencyFinances = {
+    revenue: {
+        adminFees: number;
+        intermediationFees: number;
+        renewalFees: number;
+        saleCommissions: number;
+        /** The late fees and interest the agency kept, after the owners' part. */
+        lateCharges: number;
+        /** The extra charges the agency kept instead of passing them on. */
+        extraCharges: number;
+        /** The expenses the agency bore itself. */
+        expenses: number;
+        result: number;
+    };
+    owners: {
+        /** Received from the tenants in the month, late charges included. */
+        received: number;
+        available: number;
+        pending: number;
+        /** Guaranteed rent paid to owners that the tenants still owe the agency. */
+        advanced: number;
+        paidOut: number;
+    };
+    delinquency: {
+        total: number;
+        count: number;
+        /** The share of what fell due this month that is still unpaid, in percent. */
+        rate: number;
+        upTo30: number;
+        upTo60: number;
+        over60: number;
+    };
+};

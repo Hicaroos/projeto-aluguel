@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Dashboard\GetMonthlyRevenue;
+use App\Actions\Dashboard\SummarizeAgencyFinances;
 use App\Actions\Expenses\SummarizeExpenses;
 use App\Actions\Leases\SyncLeasePayments;
 use App\Actions\Payments\SummarizePayments;
@@ -39,6 +40,7 @@ class DashboardController extends Controller
         SummarizePayments $summarizePayments,
         SummarizeExpenses $summarizeExpenses,
         GetMonthlyRevenue $getMonthlyRevenue,
+        SummarizeAgencyFinances $summarizeAgencyFinances,
     ): Response {
         $accountId = $request->user()->account_id;
 
@@ -119,6 +121,9 @@ class DashboardController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name', 'is_default']),
             'sales' => Owner::ignoringSelection(fn (): ?array => $this->salesOverview($month)),
+            'agencyFinances' => ($request->user()->account?->isAgency() ?? false) && $request->user()->can(Permission::ManageFinance->value)
+                ? $summarizeAgencyFinances->handle($month)
+                : null,
         ]);
     }
 

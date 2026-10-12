@@ -34,7 +34,7 @@ function ownerSelectionScenario(): array
     $apartment = Property::factory()->for($account, 'account')->for($antonio, 'owner')->create(['street' => 'Avenida Brasil']);
 
     foreach ([[$house, 2000, 500], [$apartment, 1000, 300]] as [$property, $rent, $expense]) {
-        $lease = Lease::factory()->for($account, 'account')->for($property)->for(Tenant::factory()->for($account, 'account'))->create(['amount' => $rent]);
+        $lease = Lease::factory()->for($account, 'account')->for($property)->for(Tenant::factory()->for($account, 'account'))->create(['amount' => $rent, 'start_date' => '2026-01-10', 'end_date' => '2028-07-09']);
         Payment::factory()->for($lease)->create(['account_id' => $account->id, 'amount' => $rent, 'due_date' => '2026-10-20']);
         Expense::factory()->paid()->for($account, 'account')->for($property)->create(['amount' => $expense, 'due_date' => '2026-10-05']);
     }
