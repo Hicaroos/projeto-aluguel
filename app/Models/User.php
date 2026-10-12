@@ -53,6 +53,11 @@ class User extends Authenticatable
     public const string SELECTED_BRANCH_SESSION_KEY = 'selected_branch_id';
 
     /**
+     * The session key holding the owner picked in the owner selector.
+     */
+    public const string SELECTED_OWNER_SESSION_KEY = 'selected_owner_id';
+
+    /**
      * How long an invitation link stays valid.
      */
     public const int INVITATION_LIFETIME_DAYS = 7;
@@ -185,6 +190,20 @@ class User extends Authenticatable
             : in_array($selected, $accessible, true);
 
         return $isAccessible ? $selected : null;
+    }
+
+    /**
+     * Get the owner picked in the owner selector, as long as the user still sees them.
+     */
+    public function selectedOwnerId(): ?int
+    {
+        $selected = session()->get(self::SELECTED_OWNER_SESSION_KEY);
+
+        if (! is_int($selected) || $this->account_id === null) {
+            return null;
+        }
+
+        return Owner::query()->where('account_id', $this->account_id)->whereKey($selected)->exists() ? $selected : null;
     }
 
     /**

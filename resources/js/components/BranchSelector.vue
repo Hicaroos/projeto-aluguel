@@ -42,7 +42,7 @@ function selectBranch(value: unknown) {
     >
         <SelectTrigger
             size="sm"
-            class="w-auto max-w-56 min-w-44 gap-2"
+            class="min-w-0 flex-1 gap-2 sm:w-auto sm:max-w-56 sm:min-w-44 sm:flex-none"
             aria-label="Unidade exibida"
         >
             <Building2 class="size-4 shrink-0 text-muted-foreground" />

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Actions\Payouts\PostExpenseToLedger;
 use App\Concerns\BelongsToAccount;
 use App\Concerns\BelongsToVisibleBranches;
+use App\Concerns\FollowsSelectedOwner;
 use App\Enums\ExpensePayer;
 use App\Enums\ExpenseStatus;
 use App\Enums\ExpenseType;
@@ -43,7 +44,7 @@ use Illuminate\Support\Facades\Storage;
 class Expense extends Model
 {
     /** @use HasFactory<ExpenseFactory> */
-    use BelongsToAccount, BelongsToVisibleBranches, HasFactory;
+    use BelongsToAccount, BelongsToVisibleBranches, FollowsSelectedOwner, HasFactory;
 
     /**
      * @var array<string, string>
@@ -150,6 +151,16 @@ class Expense extends Model
     public static function restrictToBranches(Builder $query, array $branchIds): void
     {
         $query->whereIn($query->qualifyColumn('property_id'), Property::idsInBranches($branchIds));
+    }
+
+    /**
+     * Limit the query to the expenses of the given owner's properties.
+     *
+     * @param  Builder<static>  $query
+     */
+    public static function restrictToOwner(Builder $query, int $ownerId): void
+    {
+        $query->whereIn($query->qualifyColumn('property_id'), Property::idsOfOwner($ownerId));
     }
 
     /**

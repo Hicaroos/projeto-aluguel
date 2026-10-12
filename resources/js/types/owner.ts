@@ -43,3 +43,11 @@ export type OwnerProperty = Pick<
     /** The share of the property the owner holds. */
     pivot: { share_percent: string };
 };
+
+/** The owner whose records the whole app shows, picked in the owner selector. */
+export type OwnerSelector = {
+    selected: Pick<Owner, 'id' | 'name'> | null;
+};
+
+/** An owner offered in the owner selector. */
+export type OwnerSelectorOption = Pick<Owner, 'id' | 'name' | 'cpf_cnpj'>;

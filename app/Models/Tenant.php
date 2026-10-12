@@ -113,6 +113,19 @@ class Tenant extends Model
     }
 
     /**
+     * Limit the query to the tenants who rent, or rented, one of the given owner's properties.
+     *
+     * @param  Builder<static>  $query
+     */
+    public static function restrictToOwner(Builder $query, int $ownerId): void
+    {
+        $query->whereIn(
+            $query->qualifyColumn('id'),
+            Lease::withoutGlobalScopes()->whereIn('property_id', Property::idsOfOwner($ownerId))->select('tenant_id'),
+        );
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

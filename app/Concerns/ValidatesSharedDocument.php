@@ -29,22 +29,25 @@ trait ValidatesSharedDocument
     protected function documentIsNotTaken(string $model, ?Model $current, string $takenMessage): Closure
     {
         return function (string $attribute, mixed $value, Closure $fail) use ($model, $current, $takenMessage): void {
-            $existingId = $model::withoutGlobalScope($model::BRANCH_SCOPE)
-                ->withTrashed()
-                ->where('cpf_cnpj', (string) $value)
-                ->when($current, fn (Builder $query) => $query->whereKeyNot($current->getKey()))
-                ->value('id');
+            // Documents are unique across the account, whatever owner the selector shows.
+            Owner::ignoringSelection(function () use ($model, $current, $takenMessage, $value, $fail): void {
+                $existingId = $model::withoutGlobalScope($model::BRANCH_SCOPE)
+                    ->withTrashed()
+                    ->where('cpf_cnpj', (string) $value)
+                    ->when($current, fn (Builder $query) => $query->whereKeyNot($current->getKey()))
+                    ->value('id');
 
-            if ($existingId === null) {
-                return;
-            }
+                if ($existingId === null) {
+                    return;
+                }
 
-            $this->isRegisteredInAnotherBranch = $model::withoutGlobalScope($model::BRANCH_SCOPE)->whereKey($existingId)->exists()
-                && ! $model::whereKey($existingId)->exists();
+                $this->isRegisteredInAnotherBranch = $model::withoutGlobalScope($model::BRANCH_SCOPE)->whereKey($existingId)->exists()
+                    && ! $model::whereKey($existingId)->exists();
 
-            $fail($this->isRegisteredInAnotherBranch
-                ? __('Este CPF/CNPJ já está cadastrado em outra unidade.')
-                : $takenMessage);
+                $fail($this->isRegisteredInAnotherBranch
+                    ? __('Este CPF/CNPJ já está cadastrado em outra unidade.')
+                    : $takenMessage);
+            });
         };
     }
 

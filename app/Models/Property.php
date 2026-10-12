@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Concerns\BelongsToAccount;
 use App\Concerns\BelongsToVisibleBranches;
+use App\Concerns\FollowsSelectedOwner;
 use App\Enums\LeaseStatus;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
@@ -92,7 +93,7 @@ use Illuminate\Support\Facades\DB;
 class Property extends Model
 {
     /** @use HasFactory<PropertyFactory> */
-    use BelongsToAccount, BelongsToVisibleBranches, HasFactory, SoftDeletes;
+    use BelongsToAccount, BelongsToVisibleBranches, FollowsSelectedOwner, HasFactory, SoftDeletes;
 
     /**
      * @var array<string, string|bool>
@@ -316,6 +317,31 @@ class Property extends Model
     public static function idsInBranches(array $branchIds): Builder
     {
         return static::withoutGlobalScopes()->whereIn('branch_id', $branchIds)->select('id');
+    }
+
+    /**
+     * Limit the query to the properties the given owner owns, wholly or in part.
+     *
+     * @param  Builder<static>  $query
+     */
+    public static function restrictToOwner(Builder $query, int $ownerId): void
+    {
+        $query->whereIn($query->qualifyColumn('id'), static::idsOfOwner($ownerId));
+    }
+
+    /**
+     * Get a subquery selecting the ids of the properties the given owner owns, wholly or in part,
+     * deleted ones included.
+     *
+     * @return Builder<Property>
+     */
+    public static function idsOfOwner(int $ownerId): Builder
+    {
+        return static::withoutGlobalScopes()
+            ->where(fn (Builder $query) => $query
+                ->where('owner_id', $ownerId)
+                ->orWhereIn('id', DB::table('owner_property')->where('owner_id', $ownerId)->select('property_id')))
+            ->select('id');
     }
 
     /**

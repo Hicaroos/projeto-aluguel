@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Concerns\BelongsToAccount;
 use App\Concerns\BelongsToVisibleBranches;
+use App\Concerns\FollowsSelectedOwner;
 use App\Concerns\SpellsMoney;
 use App\Enums\PaymentMethod;
 use Database\Factories\ReceiptFactory;
@@ -34,7 +35,7 @@ use Illuminate\Support\Carbon;
 class Receipt extends Model
 {
     /** @use HasFactory<ReceiptFactory> */
-    use BelongsToAccount, BelongsToVisibleBranches, HasFactory, SpellsMoney;
+    use BelongsToAccount, BelongsToVisibleBranches, FollowsSelectedOwner, HasFactory, SpellsMoney;
 
     /**
      * @return BelongsTo<Payment, $this>
@@ -71,6 +72,19 @@ class Receipt extends Model
         $query->whereIn(
             $query->qualifyColumn('payment_id'),
             Payment::withoutGlobalScopes()->whereIn('lease_id', Lease::idsInBranches($branchIds))->select('id'),
+        );
+    }
+
+    /**
+     * Limit the query to the receipts of the payments of the given owner's properties.
+     *
+     * @param  Builder<static>  $query
+     */
+    public static function restrictToOwner(Builder $query, int $ownerId): void
+    {
+        $query->whereIn(
+            $query->qualifyColumn('payment_id'),
+            Payment::withoutGlobalScopes()->whereIn('lease_id', Lease::idsOfOwner($ownerId))->select('id'),
         );
     }
 

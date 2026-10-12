@@ -16,6 +16,7 @@ use App\Models\Deal;
 use App\Models\DealVisit;
 use App\Models\Expense;
 use App\Models\Lease;
+use App\Models\Owner;
 use App\Models\Payment;
 use App\Models\Property;
 use App\Models\Sale;
@@ -63,7 +64,9 @@ class DashboardController extends Controller
                 'properties' => $properties()->count(),
                 'rentedProperties' => $properties()->where('status', PropertyStatus::Rented)->count(),
                 'activeLeases' => Lease::where('account_id', $accountId)->active()->count(),
-                'tenants' => Tenant::where('account_id', $accountId)->count(),
+                'tenants' => Tenant::where('account_id', $accountId)
+                    ->when(Owner::selectedId(), fn (Builder $query, int $ownerId) => Tenant::restrictToOwner($query, $ownerId))
+                    ->count(),
                 ...($request->user()->can(Permission::ManageFinance->value) ? [
                     'expensesPaid' => $expensesSummary['paid'],
                     'expensesPending' => $expensesSummary['pending'],
@@ -114,7 +117,7 @@ class DashboardController extends Controller
                 ->orderByDesc('is_default')
                 ->orderBy('name')
                 ->get(['id', 'name', 'is_default']),
-            'sales' => $this->salesOverview($month),
+            'sales' => Owner::ignoringSelection(fn (): ?array => $this->salesOverview($month)),
         ]);
     }
 

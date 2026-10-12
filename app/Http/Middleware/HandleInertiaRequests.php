@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Enums\Permission;
 use App\Models\Branch;
+use App\Models\Owner;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -55,6 +56,7 @@ class HandleInertiaRequests extends Middleware
                 'isAccountOwner' => $request->user()?->isAccountOwner() ?? false,
             ],
             'branchSelector' => fn (): ?array => $this->branchSelector($request),
+            'ownerSelector' => fn (): ?array => $this->ownerSelector($request),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'today' => today()->toDateString(),
             'isSimulatedToday' => CarbonImmutable::hasTestNow() && ! app()->runningUnitTests(),
@@ -85,5 +87,29 @@ class HandleInertiaRequests extends Middleware
                 ->all(),
             'selectedId' => $selectedId,
         ];
+    }
+
+    /**
+     * Get the owner picked in the owner selector, once the account has more than one owner to choose from.
+     *
+     * @return array{selected: array{id: int, name: string}|null}|null
+     */
+    private function ownerSelector(Request $request): ?array
+    {
+        $user = $request->user();
+
+        if (! $user instanceof User || $user->account_id === null) {
+            return null;
+        }
+
+        $selectedId = $user->selectedOwnerId();
+
+        if ($selectedId === null && Owner::query()->count() < 2) {
+            return null;
+        }
+
+        $selected = $selectedId !== null ? Owner::query()->find($selectedId, ['id', 'name']) : null;
+
+        return ['selected' => $selected !== null ? ['id' => $selected->id, 'name' => $selected->name] : null];
     }
 }

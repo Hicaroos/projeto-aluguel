@@ -20,6 +20,7 @@ use App\Http\Controllers\LeaseRenewalController;
 use App\Http\Controllers\LedgerAdjustmentController;
 use App\Http\Controllers\ManagementController;
 use App\Http\Controllers\OwnerController;
+use App\Http\Controllers\OwnerSelectionController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PayoutController;
 use App\Http\Controllers\PropertyController;
@@ -29,6 +30,7 @@ use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SaleDocumentController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TenantController;
+use App\Http\Middleware\IgnoreOwnerSelection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +42,8 @@ Route::post('invitation/{token}', [InvitationController::class, 'accept'])->midd
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
     Route::put('branch-selection', [BranchSelectionController::class, 'update'])->name('branch-selection.update');
+    Route::get('owner-selection', [OwnerSelectionController::class, 'index'])->name('owner-selection.index');
+    Route::put('owner-selection', [OwnerSelectionController::class, 'update'])->name('owner-selection.update');
 
     Route::get('owners', [OwnerController::class, 'index'])->name('owners.index');
     Route::get('properties', [PropertyController::class, 'index'])->name('properties.index');
@@ -52,30 +56,33 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('lease-documents/{document}', [LeaseDocumentController::class, 'show'])->name('lease-documents.show');
     Route::get('lease-documents/{document}/download', [LeaseDocumentController::class, 'download'])->name('lease-documents.download');
 
-    Route::get('leads', [LeadController::class, 'index'])->name('leads.index');
-    Route::get('deals', [DealController::class, 'index'])->name('deals.index');
-    Route::get('sales', [SaleController::class, 'index'])->name('sales.index');
-    Route::get('sales/{sale}/generate/{kind}', [SaleDocumentController::class, 'generate'])->name('sales.generate');
-    Route::get('sale-documents/{document}', [SaleDocumentController::class, 'show'])->name('sale-documents.show');
-    Route::get('sale-documents/{document}/download', [SaleDocumentController::class, 'download'])->name('sale-documents.download');
+    // Leads, deals and sales don't belong to an owner: they show everything whatever owner is selected.
+    Route::middleware(IgnoreOwnerSelection::class)->group(function () {
+        Route::get('leads', [LeadController::class, 'index'])->name('leads.index');
+        Route::get('deals', [DealController::class, 'index'])->name('deals.index');
+        Route::get('sales', [SaleController::class, 'index'])->name('sales.index');
+        Route::get('sales/{sale}/generate/{kind}', [SaleDocumentController::class, 'generate'])->name('sales.generate');
+        Route::get('sale-documents/{document}', [SaleDocumentController::class, 'show'])->name('sale-documents.show');
+        Route::get('sale-documents/{document}/download', [SaleDocumentController::class, 'download'])->name('sale-documents.download');
 
-    Route::middleware('can:manage-sales')->group(function () {
-        Route::resource('leads', LeadController::class)->only(['store', 'update', 'destroy']);
-        Route::put('deal-stages', [DealController::class, 'updateStages'])->name('deal-stages.update');
-        Route::resource('deals', DealController::class)->only(['store', 'update', 'destroy']);
-        Route::patch('deals/{deal}/move', [DealController::class, 'move'])->name('deals.move');
-        Route::post('deals/{deal}/visits', [DealVisitController::class, 'store'])->name('deals.visits.store');
-        Route::put('deal-visits/{visit}', [DealVisitController::class, 'update'])->name('deal-visits.update');
-        Route::delete('deal-visits/{visit}', [DealVisitController::class, 'destroy'])->name('deal-visits.destroy');
-        Route::post('deals/{deal}/proposals', [DealProposalController::class, 'store'])->name('deals.proposals.store');
-        Route::put('deal-proposals/{proposal}', [DealProposalController::class, 'update'])->name('deal-proposals.update');
-        Route::delete('deal-proposals/{proposal}', [DealProposalController::class, 'destroy'])->name('deal-proposals.destroy');
-        Route::post('deals/{deal}/sale', [SaleController::class, 'store'])->name('deals.sale.store');
-        Route::post('sales', [SaleController::class, 'storeDirect'])->name('sales.store');
-        Route::put('sales/{sale}', [SaleController::class, 'update'])->name('sales.update');
-        Route::delete('sales/{sale}', [SaleController::class, 'destroy'])->name('sales.destroy');
-        Route::post('sales/{sale}/documents', [SaleDocumentController::class, 'store'])->name('sales.documents.store');
-        Route::delete('sale-documents/{document}', [SaleDocumentController::class, 'destroy'])->name('sale-documents.destroy');
+        Route::middleware('can:manage-sales')->group(function () {
+            Route::resource('leads', LeadController::class)->only(['store', 'update', 'destroy']);
+            Route::put('deal-stages', [DealController::class, 'updateStages'])->name('deal-stages.update');
+            Route::resource('deals', DealController::class)->only(['store', 'update', 'destroy']);
+            Route::patch('deals/{deal}/move', [DealController::class, 'move'])->name('deals.move');
+            Route::post('deals/{deal}/visits', [DealVisitController::class, 'store'])->name('deals.visits.store');
+            Route::put('deal-visits/{visit}', [DealVisitController::class, 'update'])->name('deal-visits.update');
+            Route::delete('deal-visits/{visit}', [DealVisitController::class, 'destroy'])->name('deal-visits.destroy');
+            Route::post('deals/{deal}/proposals', [DealProposalController::class, 'store'])->name('deals.proposals.store');
+            Route::put('deal-proposals/{proposal}', [DealProposalController::class, 'update'])->name('deal-proposals.update');
+            Route::delete('deal-proposals/{proposal}', [DealProposalController::class, 'destroy'])->name('deal-proposals.destroy');
+            Route::post('deals/{deal}/sale', [SaleController::class, 'store'])->name('deals.sale.store');
+            Route::post('sales', [SaleController::class, 'storeDirect'])->name('sales.store');
+            Route::put('sales/{sale}', [SaleController::class, 'update'])->name('sales.update');
+            Route::delete('sales/{sale}', [SaleController::class, 'destroy'])->name('sales.destroy');
+            Route::post('sales/{sale}/documents', [SaleDocumentController::class, 'store'])->name('sales.documents.store');
+            Route::delete('sale-documents/{document}', [SaleDocumentController::class, 'destroy'])->name('sale-documents.destroy');
+        });
     });
 
     Route::middleware('can:manage-rentals')->group(function () {
@@ -129,7 +136,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('ledger-entries/{entry}', [LedgerAdjustmentController::class, 'destroy'])->name('ledger-entries.destroy');
     });
 
-    Route::middleware('can:manage-agency')->group(function () {
+    Route::middleware(['can:manage-agency', IgnoreOwnerSelection::class])->group(function () {
         Route::get('management', ManagementController::class)->name('management');
 
         Route::resource('branches', BranchController::class)->only(['index', 'store', 'update', 'destroy']);

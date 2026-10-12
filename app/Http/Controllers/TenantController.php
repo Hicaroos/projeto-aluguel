@@ -7,6 +7,7 @@ use App\Http\Controllers\Concerns\LinksToUserBranches;
 use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
 use App\Http\Controllers\Concerns\SortsTable;
 use App\Http\Requests\TenantRequest;
+use App\Models\Owner;
 use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -27,6 +28,7 @@ class TenantController extends Controller
     {
         $search = $request->string('search')->trim()->toString();
         $tenants = fn (): Builder => Tenant::where('account_id', $request->user()->account_id)
+            ->when(Owner::selectedId(), fn (Builder $query, int $ownerId) => Tenant::restrictToOwner($query, $ownerId))
             ->with([
                 'leases' => fn ($query) => $query
                     ->select(['id', 'tenant_id', 'property_id', 'start_date', 'end_date', 'amount', 'status'])

@@ -28,11 +28,16 @@ class PayoutController extends Controller
     use FormatsBrazilianNumbers, ResolvesMonthFilter;
 
     /**
-     * Display the owners with what the agency owes each of them, and the account totals.
+     * Display the owners with what the agency owes each of them, and the account totals, or go
+     * straight to the statement of the owner picked in the owner selector.
      */
-    public function index(Request $request, SummarizeOwnerBalances $summarizeOwnerBalances, CreditGuaranteedRent $creditGuaranteedRent): Response
+    public function index(Request $request, SummarizeOwnerBalances $summarizeOwnerBalances, CreditGuaranteedRent $creditGuaranteedRent): Response|RedirectResponse
     {
         $account = $this->agency($request);
+
+        if (($ownerId = Owner::selectedId()) !== null) {
+            return to_route('payouts.show', $ownerId);
+        }
 
         $creditGuaranteedRent->handleDue($account->id);
 
@@ -62,11 +67,16 @@ class PayoutController extends Controller
     }
 
     /**
-     * Display the owner's statement for the month.
+     * Display the owner's statement for the month, sticking to the owner picked in the owner selector.
      */
-    public function show(Request $request, Owner $owner, BuildOwnerStatement $buildOwnerStatement, CreditGuaranteedRent $creditGuaranteedRent): Response
+    public function show(Request $request, Owner $owner, BuildOwnerStatement $buildOwnerStatement, CreditGuaranteedRent $creditGuaranteedRent): Response|RedirectResponse
     {
         $account = $this->agency($request);
+        $selectedId = Owner::selectedId();
+
+        if ($selectedId !== null && $selectedId !== $owner->id) {
+            return to_route('payouts.show', ['owner' => $selectedId, ...$request->only('month')]);
+        }
 
         $creditGuaranteedRent->handleDue($account->id);
 

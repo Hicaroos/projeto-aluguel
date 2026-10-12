@@ -1,5 +1,6 @@
 import type { Auth } from '@/types/auth';
 import type { BranchSelector } from '@/types/branch';
+import type { OwnerSelector } from '@/types/owner';
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
@@ -21,6 +22,8 @@ declare module '@inertiajs/core' {
             auth: Auth;
             /** Only for agencies: the branches the user may switch between. */
             branchSelector: BranchSelector | null;
+            /** Once the account has more than one owner: the owner the whole app shows, if any. */
+            ownerSelector: OwnerSelector | null;
             sidebarOpen: boolean;
             /** Today's date for the app (Y-m-d), which may be simulated through APP_FAKE_TODAY. */
             today: string;

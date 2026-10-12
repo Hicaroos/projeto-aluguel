@@ -31,6 +31,7 @@ class OwnerController extends Controller
 
         $search = $request->string('search')->trim()->toString();
         $owners = fn (): Builder => Owner::query()
+            ->when(Owner::selectedId(), fn (Builder $query, int $ownerId) => $query->whereKey($ownerId))
             ->withCount('properties')
             ->with([
                 'properties' => fn ($query) => $query

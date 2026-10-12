@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Concerns\BelongsToAccount;
 use App\Concerns\BelongsToVisibleBranches;
+use App\Concerns\FollowsSelectedOwner;
 use App\Enums\AdjustmentIndex;
 use App\Enums\GuaranteeType;
 use App\Enums\LeasePurpose;
@@ -111,7 +112,7 @@ use Illuminate\Support\Carbon;
 class Lease extends Model
 {
     /** @use HasFactory<LeaseFactory> */
-    use BelongsToAccount, BelongsToVisibleBranches, HasFactory, SoftDeletes;
+    use BelongsToAccount, BelongsToVisibleBranches, FollowsSelectedOwner, HasFactory, SoftDeletes;
 
     /**
      * @var array<string, string|int>
@@ -379,6 +380,26 @@ class Lease extends Model
     public static function idsInBranches(array $branchIds): Builder
     {
         return static::withoutGlobalScopes()->whereIn('property_id', Property::idsInBranches($branchIds))->select('id');
+    }
+
+    /**
+     * Limit the query to the leases of the given owner's properties.
+     *
+     * @param  Builder<static>  $query
+     */
+    public static function restrictToOwner(Builder $query, int $ownerId): void
+    {
+        $query->whereIn($query->qualifyColumn('property_id'), Property::idsOfOwner($ownerId));
+    }
+
+    /**
+     * Get a subquery selecting the ids of the leases of the given owner's properties, deleted ones included.
+     *
+     * @return Builder<Lease>
+     */
+    public static function idsOfOwner(int $ownerId): Builder
+    {
+        return static::withoutGlobalScopes()->whereIn('property_id', Property::idsOfOwner($ownerId))->select('id');
     }
 
     /**
