@@ -36,4 +36,14 @@ class PropertyFactory extends Factory
             'status' => PropertyStatus::Available,
         ];
     }
+
+    /**
+     * Indicate that the property is published on the account's showcase.
+     */
+    public function published(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'published_at' => now(),
+        ]);
+    }
 }

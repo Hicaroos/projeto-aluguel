@@ -129,6 +129,9 @@ function coOwnerOptions(index: number) {
 const forRent = ref(props.property?.for_rent ?? true);
 const forSale = ref(props.property?.for_sale ?? false);
 
+const isPublished = ref(Boolean(props.property?.published_at));
+const isFeatured = ref(props.property?.is_featured ?? false);
+
 const roomFields = [
     { name: 'bedrooms', label: 'Quartos' },
     { name: 'suites', label: 'Suítes' },
@@ -671,6 +674,51 @@ watch(zipCode, async (value) => {
                 />
                 <InputError :message="errors.description" />
             </div>
+        </section>
+
+        <section class="grid gap-4">
+            <div>
+                <h3
+                    class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                >
+                    Vitrine
+                </h3>
+                <p class="mt-1 text-sm text-muted-foreground">
+                    O site com os imóveis para mandar aos clientes. Mostra as
+                    fotos, o preço, as características e a descrição; do
+                    endereço, só o bairro e a cidade.
+                </p>
+            </div>
+
+            <input
+                type="hidden"
+                name="is_published"
+                :value="isPublished ? 1 : 0"
+            />
+            <input
+                type="hidden"
+                name="is_featured"
+                :value="isPublished && isFeatured ? 1 : 0"
+            />
+
+            <div class="flex flex-wrap gap-3">
+                <Label
+                    class="flex items-center gap-3 rounded-md border p-3 font-normal"
+                >
+                    <Checkbox v-model="isPublished" />
+                    Publicar na vitrine
+                </Label>
+                <Label
+                    v-if="isPublished"
+                    class="flex items-center gap-3 rounded-md border p-3 font-normal"
+                >
+                    <Checkbox v-model="isFeatured" />
+                    Destacar na página inicial
+                </Label>
+            </div>
+            <p v-if="isPublished" class="text-xs text-muted-foreground">
+                Sai da vitrine sozinho quando for alugado ou vendido.
+            </p>
         </section>
 
         <DialogFooter class="border-t pt-6">

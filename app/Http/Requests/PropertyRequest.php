@@ -18,13 +18,15 @@ use Illuminate\Validation\Validator;
 class PropertyRequest extends FormRequest
 {
     /**
-     * Read the purposes as booleans. Properties are for rent unless told otherwise.
+     * Read the purposes and the showcase choices as booleans. Properties are for rent unless told otherwise.
      */
     protected function prepareForValidation(): void
     {
         $this->merge([
             'for_rent' => $this->has('for_rent') ? $this->boolean('for_rent') : true,
             'for_sale' => $this->boolean('for_sale'),
+            'is_published' => $this->boolean('is_published'),
+            'is_featured' => $this->boolean('is_featured'),
         ]);
     }
 
@@ -81,6 +83,8 @@ class PropertyRequest extends FormRequest
             'land_front' => ['nullable', 'numeric', 'min:0', 'max:999999'],
             'land_depth' => ['nullable', 'numeric', 'min:0', 'max:999999'],
             'description' => ['nullable', 'string', 'max:5000'],
+            'is_published' => ['boolean'],
+            'is_featured' => ['boolean'],
             'registration_number' => ['nullable', 'string', 'max:100'],
             'status' => $isStatusLocked
                 ? ['exclude']
@@ -182,6 +186,20 @@ class PropertyRequest extends FormRequest
             'co_owners.*.share_percent.required' => __('Informe a participação.'),
             'co_owners.*.share_percent.gt' => __('A participação precisa ser maior que zero.'),
             'co_owners.*.share_percent.lt' => __('A participação precisa ser menor que 100%.'),
+        ];
+    }
+
+    /**
+     * Get the property attributes to save: the validated ones, with the showcase publishing kept as the
+     * moment the property first went on it.
+     *
+     * @return array<string, mixed>
+     */
+    public function propertyAttributes(): array
+    {
+        return [
+            ...$this->safe()->except(['co_owners', 'is_published']),
+            'published_at' => $this->boolean('is_published') ? ($this->property()->published_at ?? now()) : null,
         ];
     }
 

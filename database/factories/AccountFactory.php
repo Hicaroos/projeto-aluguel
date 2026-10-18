@@ -36,4 +36,16 @@ class AccountFactory extends Factory
             'type' => AccountType::Agency,
         ]);
     }
+
+    /**
+     * Indicate that the account's public showcase is online at the given address.
+     */
+    public function withShowcase(string $slug = 'imobiliaria-teste'): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'showcase_enabled' => true,
+            'showcase_slug' => $slug,
+            'showcase_whatsapp' => '87999990000',
+        ]);
+    }
 }

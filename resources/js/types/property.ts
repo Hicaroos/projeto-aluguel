@@ -45,6 +45,10 @@ export type Property = {
     land_front: string | null;
     land_depth: string | null;
     description: string | null;
+    /** When the property went on the showcase; null while it is off it. */
+    published_at: string | null;
+    /** Whether the showcase highlights the property on its home page. */
+    is_featured: boolean;
     /** The registration at the land registry office (matrícula). */
     registration_number: string | null;
     status: PropertyStatus;

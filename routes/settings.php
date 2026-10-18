@@ -5,6 +5,7 @@ use App\Http\Controllers\Settings\OwnerController;
 use App\Http\Controllers\Settings\PayoutSettingsController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
+use App\Http\Controllers\Settings\ShowcaseController;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
@@ -30,6 +31,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('settings/owner', [OwnerController::class, 'update'])->name('owner.update');
 
     Route::get('settings/agency/logo', [AgencyController::class, 'logo'])->name('agency.logo');
+
+    Route::middleware('can:manage-showcase')->group(function () {
+        Route::get('settings/showcase', [ShowcaseController::class, 'edit'])->name('showcase-settings.edit');
+        Route::patch('settings/showcase', [ShowcaseController::class, 'update'])->name('showcase-settings.update');
+    });
 
     Route::middleware('can:manage-agency')->group(function () {
         Route::get('settings/agency', [AgencyController::class, 'edit'])->name('agency.edit');

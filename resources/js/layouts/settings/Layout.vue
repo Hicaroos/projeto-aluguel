@@ -12,6 +12,7 @@ import { edit as editOwner } from '@/routes/owner';
 import { edit as editPayoutSettings } from '@/routes/payout-settings';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
+import { edit as editShowcase } from '@/routes/showcase-settings';
 import type { NavItem } from '@/types';
 
 const page = usePage();
@@ -29,6 +30,9 @@ const sidebarNavItems = computed<NavItem[]>(() => [
               { title: 'Dados da imobiliária', href: editAgency() },
               { title: 'Taxas e repasses', href: editPayoutSettings() },
           ]
+        : []),
+    ...(page.props.auth.can.manageShowcase
+        ? [{ title: 'Vitrine', href: editShowcase() }]
         : []),
     {
         title: 'Segurança',

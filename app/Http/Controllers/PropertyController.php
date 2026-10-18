@@ -80,7 +80,7 @@ class PropertyController extends Controller
         abort_if($ownerId === null, 422, 'Nenhum proprietário encontrado para esta conta.');
 
         $property = Property::create([
-            ...$request->safe()->except('co_owners'),
+            ...$request->propertyAttributes(),
             'account_id' => $request->user()->account_id,
             'owner_id' => $ownerId,
         ]);
@@ -100,7 +100,7 @@ class PropertyController extends Controller
         Gate::authorize('update', $property);
 
         $property->update([
-            ...$request->safe()->except('co_owners'),
+            ...$request->propertyAttributes(),
             'owner_id' => $request->ownerId(),
         ]);
 

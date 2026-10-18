@@ -46,6 +46,8 @@ export type Auth = {
         manageFinance: boolean;
         /** Follow leads through the funnel: deals, visits, proposals and sales. */
         manageSales: boolean;
+        /** Set up the public showcase: its address, contact and look. */
+        manageShowcase: boolean;
     };
     /** Whether the user created the account, and so may delete it. */
     isAccountOwner: boolean;

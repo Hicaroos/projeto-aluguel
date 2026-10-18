@@ -48,6 +48,8 @@ use Illuminate\Support\Facades\DB;
  * @property string|null $land_front The front of the land, in meters.
  * @property string|null $land_depth The depth of the land, in meters.
  * @property string|null $description
+ * @property Carbon|null $published_at When the property went on the account's showcase; null while it is off it.
+ * @property bool $is_featured Whether the showcase highlights the property on its home page.
  * @property string|null $registration_number The registration at the land registry office (matrícula).
  * @property PropertyStatus $status
  * @property Carbon|null $deleted_at
@@ -87,6 +89,8 @@ use Illuminate\Support\Facades\DB;
     'land_front',
     'land_depth',
     'description',
+    'published_at',
+    'is_featured',
     'registration_number',
     'status',
 ])]
@@ -275,6 +279,45 @@ class Property extends Model
     }
 
     /**
+     * Scope the query to the properties visitors see on the showcase: published, and still for sale or
+     * free to rent. With a purpose, only the properties offered for it.
+     *
+     * @param  Builder<Property>  $query
+     * @param  'sale'|'rent'|null  $purpose
+     */
+    public function scopeOnShowcase(Builder $query, ?string $purpose = null): void
+    {
+        $query->whereNotNull($query->qualifyColumn('published_at'))
+            ->where(fn (Builder $query) => $query
+                ->when($purpose !== 'rent', fn (Builder $query) => $query->orWhere(fn (Builder $query) => $query
+                    ->where('for_sale', true)
+                    ->whereNotNull('sale_price')
+                    ->whereNotIn('status', [PropertyStatus::Sold, PropertyStatus::Inactive])))
+                ->when($purpose !== 'sale', fn (Builder $query) => $query->orWhere(fn (Builder $query) => $query
+                    ->where('for_rent', true)
+                    ->whereNotNull('rent_amount')
+                    ->where('status', PropertyStatus::Available))));
+    }
+
+    /**
+     * Get the sale price the showcase shows, while the property is still for sale.
+     */
+    public function showcaseSalePrice(): ?string
+    {
+        return $this->for_sale && ! in_array($this->status, [PropertyStatus::Sold, PropertyStatus::Inactive], true)
+            ? $this->sale_price
+            : null;
+    }
+
+    /**
+     * Get the rent the showcase shows, while the property is free to rent.
+     */
+    public function showcaseRent(): ?string
+    {
+        return $this->for_rent && $this->status === PropertyStatus::Available ? $this->rent_amount : null;
+    }
+
+    /**
      * Scope the query to properties whose address matches the given term.
      *
      * @param  Builder<Property>  $query
@@ -362,6 +405,8 @@ class Property extends Model
             'land_area' => 'decimal:2',
             'land_front' => 'decimal:2',
             'land_depth' => 'decimal:2',
+            'published_at' => 'datetime',
+            'is_featured' => 'boolean',
         ];
     }
 }

@@ -21,4 +21,7 @@ enum Permission: string
 
     /** Follow leads through the funnel: deals, visits, proposals and closed sales. */
     case ManageSales = 'manage-sales';
+
+    /** Set up the public showcase of the account's properties: its address, contact and look. */
+    case ManageShowcase = 'manage-showcase';
 }

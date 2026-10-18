@@ -7,6 +7,7 @@ use App\Enums\AccountType;
 use App\Enums\PayoutMode;
 use App\Enums\PayoutRule;
 use App\Enums\PayoutSchedule;
+use App\Enums\ShowcaseColor;
 use Database\Factories\AccountFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -33,6 +34,11 @@ use Illuminate\Support\Carbon;
  * @property string|null $city
  * @property string|null $state
  * @property string|null $logo_path
+ * @property bool $showcase_enabled Whether the public showcase of the account's properties is online.
+ * @property string|null $showcase_slug The address of the showcase, after the site's domain.
+ * @property string|null $showcase_whatsapp The WhatsApp number visitors talk to, as digits.
+ * @property ShowcaseColor|null $showcase_color
+ * @property string|null $showcase_headline The showcase title, in place of the one written from the account's city.
  * @property string $sale_commission_percent The commission the agency usually charges on sales.
  * @property string $admin_fee_percent Payout rule defaults, see PayoutRule.
  * @property string $intermediation_fee_percent
@@ -70,6 +76,11 @@ use Illuminate\Support\Carbon;
     'city',
     'state',
     'logo_path',
+    'showcase_enabled',
+    'showcase_slug',
+    'showcase_whatsapp',
+    'showcase_color',
+    'showcase_headline',
     'sale_commission_percent',
     'admin_fee_percent',
     'intermediation_fee_percent',
@@ -177,6 +188,36 @@ class Account extends Model
     }
 
     /**
+     * Find the account of a showcase address only while its showcase is online.
+     *
+     * @param  mixed  $value
+     * @param  string|null  $field
+     */
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        return $this->newQuery()
+            ->where($field ?? $this->getRouteKeyName(), $value)
+            ->when($field === 'showcase_slug', fn ($query) => $query->where('showcase_enabled', true))
+            ->first();
+    }
+
+    /**
+     * Determine whether the account's public showcase is online.
+     */
+    public function hasShowcase(): bool
+    {
+        return $this->showcase_enabled && $this->showcase_slug !== null;
+    }
+
+    /**
+     * Get the accent color of the showcase.
+     */
+    public function showcaseColor(): ShowcaseColor
+    {
+        return $this->showcase_color ?? ShowcaseColor::Forest;
+    }
+
+    /**
      * Get the address of the agency logo, changing whenever the account is saved so browsers fetch a new logo.
      *
      * @return Attribute<string|null, never>
@@ -198,6 +239,8 @@ class Account extends Model
         return [
             'type' => AccountType::class,
             'status' => AccountStatus::class,
+            'showcase_enabled' => 'boolean',
+            'showcase_color' => ShowcaseColor::class,
             'sale_commission_percent' => 'decimal:2',
             ...PayoutRule::casts(),
         ];

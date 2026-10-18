@@ -52,6 +52,7 @@ class HandleInertiaRequests extends Middleware
                     'registerReceipts' => $request->user()?->can(Permission::RegisterReceipts->value) ?? false,
                     'manageFinance' => $request->user()?->can(Permission::ManageFinance->value) ?? false,
                     'manageSales' => $request->user()?->can(Permission::ManageSales->value) ?? false,
+                    'manageShowcase' => $request->user()?->can(Permission::ManageShowcase->value) ?? false,
                 ],
                 'isAccountOwner' => $request->user()?->isAccountOwner() ?? false,
             ],
