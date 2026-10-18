@@ -92,7 +92,8 @@ export type DashboardAgendaKey =
     | 'leases_ending'
     | 'adjustments_due'
     | 'proposals_pending'
-    | 'showcase_requests';
+    | 'showcase_requests'
+    | 'listing_requests';
 
 export type DashboardAgenda = {
     items: { key: DashboardAgendaKey; count: number; amount: number | null }[];

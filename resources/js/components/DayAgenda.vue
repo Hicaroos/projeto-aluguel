@@ -7,6 +7,7 @@ import {
     FileClock,
     FileText,
     HandCoins,
+    Megaphone,
     PartyPopper,
     Store,
     Receipt,
@@ -20,6 +21,7 @@ import { formatCurrency } from '@/lib/currency';
 import { formatDate } from '@/lib/formatters';
 import { index as dealsIndex } from '@/routes/deals';
 import { index as expensesIndex } from '@/routes/expenses';
+import { index as leadsIndex } from '@/routes/leads';
 import { index as payoutsIndex } from '@/routes/payouts';
 import type { DashboardAgenda, DashboardAgendaKey } from '@/types';
 
@@ -129,6 +131,18 @@ const details: Record<DashboardAgendaKey, ItemDetails> = {
             ),
         detail: () => 'Chame no WhatsApp e agende a visita',
         href: dealsIndex().url,
+    },
+    listing_requests: {
+        icon: Megaphone,
+        tone: 'bg-primary/10 text-primary',
+        title: (count) =>
+            plural(
+                count,
+                'proprietário quer anunciar',
+                'proprietários querem anunciar',
+            ),
+        detail: () => 'Depois do contato, cadastre o proprietário',
+        href: leadsIndex({ query: { interest: 'list' } }).url,
     },
 };
 

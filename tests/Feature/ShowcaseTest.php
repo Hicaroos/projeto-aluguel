@@ -257,6 +257,22 @@ test('an owner who wants to list a property becomes a lead, once per phone', fun
         ->and(Deal::withoutGlobalScopes()->count())->toBe(0);
 });
 
+test('a listing request waits on the agenda until the person is registered as an owner', function () {
+    ['account' => $account, 'admin' => $admin] = showcaseScenario();
+    $this->post(route('showcase.listings.store', ['showcase' => 'imobizilla']), ['name' => 'João Dono', 'phone' => '(87) 97777-6666', 'goal' => 'alugar']);
+    $listingRequests = function () use ($admin): int {
+        $this->actingAs($admin);
+
+        return collect(app(BuildDayAgenda::class)->handle($admin)['items'])->firstWhere('key', 'listing_requests')['count'] ?? 0;
+    };
+
+    expect($listingRequests())->toBe(1);
+
+    Owner::factory()->for($account, 'account')->create(['name' => 'João Dono', 'phone' => '87977776666']);
+
+    expect($listingRequests())->toBe(0);
+});
+
 test('listing requests need a name, a phone and a goal, ignore bots, and only agencies take them', function () {
     showcaseScenario();
     $url = route('showcase.listings.store', ['showcase' => 'imobizilla']);

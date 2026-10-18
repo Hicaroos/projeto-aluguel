@@ -4,6 +4,7 @@ namespace App\Actions\Dashboard;
 
 use App\Actions\Payouts\SummarizeOwnerBalances;
 use App\Enums\ExpenseStatus;
+use App\Enums\LeadInterest;
 use App\Enums\LeadSource;
 use App\Enums\Permission;
 use App\Enums\ProposalStatus;
@@ -14,12 +15,14 @@ use App\Models\DealProposal;
 use App\Models\DealStage;
 use App\Models\DealVisit;
 use App\Models\Expense;
+use App\Models\Lead;
 use App\Models\Lease;
 use App\Models\Owner;
 use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 /**
  * @phpstan-type AgendaItem array{key: string, count: int, amount: float|null}
@@ -31,7 +34,8 @@ class BuildDayAgenda
     /**
      * List what needs the user's attention today, as far as their permissions go: payments to
      * collect, payouts to make, expenses to pay, leases to renew or adjust, proposals to answer and
-     * the visits of the day and the visits asked through the showcase. Agents only see their own deals and visits.
+     * the visits of the day, plus the visits and the listings asked through the showcase. Agents only see their
+     * own deals and visits.
      *
      * @return array{items: list<AgendaItem>, visits: Collection<int, DealVisit>}
      */
@@ -96,6 +100,7 @@ class BuildDayAgenda
 
             $items[] = $this->item('proposals_pending', $proposals);
             $items[] = $this->item('showcase_requests', Owner::ignoringSelection(fn (): int => $this->showcaseRequests($user, $ownOnly)));
+            $items[] = $this->item('listing_requests', $this->listingRequests($user, $ownOnly));
         }
 
         return [
@@ -128,6 +133,27 @@ class BuildDayAgenda
             ->when($ownOnly, fn (Builder $query) => $query->where(fn (Builder $query) => $query
                 ->where('user_id', $user->id)
                 ->orWhereNull('user_id')))
+            ->count();
+    }
+
+    /**
+     * Count the people who asked to list a property and are not owners of the account yet: once the
+     * agency registers them as owners, with the same phone, they leave the agenda. Agents count
+     * theirs and the unassigned ones.
+     */
+    private function listingRequests(User $user, bool $ownOnly): int
+    {
+        return Lead::query()
+            ->where('interest', LeadInterest::List)
+            ->when($ownOnly, fn (Builder $query) => $query->where(fn (Builder $query) => $query
+                ->where('user_id', $user->id)
+                ->orWhereNull('user_id')))
+            ->whereNotExists(fn (QueryBuilder $query) => $query
+                ->selectRaw('1')
+                ->from('owners')
+                ->whereColumn('owners.account_id', 'leads.account_id')
+                ->whereColumn('owners.phone', 'leads.phone')
+                ->whereNull('owners.deleted_at'))
             ->count();
     }
 
