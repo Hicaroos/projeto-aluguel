@@ -5,7 +5,6 @@ export * from './dashboard';
 export * from './document';
 export * from './expense';
 export * from './lease';
-export * from './management';
 export * from './navigation';
 export * from './owner';
 export * from './pagination';

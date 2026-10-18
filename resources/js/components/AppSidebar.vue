@@ -3,7 +3,6 @@ import { Link, usePage } from '@inertiajs/vue3';
 import {
     BadgeCheck,
     Building2,
-    ChartPie,
     Coins,
     Columns3,
     Contact,
@@ -32,7 +31,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { usePermissions } from '@/composables/usePermissions';
-import { dashboard, management } from '@/routes';
+import { dashboard } from '@/routes';
 import { index as branches } from '@/routes/branches';
 import { index as contractTemplates } from '@/routes/contract-templates';
 import { index as deals } from '@/routes/deals';
@@ -136,11 +135,6 @@ const salesNavItems: NavItem[] = [
 const managementNavItems = computed<NavItem[]>(() =>
     can.value.manageAgency
         ? [
-              {
-                  title: 'Visão geral',
-                  href: management(),
-                  icon: ChartPie,
-              },
               {
                   title: 'Equipe',
                   href: team(),
