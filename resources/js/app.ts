@@ -4,13 +4,21 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AuthSplitLayout from '@/layouts/auth/AuthSplitLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
+import ShowcaseLayout from '@/layouts/ShowcaseLayout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 import { setServerToday } from '@/lib/formatters';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 createInertiaApp({
-    title: (title) => (title ? `${title} - ${appName}` : appName),
+    // The public showcase is the account's own site: its titles carry the account's name, not the app's.
+    title: (title) =>
+        typeof document !== 'undefined' &&
+        document.documentElement.hasAttribute('data-showcase')
+            ? title
+            : title
+              ? `${title} - ${appName}`
+              : appName,
     layout: (name) => {
         switch (true) {
             case name === 'receipts/Show':
@@ -21,6 +29,8 @@ createInertiaApp({
                 return AuthLayout;
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];
+            case name.startsWith('showcase/'):
+                return ShowcaseLayout;
             default:
                 return AppLayout;
         }

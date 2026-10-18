@@ -15,6 +15,13 @@ export function updateTheme(value: Appearance): void {
         return;
     }
 
+    // The public showcase keeps its own light look, whatever the visitor's theme.
+    if (document.documentElement.hasAttribute('data-showcase')) {
+        document.documentElement.classList.remove('dark');
+
+        return;
+    }
+
     if (value === 'system') {
         const mediaQueryList = window.matchMedia(
             '(prefers-color-scheme: dark)',

@@ -1,9 +1,28 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"  @class(['dark' => ($appearance ?? 'system') == 'dark'])>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"  @class(['dark' => ! ($isShowcase ?? false) && ($appearance ?? 'system') == 'dark']) @if ($isShowcase ?? false) data-showcase @endif>
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
+        @if ($isShowcase ?? false)
+            {{-- The public showcase keeps its own light look, whatever the visitor's theme --}}
+            <link rel="preconnect" href="https://fonts.bunny.net">
+            <link rel="stylesheet" href="https://fonts.bunny.net/css?family=sora:500,600,700|figtree:400,500,600,700&display=swap">
+
+            @isset($meta)
+                <meta name="description" content="{{ $meta['description'] }}">
+                <meta property="og:type" content="website">
+                <meta property="og:locale" content="pt_BR">
+                <meta property="og:title" content="{{ $meta['title'] }}">
+                <meta property="og:description" content="{{ $meta['description'] }}">
+                <meta property="og:url" content="{{ $meta['url'] }}">
+                <link rel="canonical" href="{{ $meta['url'] }}">
+                @if ($meta['image'])
+                    <meta property="og:image" content="{{ $meta['image'] }}">
+                    <meta name="twitter:card" content="summary_large_image">
+                @endif
+            @endisset
+        @else
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script>
             (function() {
@@ -29,6 +48,7 @@
                 background-color: oklch(0.145 0 0);
             }
         </style>
+        @endif
 
         <link rel="icon" href="/favicon.ico" sizes="any">
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -38,7 +58,7 @@
 
         @vite(['resources/css/app.css', 'resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
         <x-inertia::head>
-            <title>{{ config('app.name', 'Laravel') }}</title>
+            <title>{{ $meta['title'] ?? config('app.name', 'Laravel') }}</title>
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">

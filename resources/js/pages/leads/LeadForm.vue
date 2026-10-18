@@ -223,9 +223,11 @@ const textareaClass =
                 <div class="grid gap-2">
                     <Label for="max_price">
                         {{
-                            interest === 'buy'
-                                ? 'Pode pagar até'
-                                : 'Aluguel de até'
+                            {
+                                buy: 'Pode pagar até',
+                                rent: 'Aluguel de até',
+                                list: 'Valor pretendido',
+                            }[interest]
                         }}
                     </Label>
                     <div class="relative">

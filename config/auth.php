@@ -42,6 +42,13 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Nobody ever signs in to this guard: the public showcase uses it so every visitor, signed in
+        // to the app or not, sees the same pages.
+        'visitor' => [
+            'driver' => 'session',
+            'provider' => 'users',
+        ],
     ],
 
     /*

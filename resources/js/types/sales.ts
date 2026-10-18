@@ -14,7 +14,8 @@ export type LeadSource =
     | 'walk_in'
     | 'other';
 
-export type LeadInterest = 'buy' | 'rent';
+/** Whether the lead wants to buy, to rent, or to list their own property with the agency. */
+export type LeadInterest = 'buy' | 'rent' | 'list';
 
 export type PaymentPlan =
     'cash' | 'financing' | 'fgts' | 'exchange' | 'installments';

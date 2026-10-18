@@ -14,6 +14,7 @@ export * from './payout';
 export * from './person';
 export * from './property';
 export * from './sales';
+export * from './showcase';
 export * from './team';
 export * from './tenant';
 export * from './ui';

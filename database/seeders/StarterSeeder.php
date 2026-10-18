@@ -8,6 +8,7 @@ use App\Enums\PayoutSchedule;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Enums\Role;
+use App\Enums\ShowcaseColor;
 use App\Models\Account;
 use App\Models\Branch;
 use App\Models\Owner;
@@ -54,6 +55,10 @@ class StarterSeeder extends Seeder
             'payout_schedule' => PayoutSchedule::DaysAfter,
             'payout_days' => 5,
             'payout_day' => 10,
+            'showcase_enabled' => true,
+            'showcase_slug' => 'imobizilla',
+            'showcase_whatsapp' => '87999990000',
+            'showcase_color' => ShowcaseColor::Forest,
         ]);
 
         $branch = $account->branches()->create(['name' => Branch::MAIN_BRANCH_NAME, 'phone' => '8738741234', 'city' => 'Ouricuri', 'state' => 'PE']);
@@ -81,7 +86,7 @@ class StarterSeeder extends Seeder
                     ['street' => 'Rua do Rosário', 'number' => '33', 'neighborhood' => 'Centro', 'rent_amount' => 1200, 'bedrooms' => 3, 'bathrooms' => 2, 'parking_spaces' => 1, 'built_area' => 100, 'land_area' => 200],
                     ['street' => 'Rua Cícero Romão', 'number' => '77', 'neighborhood' => 'Alto da Boa Vista', 'rent_amount' => 950, 'bedrooms' => 2, 'bathrooms' => 1, 'parking_spaces' => 1, 'built_area' => 75, 'land_area' => 160],
                     ['street' => 'Rua Projetada A', 'number' => '12', 'neighborhood' => 'Horizonte', 'for_rent' => false, 'for_sale' => true, 'sale_price' => 210000, 'bedrooms' => 3, 'bathrooms' => 2, 'parking_spaces' => 2, 'built_area' => 120, 'land_area' => 250],
-                    ['street' => 'Rua Padre Cícero', 'number' => '501', 'neighborhood' => 'São Sebastião', 'rent_amount' => 1500, 'for_sale' => true, 'sale_price' => 320000, 'bedrooms' => 3, 'bathrooms' => 3, 'parking_spaces' => 2, 'built_area' => 160, 'land_area' => 300],
+                    ['street' => 'Rua Padre Cícero', 'number' => '501', 'neighborhood' => 'São Sebastião', 'rent_amount' => 1500, 'for_sale' => true, 'sale_price' => 320000, 'is_featured' => true, 'bedrooms' => 3, 'bathrooms' => 3, 'parking_spaces' => 2, 'built_area' => 160, 'land_area' => 300],
                 ],
             ],
             [
@@ -140,6 +145,7 @@ class StarterSeeder extends Seeder
             'city' => 'Ouricuri',
             'state' => 'PE',
             'status' => PropertyStatus::Available,
+            'published_at' => now(),
             ...$attributes,
         ]);
     }

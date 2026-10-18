@@ -215,7 +215,7 @@ function lookingFor(lead: Lead): string {
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">Comprar e alugar</SelectItem>
+                        <SelectItem value="all">Todos os interesses</SelectItem>
                         <SelectItem
                             v-for="(label, key) in leadInterestLabels"
                             :key="key"
