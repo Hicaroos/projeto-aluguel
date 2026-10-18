@@ -14,6 +14,35 @@ export type PropertyPurpose = 'rent' | 'sale';
 export type PropertyStatus =
     'available' | 'rented' | 'maintenance' | 'inactive' | 'sold';
 
+/** What the property or its condominium offers, see PropertyAmenity. */
+export type PropertyAmenity =
+    | 'air_conditioning'
+    | 'built_in_wardrobes'
+    | 'furnished'
+    | 'balcony'
+    | 'backyard'
+    | 'service_area'
+    | 'barbecue'
+    | 'gourmet_area'
+    | 'pool'
+    | 'office'
+    | 'closet'
+    | 'solar_energy'
+    | 'water_tank'
+    | 'well'
+    | 'electric_gate'
+    | 'security_cameras'
+    | 'pets_allowed'
+    | 'gated_community'
+    | 'concierge'
+    | 'elevator'
+    | 'condo_pool'
+    | 'gym'
+    | 'party_room'
+    | 'condo_gourmet_area'
+    | 'playground'
+    | 'sports_court';
+
 export type PropertyOwnerOption = {
     id: number;
     name: string;
@@ -45,6 +74,7 @@ export type Property = {
     land_front: string | null;
     land_depth: string | null;
     description: string | null;
+    amenities: PropertyAmenity[] | null;
     /** When the property went on the showcase; null while it is off it. */
     published_at: string | null;
     /** Whether the showcase highlights the property on its home page. */

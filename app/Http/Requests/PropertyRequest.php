@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\PropertyAmenity;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Models\Branch;
@@ -27,6 +28,7 @@ class PropertyRequest extends FormRequest
             'for_sale' => $this->boolean('for_sale'),
             'is_published' => $this->boolean('is_published'),
             'is_featured' => $this->boolean('is_featured'),
+            'amenities' => array_values(array_filter((array) $this->input('amenities', []))),
         ]);
     }
 
@@ -83,6 +85,8 @@ class PropertyRequest extends FormRequest
             'land_front' => ['nullable', 'numeric', 'min:0', 'max:999999'],
             'land_depth' => ['nullable', 'numeric', 'min:0', 'max:999999'],
             'description' => ['nullable', 'string', 'max:5000'],
+            'amenities' => ['array'],
+            'amenities.*' => ['distinct', Rule::enum(PropertyAmenity::class)],
             'is_published' => ['boolean'],
             'is_featured' => ['boolean'],
             'registration_number' => ['nullable', 'string', 'max:100'],

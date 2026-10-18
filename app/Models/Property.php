@@ -6,11 +6,13 @@ use App\Concerns\BelongsToAccount;
 use App\Concerns\BelongsToVisibleBranches;
 use App\Concerns\FollowsSelectedOwner;
 use App\Enums\LeaseStatus;
+use App\Enums\PropertyAmenity;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use Database\Factories\PropertyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\AsEnumCollection;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -48,6 +50,7 @@ use Illuminate\Support\Facades\DB;
  * @property string|null $land_front The front of the land, in meters.
  * @property string|null $land_depth The depth of the land, in meters.
  * @property string|null $description
+ * @property \Illuminate\Support\Collection<int, PropertyAmenity>|null $amenities
  * @property Carbon|null $published_at When the property went on the account's showcase; null while it is off it.
  * @property bool $is_featured Whether the showcase highlights the property on its home page.
  * @property string|null $registration_number The registration at the land registry office (matrícula).
@@ -89,6 +92,7 @@ use Illuminate\Support\Facades\DB;
     'land_front',
     'land_depth',
     'description',
+    'amenities',
     'published_at',
     'is_featured',
     'registration_number',
@@ -407,6 +411,7 @@ class Property extends Model
             'land_depth' => 'decimal:2',
             'published_at' => 'datetime',
             'is_featured' => 'boolean',
+            'amenities' => AsEnumCollection::of(PropertyAmenity::class),
         ];
     }
 }

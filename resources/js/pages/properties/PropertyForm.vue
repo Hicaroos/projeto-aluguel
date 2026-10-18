@@ -21,6 +21,8 @@ import { Spinner } from '@/components/ui/spinner';
 import { useZipCodeLookup } from '@/composables/useZipCodeLookup';
 import { maskZipCode } from '@/lib/formatters';
 import {
+    condoAmenityLabels,
+    propertyAmenityLabels,
     propertyStatusDotClasses,
     propertyStatusLabels,
     propertyTypeIcons,
@@ -30,6 +32,7 @@ import { index as ownersIndex } from '@/routes/owners';
 import type {
     BranchOption,
     Property,
+    PropertyAmenity,
     PropertyOwnerOption,
     PropertyStatus,
     PropertyType,
@@ -131,6 +134,21 @@ const forSale = ref(props.property?.for_sale ?? false);
 
 const isPublished = ref(Boolean(props.property?.published_at));
 const isFeatured = ref(props.property?.is_featured ?? false);
+
+const amenities = ref<PropertyAmenity[]>([
+    ...(props.property?.amenities ?? []),
+]);
+
+const amenityGroups = [
+    { title: 'Do imóvel', labels: propertyAmenityLabels },
+    { title: 'Do condomínio', labels: condoAmenityLabels },
+] as const;
+
+function toggleAmenity(amenity: PropertyAmenity, isChecked: boolean) {
+    amenities.value = isChecked
+        ? [...amenities.value, amenity]
+        : amenities.value.filter((other) => other !== amenity);
+}
 
 const roomFields = [
     { name: 'bedrooms', label: 'Quartos' },
@@ -674,6 +692,51 @@ watch(zipCode, async (value) => {
                 />
                 <InputError :message="errors.description" />
             </div>
+        </section>
+
+        <section class="grid gap-4">
+            <div>
+                <h3
+                    class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                >
+                    Comodidades
+                </h3>
+                <p class="mt-1 text-sm text-muted-foreground">
+                    Aparecem na página do imóvel na vitrine.
+                </p>
+            </div>
+
+            <input
+                v-for="amenity in amenities"
+                :key="amenity"
+                type="hidden"
+                name="amenities[]"
+                :value="amenity"
+            />
+
+            <div
+                v-for="group in amenityGroups"
+                :key="group.title"
+                class="grid gap-2"
+            >
+                <p class="text-sm font-medium">{{ group.title }}</p>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
+                    <Label
+                        v-for="(label, amenity) in group.labels"
+                        :key="amenity"
+                        class="flex items-center gap-2 font-normal"
+                    >
+                        <Checkbox
+                            :model-value="amenities.includes(amenity)"
+                            @update:model-value="
+                                toggleAmenity(amenity, $event === true)
+                            "
+                        />
+                        {{ label }}
+                    </Label>
+                </div>
+            </div>
+            <InputError :message="errors.amenities" />
         </section>
 
         <section class="grid gap-4">

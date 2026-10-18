@@ -10,6 +10,7 @@ import {
 import type { LucideIcon } from '@lucide/vue';
 import type {
     Property,
+    PropertyAmenity,
     PropertyPurpose,
     PropertyStatus,
     PropertyType,
@@ -33,6 +34,40 @@ export const propertyTypeIcons: Record<PropertyType, LucideIcon> = {
     warehouse: Warehouse,
     land: LandPlot,
     farm: Trees,
+};
+
+/** What the property itself may offer, in the order the form lists it. */
+export const propertyAmenityLabels: Partial<Record<PropertyAmenity, string>> = {
+    air_conditioning: 'Ar-condicionado',
+    built_in_wardrobes: 'Armários planejados',
+    furnished: 'Mobiliado',
+    balcony: 'Varanda',
+    backyard: 'Quintal',
+    service_area: 'Área de serviço',
+    barbecue: 'Churrasqueira',
+    gourmet_area: 'Área gourmet',
+    pool: 'Piscina',
+    office: 'Escritório',
+    closet: 'Closet',
+    solar_energy: 'Energia solar',
+    water_tank: 'Cisterna',
+    well: 'Poço artesiano',
+    electric_gate: 'Portão eletrônico',
+    security_cameras: 'Câmeras de segurança',
+    pets_allowed: 'Aceita animais',
+};
+
+/** What the condominium may offer, in the order the form lists it. */
+export const condoAmenityLabels: Partial<Record<PropertyAmenity, string>> = {
+    gated_community: 'Condomínio fechado',
+    concierge: 'Portaria 24 horas',
+    elevator: 'Elevador',
+    condo_pool: 'Piscina',
+    gym: 'Academia',
+    party_room: 'Salão de festas',
+    condo_gourmet_area: 'Espaço gourmet',
+    playground: 'Playground',
+    sports_court: 'Quadra de esportes',
 };
 
 export const propertyPurposeLabels: Record<PropertyPurpose, string> = {
