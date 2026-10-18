@@ -277,6 +277,10 @@ function lookingFor(lead: Lead): string {
                             >Procura</TableHead
                         >
                         <TableHead
+                            class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase sm:table-cell"
+                            >Interesse</TableHead
+                        >
+                        <TableHead
                             class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase lg:table-cell"
                             >Origem</TableHead
                         >
@@ -317,16 +321,18 @@ function lookingFor(lead: Lead): string {
                                 </div>
                             </div>
                         </TableCell>
-                        <TableCell class="hidden px-4 py-3 md:table-cell">
+                        <TableCell
+                            class="hidden px-4 py-3 text-muted-foreground md:table-cell"
+                        >
+                            {{ lookingFor(lead) }}
+                        </TableCell>
+                        <TableCell class="hidden px-4 py-3 sm:table-cell">
                             <Badge
                                 variant="outline"
                                 :class="leadInterestBadgeClasses[lead.interest]"
                             >
                                 {{ leadInterestLabels[lead.interest] }}
                             </Badge>
-                            <p class="mt-1 text-sm text-muted-foreground">
-                                {{ lookingFor(lead) }}
-                            </p>
                         </TableCell>
                         <TableCell
                             class="hidden px-4 py-3 text-muted-foreground lg:table-cell"
