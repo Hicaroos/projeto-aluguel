@@ -548,6 +548,32 @@ html[data-showcase] body {
     margin-top: 16px;
 }
 
+.sc-social {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.sc-social a {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--sc-on-accent);
+    transition: background-color 0.15s ease;
+}
+
+.sc-social a:hover {
+    background: rgba(255, 255, 255, 0.24);
+}
+
+.sc-social svg {
+    width: 18px;
+    height: 18px;
+}
+
 .sc-footer-bottom {
     display: flex;
     flex-wrap: wrap;
@@ -1223,9 +1249,99 @@ html[data-showcase] body {
 
 .sc-filterbar {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
     gap: 12px;
     align-items: end;
+}
+
+.sc-more-toggle {
+    min-height: 46px;
+    white-space: nowrap;
+}
+
+.sc-more-chevron {
+    transition: transform 0.15s ease;
+}
+
+.sc-more-toggle[aria-expanded='true'] .sc-more-chevron {
+    transform: rotate(180deg);
+}
+
+.sc-more {
+    display: grid;
+    gap: 18px;
+    margin-top: 12px;
+    padding: clamp(16px, 2.4vw, 22px);
+    border-radius: var(--sc-radius);
+    background: var(--sc-surface);
+    box-shadow:
+        var(--sc-shadow),
+        0 0 0 1px var(--sc-line);
+}
+
+.sc-more-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.sc-more .sc-select {
+    min-height: 38px;
+    padding-inline: 10px;
+    font-size: 14px;
+}
+
+.sc-more-lists {
+    display: grid;
+    gap: 14px;
+}
+
+.sc-checks {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+}
+
+.sc-checks legend {
+    margin-bottom: 6px;
+    padding: 0;
+}
+
+.sc-checks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+    gap: 6px 16px;
+}
+
+.sc-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.sc-check input {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--sc-accent);
+    cursor: pointer;
+}
+
+.sc-checks-more {
+    justify-self: start;
+    margin-top: 2px;
+    font-size: 13.5px;
+}
+
+.sc-more-foot {
+    display: flex;
+    justify-content: flex-end;
 }
 
 .sc-results {
@@ -1514,6 +1630,80 @@ html[data-showcase] body {
     white-space: pre-line;
 }
 
+.sc-amenities-title {
+    margin: 18px 0 10px;
+    color: var(--sc-muted);
+    font: 600 12.5px/1.3 var(--sc-body);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.sc-amenities-title:first-of-type {
+    margin-top: 0;
+}
+
+.sc-amenities {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.sc-amenities li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14.5px;
+}
+
+.sc-amenities svg {
+    flex: none;
+    width: 17px;
+    height: 17px;
+    color: var(--sc-accent);
+}
+
+.sc-location {
+    display: flex;
+    align-items: start;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.sc-location svg {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    color: var(--sc-accent);
+}
+
+.sc-map {
+    overflow: hidden;
+    aspect-ratio: 16 / 7;
+    border-radius: var(--sc-radius-sm);
+    background: var(--sc-band);
+    box-shadow: 0 0 0 1px var(--sc-line);
+}
+
+.sc-map iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+.sc-map-link {
+    margin-top: 12px;
+}
+
+.sc-map-link svg {
+    width: 15px;
+    height: 15px;
+}
+
 .sc-aside {
     position: sticky;
     top: calc(var(--sc-header) + 20px);
@@ -1733,6 +1923,10 @@ html[data-showcase] body {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
 
+    .sc-more-toggle {
+        grid-column: 1 / -1;
+    }
+
     .sc-aside {
         position: static;
     }
@@ -1801,8 +1995,13 @@ html[data-showcase] body {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .sc-features {
+    .sc-features,
+    .sc-amenities {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sc-map {
+        aspect-ratio: 4 / 3;
     }
 
     .sc-gallery-main {

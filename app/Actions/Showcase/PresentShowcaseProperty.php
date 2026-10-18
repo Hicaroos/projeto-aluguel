@@ -2,6 +2,7 @@
 
 namespace App\Actions\Showcase;
 
+use App\Enums\PropertyAmenity;
 use App\Enums\PropertyType;
 use App\Models\Account;
 use App\Models\Property;
@@ -10,7 +11,7 @@ use Illuminate\Support\Str;
 
 /**
  * @phpstan-type ShowcaseCard array{id: int, ref: string, type: string, title: string, neighborhood: string, city: string, state: string, sale_price: float|null, rent: float|null, bedrooms: int|null, suites: int|null, bathrooms: int|null, parking_spaces: int|null, built_area: float|null, land_area: float|null, is_new: bool, photo: string|null}
- * @phpstan-type ShowcaseDetails array{id: int, ref: string, type: string, title: string, neighborhood: string, city: string, state: string, sale_price: float|null, rent: float|null, bedrooms: int|null, suites: int|null, bathrooms: int|null, parking_spaces: int|null, built_area: float|null, land_area: float|null, is_new: bool, photo: string|null, headline: string, land_front: float|null, land_depth: float|null, description: string|null, photos: list<array{url: string, thumbnail_url: string}>}
+ * @phpstan-type ShowcaseDetails array{id: int, ref: string, type: string, title: string, neighborhood: string, city: string, state: string, sale_price: float|null, rent: float|null, bedrooms: int|null, suites: int|null, bathrooms: int|null, parking_spaces: int|null, built_area: float|null, land_area: float|null, is_new: bool, photo: string|null, headline: string, land_front: float|null, land_depth: float|null, description: string|null, amenities: array{property: list<string>, condo: list<string>}, address: string|null, photos: list<array{url: string, thumbnail_url: string}>}
  */
 class PresentShowcaseProperty
 {
@@ -51,7 +52,8 @@ class PresentShowcaseProperty
     }
 
     /**
-     * Describe the property for its own showcase page, with every photo and the description.
+     * Describe the property for its own showcase page, with every photo, the description and what it
+     * offers. The street and number only when the account chose to show them.
      *
      * @return ShowcaseDetails
      */
@@ -63,12 +65,31 @@ class PresentShowcaseProperty
             'land_front' => self::amount($property->land_front),
             'land_depth' => self::amount($property->land_depth),
             'description' => $property->description,
+            'amenities' => self::amenities($property),
+            'address' => $account->showcase_shows_address ? trim("{$property->street}, {$property->number}", ', ') : null,
             'photos' => array_values($property->photos
                 ->map(fn (PropertyPhoto $photo): array => [
                     'url' => route('showcase.photos.show', ['showcase' => $account->showcase_slug, 'photo' => $photo->id]),
                     'thumbnail_url' => route('showcase.photos.thumbnail', ['showcase' => $account->showcase_slug, 'photo' => $photo->id]),
                 ])
                 ->all()),
+        ];
+    }
+
+    /**
+     * Get the names of what the property and its condominium offer, apart, in the order of the list.
+     *
+     * @return array{property: list<string>, condo: list<string>}
+     */
+    public static function amenities(Property $property): array
+    {
+        [$condo, $own] = collect(PropertyAmenity::cases())
+            ->filter(fn (PropertyAmenity $amenity): bool => $property->amenities?->contains($amenity) ?? false)
+            ->partition(fn (PropertyAmenity $amenity): bool => $amenity->isCondo());
+
+        return [
+            'property' => array_values($own->map(fn (PropertyAmenity $amenity): string => $amenity->label())->all()),
+            'condo' => array_values($condo->map(fn (PropertyAmenity $amenity): string => $amenity->label())->all()),
         ];
     }
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
 import { Check, Copy, ExternalLink } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import ShowcaseController from '@/actions/App/Http/Controllers/Settings/ShowcaseController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { index as propertiesIndex } from '@/routes/properties';
 import { edit } from '@/routes/showcase-settings';
+import type { ShowcaseTextKey } from '@/types';
 
 const props = defineProps<{
     showcase: {
@@ -20,12 +21,22 @@ const props = defineProps<{
         showcase_whatsapp: string | null;
         showcase_color: string;
         showcase_headline: string | null;
+        showcase_shows_address: boolean;
+        showcase_instagram: string | null;
+        showcase_facebook: string | null;
+        showcase_youtube: string | null;
         /** The showcase address, while it is online. */
         url: string | null;
     };
     /** The site address the showcase address goes after. */
     baseUrl: string;
     colors: { value: string; label: string; hex: string }[];
+    /** The showcase texts, the account's own or the defaults. */
+    texts: Record<ShowcaseTextKey, string>;
+    defaultTexts: Record<ShowcaseTextKey, string>;
+    textLimits: Record<ShowcaseTextKey, number>;
+    /** Only agencies show the "why us" section and the banners. */
+    isAgency: boolean;
     publishedCount: number;
     propertiesCount: number;
 }>();
@@ -38,7 +49,80 @@ defineOptions({
 
 const isEnabled = ref(props.showcase.showcase_enabled);
 const color = ref(props.showcase.showcase_color);
+const showsAddress = ref(props.showcase.showcase_shows_address);
 const isCopied = ref(false);
+
+const socials = [
+    {
+        name: 'showcase_instagram',
+        label: 'Instagram',
+        placeholder: '@suaimobiliaria',
+    },
+    {
+        name: 'showcase_facebook',
+        label: 'Facebook',
+        placeholder: 'facebook.com/suaimobiliaria',
+    },
+    {
+        name: 'showcase_youtube',
+        label: 'YouTube',
+        placeholder: '@suaimobiliaria',
+    },
+] as const;
+
+type TextField = { key: ShowcaseTextKey; label: string; isLong?: boolean };
+
+type TextGroup = { title: string; fields: TextField[] };
+
+const textGroups = computed<TextGroup[]>(() => {
+    const groups: TextGroup[] = [
+        {
+            title: 'Rodapé',
+            fields: [{ key: 'about', label: 'Sobre', isLong: true }],
+        },
+    ];
+
+    if (!props.isAgency) {
+        return groups;
+    }
+
+    return [
+        ...groups,
+        {
+            title: 'Por que escolher',
+            fields: [
+                { key: 'why_lead', label: 'Introdução', isLong: true },
+                ...([1, 2, 3, 4] as const).flatMap((position): TextField[] => [
+                    {
+                        key: `benefit_${position}_title` as ShowcaseTextKey,
+                        label: `Vantagem ${position}`,
+                    },
+                    {
+                        key: `benefit_${position}_text` as ShowcaseTextKey,
+                        label: `Explicação da vantagem ${position}`,
+                        isLong: true,
+                    },
+                ]),
+            ],
+        },
+        {
+            title: 'Banners da página inicial',
+            fields: ([1, 2, 3] as const).flatMap((position): TextField[] => [
+                {
+                    key: `banner_${position}_title` as ShowcaseTextKey,
+                    label: `Banner ${position}`,
+                },
+                {
+                    key: `banner_${position}_action` as ShowcaseTextKey,
+                    label: `Chamada do banner ${position}`,
+                },
+            ]),
+        },
+    ];
+});
+
+const textareaClass =
+    'w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm dark:bg-input/30';
 
 function copyUrl() {
     if (!props.showcase.url) {
@@ -233,6 +317,120 @@ function copyUrl() {
                         que você oferece.
                     </p>
                     <InputError :message="errors.showcase_headline" />
+                </div>
+            </section>
+
+            <section class="grid gap-4">
+                <h3
+                    class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                >
+                    Página do imóvel
+                </h3>
+
+                <input
+                    type="hidden"
+                    name="showcase_shows_address"
+                    :value="showsAddress ? 1 : 0"
+                />
+                <Label
+                    class="flex items-start gap-3 rounded-md border p-4 font-normal"
+                >
+                    <Checkbox v-model="showsAddress" class="mt-0.5" />
+                    <span class="grid gap-1">
+                        <span class="font-medium">
+                            Mostrar o endereço completo e o mapa
+                        </span>
+                        <span class="text-sm text-muted-foreground">
+                            Sem isso, a vitrine mostra só o bairro e a cidade, e
+                            o endereço é passado ao agendar a visita.
+                        </span>
+                    </span>
+                </Label>
+            </section>
+
+            <section class="grid gap-4">
+                <div>
+                    <h3
+                        class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                    >
+                        Redes sociais
+                    </h3>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Aparecem no rodapé da vitrine. Pode colar o link ou
+                        escrever só o @ do perfil.
+                    </p>
+                </div>
+
+                <div class="grid gap-4 sm:grid-cols-3">
+                    <div
+                        v-for="social in socials"
+                        :key="social.name"
+                        class="grid content-start gap-2"
+                    >
+                        <Label :for="social.name">{{ social.label }}</Label>
+                        <Input
+                            :id="social.name"
+                            :name="social.name"
+                            maxlength="255"
+                            :placeholder="social.placeholder"
+                            :default-value="showcase[social.name] ?? ''"
+                        />
+                        <InputError :message="errors[social.name]" />
+                    </div>
+                </div>
+            </section>
+
+            <section class="grid gap-4">
+                <div>
+                    <h3
+                        class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                    >
+                        Textos
+                    </h3>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Apague um texto para voltar ao padrão.
+                    </p>
+                </div>
+
+                <div
+                    v-for="group in textGroups"
+                    :key="group.title"
+                    class="grid gap-3"
+                >
+                    <p class="text-sm font-medium">{{ group.title }}</p>
+                    <div
+                        v-for="field in group.fields"
+                        :key="field.key"
+                        class="grid gap-2"
+                    >
+                        <Label
+                            :for="`text_${field.key}`"
+                            class="text-muted-foreground"
+                        >
+                            {{ field.label }}
+                        </Label>
+                        <textarea
+                            v-if="field.isLong"
+                            :id="`text_${field.key}`"
+                            :name="`showcase_texts[${field.key}]`"
+                            rows="2"
+                            :maxlength="textLimits[field.key]"
+                            :placeholder="defaultTexts[field.key]"
+                            :class="textareaClass"
+                            :value="texts[field.key]"
+                        />
+                        <Input
+                            v-else
+                            :id="`text_${field.key}`"
+                            :name="`showcase_texts[${field.key}]`"
+                            :maxlength="textLimits[field.key]"
+                            :placeholder="defaultTexts[field.key]"
+                            :default-value="texts[field.key]"
+                        />
+                        <InputError
+                            :message="errors[`showcase_texts.${field.key}`]"
+                        />
+                    </div>
                 </div>
             </section>
 

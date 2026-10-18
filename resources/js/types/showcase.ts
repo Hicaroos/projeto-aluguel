@@ -1,4 +1,4 @@
-import type { PropertyType } from './property';
+import type { PropertyAmenity, PropertyType } from './property';
 
 /** What every showcase page shows about the account behind it. */
 export type ShowcaseSite = {
@@ -13,7 +13,14 @@ export type ShowcaseSite = {
     /** The office address, on one line. */
     office: string | null;
     headline: string;
-    about: string;
+    /** The texts of the showcase, the account's own or the defaults. */
+    texts: Record<ShowcaseTextKey, string>;
+    /** The account's social profiles, as full links. */
+    socials: {
+        network: 'instagram' | 'facebook' | 'youtube';
+        label: string;
+        url: string;
+    }[];
     color: { accent: string; strong: string; wash: string };
     logo_url: string | null;
     is_agency: boolean;
@@ -59,8 +66,31 @@ export type ShowcaseProperty = ShowcaseCard & {
     land_front: number | null;
     land_depth: number | null;
     description: string | null;
+    /** The names of what the property and its condominium offer. */
+    amenities: { property: string[]; condo: string[] };
+    /** The street and number, only when the account shows them. */
+    address: string | null;
     photos: { url: string; thumbnail_url: string }[];
 };
+
+/** The texts of the showcase an account may rewrite, see ShowcaseText. */
+export type ShowcaseTextKey =
+    | 'about'
+    | 'why_lead'
+    | 'benefit_1_title'
+    | 'benefit_1_text'
+    | 'benefit_2_title'
+    | 'benefit_2_text'
+    | 'benefit_3_title'
+    | 'benefit_3_text'
+    | 'benefit_4_title'
+    | 'benefit_4_text'
+    | 'banner_1_title'
+    | 'banner_1_action'
+    | 'banner_2_title'
+    | 'banner_2_action'
+    | 'banner_3_title'
+    | 'banner_3_action';
 
 export type ShowcasePurpose = 'sale' | 'rent';
 
@@ -71,4 +101,14 @@ export type ShowcaseFilters = {
     /** The highest price; 0 for any. */
     max: number;
     sort: 'recentes' | 'menor-preco' | 'maior-preco' | 'maior-area';
+    /** The property type; blank for any. */
+    type: PropertyType | '';
+    /** The lowest price; 0 for any. */
+    min: number;
+    bathrooms: number;
+    parking: number;
+    /** The smallest area in m², built or else of the land; 0 for any. */
+    area: number;
+    /** What the property must offer, all of it. */
+    amenities: PropertyAmenity[];
 };

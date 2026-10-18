@@ -31,6 +31,7 @@ import type {
     ShowcaseCard as ShowcaseCardData,
     ShowcasePurpose,
     ShowcaseSite,
+    ShowcaseTextKey,
 } from '@/types';
 
 const props = defineProps<{
@@ -154,6 +155,21 @@ function scrollRail(chosen: ShowcasePurpose, direction: number) {
         behavior: 'smooth',
     });
 }
+
+/** The "why us" benefits, in the account's words, each with its own icon. */
+const benefits = computed(() =>
+    ([Wallet, ShieldCheck, Clock, MessageCircle] as const).map(
+        (icon, position) => ({
+            icon,
+            title: props.site.texts[
+                `benefit_${position + 1}_title` as ShowcaseTextKey
+            ],
+            text: props.site.texts[
+                `benefit_${position + 1}_text` as ShowcaseTextKey
+            ],
+        }),
+    ),
+);
 
 /** Photos of the properties on the showcase, to dress the banners and the "why us" section. */
 const photos = computed(() => [
@@ -311,18 +327,18 @@ function onOwnerSent() {
         <div class="sc-wrap sc-promos">
             <a class="sc-promo" href="#anunciar" @click="goal = 'alugar'">
                 <img v-if="photos[1]" :src="photos[1]" alt="" loading="lazy" />
-                <strong>Anuncie seu imóvel com a gente</strong>
-                <span>Fale com a equipe <ArrowRight /></span>
+                <strong>{{ site.texts.banner_1_title }}</strong>
+                <span>{{ site.texts.banner_1_action }} <ArrowRight /></span>
             </a>
             <a class="sc-promo" href="#anunciar" @click="goal = 'avaliar'">
                 <img v-if="photos[2]" :src="photos[2]" alt="" loading="lazy" />
-                <strong>Quanto vale o seu imóvel?</strong>
-                <span>Peça uma avaliação <ArrowRight /></span>
+                <strong>{{ site.texts.banner_2_title }}</strong>
+                <span>{{ site.texts.banner_2_action }} <ArrowRight /></span>
             </a>
             <a class="sc-promo" href="#sobre">
                 <img v-if="photos[3]" :src="photos[3]" alt="" loading="lazy" />
-                <strong>Administração completa do aluguel</strong>
-                <span>Conheça o serviço <ArrowRight /></span>
+                <strong>{{ site.texts.banner_3_title }}</strong>
+                <span>{{ site.texts.banner_3_action }} <ArrowRight /></span>
             </a>
         </div>
     </section>
@@ -410,49 +426,19 @@ function onOwnerSent() {
             </div>
             <div>
                 <h2>Por que escolher {{ site.name }}?</h2>
-                <p class="sc-why-lead">
-                    Cuidamos do imóvel do começo ao fim: do anúncio ao contrato,
-                    da cobrança ao repasse do aluguel.
-                </p>
+                <p class="sc-why-lead">{{ site.texts.why_lead }}</p>
                 <div class="sc-benefits">
-                    <div class="sc-benefit">
-                        <span class="sc-benefit-icon"><Wallet /></span>
+                    <div
+                        v-for="(benefit, position) in benefits"
+                        :key="position"
+                        class="sc-benefit"
+                    >
+                        <span class="sc-benefit-icon">
+                            <component :is="benefit.icon" />
+                        </span>
                         <div>
-                            <h3>Repasse todo mês</h3>
-                            <p>
-                                O proprietário recebe o aluguel com o extrato de
-                                cada mês.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="sc-benefit">
-                        <span class="sc-benefit-icon"><ShieldCheck /></span>
-                        <div>
-                            <h3>Inquilino com garantia</h3>
-                            <p>
-                                Contrato com fiador, caução ou seguro-fiança,
-                                como for melhor para o imóvel.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="sc-benefit">
-                        <span class="sc-benefit-icon"><Clock /></span>
-                        <div>
-                            <h3>Cobrança acompanhada</h3>
-                            <p>
-                                A equipe cobra o aluguel e acompanha os atrasos
-                                para você não precisar.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="sc-benefit">
-                        <span class="sc-benefit-icon"><MessageCircle /></span>
-                        <div>
-                            <h3>Atendimento direto</h3>
-                            <p>
-                                Interessados e proprietários falam com a equipe
-                                pelo WhatsApp.
-                            </p>
+                            <h3>{{ benefit.title }}</h3>
+                            <p>{{ benefit.text }}</p>
                         </div>
                     </div>
                 </div>

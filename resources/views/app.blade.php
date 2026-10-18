@@ -56,7 +56,13 @@
 
         @fonts
 
-        @vite(['resources/css/app.css', 'resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
+        {{-- The showcase styles go in the head, so its pages never show before them --}}
+        @vite([
+            'resources/css/app.css',
+            ...(($isShowcase ?? false) ? ['resources/css/showcase.css'] : []),
+            'resources/js/app.ts',
+            "resources/js/pages/{$page['component']}.vue",
+        ])
         <x-inertia::head>
             <title>{{ $meta['title'] ?? config('app.name', 'Laravel') }}</title>
         </x-inertia::head>

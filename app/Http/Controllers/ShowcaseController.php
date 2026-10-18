@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Showcase\PresentShowcaseProperty;
+use App\Enums\PropertyAmenity;
+use App\Enums\PropertyType;
 use App\Models\Account;
 use App\Models\Branch;
 use App\Models\Property;
@@ -88,12 +90,33 @@ class ShowcaseController extends Controller
             'bedrooms' => max(0, $request->integer('quartos')),
             'max' => max(0, $request->integer('ate')),
             'sort' => in_array($request->query('ordem'), self::SORTS, true) ? (string) $request->query('ordem') : 'recentes',
+            'type' => PropertyType::tryFrom($request->string('tipo')->toString())->value ?? '',
+            'min' => max(0, $request->integer('de')),
+            'bathrooms' => max(0, $request->integer('banheiros')),
+            'parking' => max(0, $request->integer('vagas')),
+            'area' => max(0, $request->integer('area')),
+            'amenities' => array_values(array_filter(
+                array_map(fn (PropertyAmenity $amenity): string => $amenity->value, PropertyAmenity::cases()),
+                fn (string $amenity): bool => in_array($amenity, explode(',', $request->string('comodidades')->toString()), true),
+            )),
         ];
 
         $properties = $this->properties($showcase, $purpose)
             ->when($filters['neighborhood'] !== '', fn (Builder $query) => $query->where('neighborhood', $filters['neighborhood']))
             ->when($filters['bedrooms'] > 0, fn (Builder $query) => $query->where('bedrooms', '>=', $filters['bedrooms']))
             ->when($filters['max'] > 0, fn (Builder $query) => $query->where($priceColumn, '<=', $filters['max']))
+            ->when($filters['min'] > 0, fn (Builder $query) => $query->where($priceColumn, '>=', $filters['min']))
+            ->when($filters['type'] !== '', fn (Builder $query) => $query->where('type', $filters['type']))
+            ->when($filters['bathrooms'] > 0, fn (Builder $query) => $query->where('bathrooms', '>=', $filters['bathrooms']))
+            ->when($filters['parking'] > 0, fn (Builder $query) => $query->where('parking_spaces', '>=', $filters['parking']))
+            ->when($filters['area'] > 0, fn (Builder $query) => $query->where(fn (Builder $query) => $query
+                ->where('built_area', '>=', $filters['area'])
+                ->orWhere(fn (Builder $query) => $query->whereNull('built_area')->where('land_area', '>=', $filters['area']))))
+            ->when($filters['amenities'] !== [], function (Builder $query) use ($filters): void {
+                foreach ($filters['amenities'] as $amenity) {
+                    $query->whereJsonContains('amenities', $amenity);
+                }
+            })
             ->when($filters['sort'] === 'menor-preco', fn (Builder $query) => $query->orderBy($priceColumn))
             ->when($filters['sort'] === 'maior-preco', fn (Builder $query) => $query->orderByDesc($priceColumn))
             ->when($filters['sort'] === 'maior-area', fn (Builder $query) => $query->orderByDesc('built_area'))
@@ -110,6 +133,8 @@ class ShowcaseController extends Controller
             'filters' => $filters,
             'properties' => $properties,
             'neighborhoods' => $this->neighborhoods($showcase),
+            'types' => $this->types($showcase),
+            'amenities' => $this->amenities($showcase),
         ])->withViewData(['isShowcase' => true, 'meta' => [
             'title' => "{$title} · {$showcase->name}",
             'description' => $site['headline'],
@@ -189,7 +214,7 @@ class ShowcaseController extends Controller
     /**
      * Get what every showcase page shows about the account: its name, contacts, look and offers.
      *
-     * @return array{name: string, slug: string, creci: string|null, phone: string|null, whatsapp: string|null, email: string|null, office: string|null, headline: string, about: string, color: array{accent: string, strong: string, wash: string}, logo_url: string|null, is_agency: bool, branches: list<array{name: string, city: string|null, state: string|null, phone: string|null}>, offers: array{sale: int, rent: int}}
+     * @return array{name: string, slug: string, creci: string|null, phone: string|null, whatsapp: string|null, email: string|null, office: string|null, headline: string, texts: array<string, string>, socials: list<array{network: string, label: string, url: string}>, color: array{accent: string, strong: string, wash: string}, logo_url: string|null, is_agency: bool, branches: list<array{name: string, city: string|null, state: string|null, phone: string|null}>, offers: array{sale: int, rent: int}}
      */
     private function site(Account $showcase): array
     {
@@ -197,10 +222,7 @@ class ShowcaseController extends Controller
             'sale' => $this->properties($showcase, 'sale')->count(),
             'rent' => $this->properties($showcase, 'rent')->count(),
         ];
-        $city = $showcase->city ?? $this->properties($showcase)
-            ->groupBy('city')
-            ->orderByRaw('count(*) desc')
-            ->value('city');
+        $city = $showcase->showcaseCity();
         $where = $city === null ? '' : " em {$city}";
         $color = $showcase->showcaseColor();
 
@@ -227,9 +249,12 @@ class ShowcaseController extends Controller
                 $offers['rent'] > 0 => "Imóveis para alugar{$where}.",
                 default => "Imóveis à venda{$where}.",
             },
-            'about' => $showcase->isAgency()
-                ? "Venda, aluguel e administração de imóveis{$where}."
-                : "Imóveis de {$showcase->name} para comprar e alugar{$where}.",
+            'texts' => $showcase->showcaseTexts(),
+            'socials' => array_values(array_filter([
+                $showcase->showcase_instagram === null ? null : ['network' => 'instagram', 'label' => 'Instagram', 'url' => $showcase->showcase_instagram],
+                $showcase->showcase_facebook === null ? null : ['network' => 'facebook', 'label' => 'Facebook', 'url' => $showcase->showcase_facebook],
+                $showcase->showcase_youtube === null ? null : ['network' => 'youtube', 'label' => 'YouTube', 'url' => $showcase->showcase_youtube],
+            ])),
             'color' => ['accent' => $color->hex(), 'strong' => $color->strongHex(), 'wash' => $color->washHex()],
             'logo_url' => $showcase->logo_path === null ? null : route('showcase.logo', ['showcase' => $showcase->showcase_slug, 'v' => $showcase->updated_at?->timestamp]),
             'is_agency' => $showcase->isAgency(),
@@ -291,6 +316,45 @@ class ShowcaseController extends Controller
             ->orderBy('neighborhood')
             ->pluck('neighborhood')
             ->all());
+    }
+
+    /**
+     * Get the property types on the showcase, to filter by.
+     *
+     * @return list<string>
+     */
+    private function types(Account $showcase): array
+    {
+        $types = Property::query()
+            ->where('account_id', $showcase->id)
+            ->onShowcase()
+            ->distinct()
+            ->pluck('type');
+
+        return array_values(array_map(
+            fn (PropertyType $type): string => $type->value,
+            array_filter(PropertyType::cases(), fn (PropertyType $type): bool => $types->contains($type)),
+        ));
+    }
+
+    /**
+     * Get what the properties on the showcase offer, in the order of the list, to filter by.
+     *
+     * @return list<string>
+     */
+    private function amenities(Account $showcase): array
+    {
+        $offered = Property::query()
+            ->where('account_id', $showcase->id)
+            ->onShowcase()
+            ->whereNotNull('amenities')
+            ->pluck('amenities')
+            ->flatten();
+
+        return array_values(array_map(
+            fn (PropertyAmenity $amenity): string => $amenity->value,
+            array_filter(PropertyAmenity::cases(), fn (PropertyAmenity $amenity): bool => $offered->contains($amenity)),
+        ));
     }
 
     /**

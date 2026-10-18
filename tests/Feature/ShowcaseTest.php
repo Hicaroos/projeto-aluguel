@@ -4,7 +4,9 @@ use App\Actions\Dashboard\BuildDayAgenda;
 use App\Enums\DealType;
 use App\Enums\LeadInterest;
 use App\Enums\LeadSource;
+use App\Enums\PropertyAmenity;
 use App\Enums\PropertyStatus;
+use App\Enums\PropertyType;
 use App\Enums\Role;
 use App\Models\Account;
 use App\Models\Deal;
@@ -106,6 +108,33 @@ test('the listing filters by purpose, neighborhood and price, and sorts', functi
             ->where('properties.total', 1)
             ->where('properties.data.0.id', $sale->id)
         );
+});
+
+test('the listing also filters by type, price range, bathrooms, parking, area and every amenity asked', function () {
+    ['rent' => $rent, 'both' => $both] = showcaseScenario();
+    $rent->update(['type' => PropertyType::Apartment, 'bathrooms' => 1, 'parking_spaces' => 1, 'built_area' => 70, 'amenities' => [PropertyAmenity::Pool]]);
+    $both->update(['type' => PropertyType::House, 'bathrooms' => 3, 'parking_spaces' => 2, 'built_area' => 160, 'amenities' => [PropertyAmenity::Gym, PropertyAmenity::Pool]]);
+    $listing = fn (array $query) => $this->get(route('showcase.index', ['showcase' => 'imobizilla', 'finalidade' => 'alugar', ...$query]));
+
+    $listing([])->assertInertia(fn (Assert $page) => $page
+        ->where('properties.total', 2)
+        ->where('types', ['house', 'apartment'])
+        ->where('amenities', ['pool', 'gym'])
+    );
+
+    foreach ([['tipo' => 'apartment'], ['tipo' => 'house'], ['de' => 1400, 'ate' => 2000], ['banheiros' => 2], ['vagas' => 2], ['area' => 100], ['comodidades' => 'pool,gym']] as $query) {
+        $expected = $query === ['tipo' => 'apartment'] ? $rent->id : $both->id;
+
+        $listing($query)->assertInertia(fn (Assert $page) => $page
+            ->where('properties.total', 1)
+            ->where('properties.data.0.id', $expected)
+        );
+    }
+
+    $listing(['comodidades' => 'pool,heliporto'])->assertInertia(fn (Assert $page) => $page
+        ->where('filters.amenities', ['pool'])
+        ->where('properties.total', 2)
+    );
 });
 
 test('the property page shows its details and a link preview, but not its address', function () {
@@ -332,4 +361,98 @@ test('publishing a property keeps the date it first went on the showcase', funct
     $this->actingAs($user)->put(route('properties.update', $property), [...$payload, 'is_published' => '0']);
 
     expect($property->fresh()->published_at)->toBeNull();
+});
+
+test('the property form saves the amenities, and unchecking them all clears them', function () {
+    $account = Account::factory()->create();
+    Owner::factory()->for($account, 'account')->create();
+    $user = User::factory()->for($account, 'account')->create();
+    $payload = [
+        'type' => 'apartment',
+        'zip_code' => '56200-000',
+        'street' => 'Rua Nova',
+        'number' => '10',
+        'neighborhood' => 'Centro',
+        'city' => 'Ouricuri',
+        'state' => 'PE',
+        'rent_amount' => '1200.00',
+        'status' => 'available',
+    ];
+
+    $this->actingAs($user)
+        ->post(route('properties.store'), [...$payload, 'amenities' => ['pool', 'gym']])
+        ->assertSessionHasNoErrors();
+
+    $property = Property::sole();
+    expect($property->amenities->all())->toBe([PropertyAmenity::Pool, PropertyAmenity::Gym]);
+
+    $this->actingAs($user)
+        ->put(route('properties.update', $property), [...$payload, 'amenities' => ['heliport']])
+        ->assertSessionHasErrors('amenities.0');
+
+    $this->actingAs($user)->put(route('properties.update', $property), $payload)->assertSessionHasNoErrors();
+
+    expect($property->fresh()->amenities->all())->toBe([]);
+});
+
+test('the property page lists the amenities apart from the condominium ones, and the address only when the account shows it', function () {
+    ['account' => $account, 'rent' => $rent] = showcaseScenario();
+    $rent->update(['amenities' => [PropertyAmenity::Gym, PropertyAmenity::Pool, PropertyAmenity::AirConditioning]]);
+    $url = route('showcase.show', ['showcase' => 'imobizilla', 'property' => $rent->id]);
+
+    $this->get($url)
+        ->assertDontSee('Rua Secreta')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('property.amenities', ['property' => ['Ar-condicionado', 'Piscina'], 'condo' => ['Academia']])
+            ->where('property.address', null)
+        );
+
+    $account->update(['showcase_shows_address' => true]);
+
+    $this->get($url)
+        ->assertInertia(fn (Assert $page) => $page->where('property.address', 'Rua Secreta, 42'));
+});
+
+test('the showcase settings save the social profiles as links and only the texts that differ from the defaults', function () {
+    ['admin' => $admin, 'account' => $account] = showcaseScenario();
+    $settings = [
+        'showcase_enabled' => true,
+        'showcase_slug' => 'imobizilla',
+        'showcase_whatsapp' => '(87) 99999-1234',
+        'showcase_color' => 'forest',
+        'showcase_instagram' => '@imobizilla',
+        'showcase_facebook' => 'facebook.com/imobizilla',
+        'showcase_youtube' => 'https://www.youtube.com/@imobizilla',
+        'showcase_texts' => [
+            'about' => 'Venda, aluguel e administração de imóveis em Ouricuri.',
+            'why_lead' => '  Vinte anos cuidando de imóveis em Ouricuri.  ',
+            'benefit_1_title' => '',
+        ],
+    ];
+
+    $this->actingAs($admin)->patch(route('showcase-settings.update'), $settings)->assertSessionHasNoErrors();
+
+    expect($account->fresh())
+        ->showcase_instagram->toBe('https://www.instagram.com/imobizilla')
+        ->showcase_facebook->toBe('https://facebook.com/imobizilla')
+        ->showcase_youtube->toBe('https://www.youtube.com/@imobizilla')
+        ->showcase_texts->toBe(['why_lead' => 'Vinte anos cuidando de imóveis em Ouricuri.']);
+
+    $this->get('/imobizilla')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('site.texts.why_lead', 'Vinte anos cuidando de imóveis em Ouricuri.')
+            ->where('site.texts.benefit_1_title', 'Repasse todo mês')
+            ->where('site.socials.0', ['network' => 'instagram', 'label' => 'Instagram', 'url' => 'https://www.instagram.com/imobizilla'])
+            ->has('site.socials', 3)
+        );
+
+    $this->actingAs($admin)
+        ->patch(route('showcase-settings.update'), [...$settings, 'showcase_instagram' => 'https://facebook.com/imobizilla', 'showcase_youtube' => 'meu canal'])
+        ->assertSessionHasErrors(['showcase_instagram', 'showcase_youtube']);
+
+    $this->actingAs($admin)
+        ->patch(route('showcase-settings.update'), [...$settings, 'showcase_texts' => ['why_lead' => '']])
+        ->assertSessionHasNoErrors();
+
+    expect($account->fresh()->showcase_texts)->toBeNull();
 });

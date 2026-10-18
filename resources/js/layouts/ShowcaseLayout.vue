@@ -2,7 +2,7 @@
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { Mail, MapPin, MessageCircle, Phone, X } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import '../../css/showcase.css';
+import ShowcaseSocialIcon from '@/components/showcase/ShowcaseSocialIcon.vue';
 import { formatPhone } from '@/lib/formatters';
 import { purposeParams, whatsappUrl } from '@/lib/showcase';
 import { home, index } from '@/routes/showcase';
@@ -169,7 +169,20 @@ const year = new Date().getFullYear();
                                 <span class="sc-brand-sub">Imóveis</span>
                             </span>
                         </Link>
-                        <p class="sc-footer-about">{{ site.about }}</p>
+                        <p class="sc-footer-about">{{ site.texts.about }}</p>
+                        <div v-if="site.socials.length > 0" class="sc-social">
+                            <a
+                                v-for="social in site.socials"
+                                :key="social.network"
+                                :href="social.url"
+                                target="_blank"
+                                rel="noopener"
+                                :aria-label="social.label"
+                                :title="social.label"
+                            >
+                                <ShowcaseSocialIcon :network="social.network" />
+                            </a>
+                        </div>
                     </div>
                     <div>
                         <h3>Atendimento</h3>

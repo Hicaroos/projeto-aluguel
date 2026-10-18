@@ -6,6 +6,7 @@ import {
     CarFront,
     Check,
     CircleCheck,
+    ExternalLink,
     Hash,
     LandPlot,
     MapPin,
@@ -115,6 +116,27 @@ const features = computed<Feature[]>(() => {
     return list.filter((feature): feature is Feature => feature !== null);
 });
 
+const amenityGroups = computed(() =>
+    [
+        { title: 'No imóvel', names: props.property.amenities.property },
+        { title: 'No condomínio', names: props.property.amenities.condo },
+    ].filter((group) => group.names.length > 0),
+);
+
+/** The full address, to find the property on the map; only when the account shows it. */
+const mapQuery = computed(
+    () =>
+        `${props.property.address}, ${props.property.neighborhood}, ${props.property.city} - ${props.property.state}`,
+);
+const mapEmbedUrl = computed(
+    () =>
+        `https://www.google.com/maps?q=${encodeURIComponent(mapQuery.value)}&output=embed`,
+);
+const mapUrl = computed(
+    () =>
+        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery.value)}`,
+);
+
 const chatUrl = computed(() =>
     whatsappUrl(props.site, propertyMessage(props.property)),
 );
@@ -196,6 +218,9 @@ function goToVisitForm() {
                         <span class="sc-pill">{{ offerLabel(property) }}</span>
                         <span>
                             <MapPin />
+                            <template v-if="property.address">
+                                {{ property.address }} ·
+                            </template>
                             {{ property.neighborhood }}, {{ property.city }},
                             {{ property.state }}
                         </span>
@@ -257,6 +282,49 @@ function goToVisitForm() {
                     <h2>Sobre o imóvel</h2>
                     <p class="sc-about">{{ property.description }}</p>
                 </section>
+
+                <section v-if="amenityGroups.length > 0" class="sc-panel">
+                    <h2>Comodidades</h2>
+                    <template v-for="group in amenityGroups" :key="group.title">
+                        <h3
+                            v-if="amenityGroups.length > 1"
+                            class="sc-amenities-title"
+                        >
+                            {{ group.title }}
+                        </h3>
+                        <ul class="sc-amenities">
+                            <li v-for="name in group.names" :key="name">
+                                <Check />
+                                {{ name }}
+                            </li>
+                        </ul>
+                    </template>
+                </section>
+
+                <section v-if="property.address" class="sc-panel">
+                    <h2>Localização</h2>
+                    <p class="sc-location">
+                        <MapPin />
+                        {{ mapQuery }}
+                    </p>
+                    <div class="sc-map">
+                        <iframe
+                            :src="mapEmbedUrl"
+                            title="Mapa com a localização do imóvel"
+                            loading="lazy"
+                            referrerpolicy="no-referrer-when-downgrade"
+                        />
+                    </div>
+                    <a
+                        class="sc-link sc-map-link"
+                        :href="mapUrl"
+                        target="_blank"
+                        rel="noopener"
+                    >
+                        Abrir no Google Maps
+                        <ExternalLink />
+                    </a>
+                </section>
             </div>
 
             <aside class="sc-aside" aria-label="Preço e contato">
@@ -281,7 +349,7 @@ function goToVisitForm() {
                                 <span>/mês</span>
                             </strong>
                         </div>
-                        <p class="sc-price-note">
+                        <p v-if="!property.address" class="sc-price-note">
                             O endereço completo é informado no agendamento da
                             visita.
                         </p>

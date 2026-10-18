@@ -4,6 +4,7 @@ namespace App\Http\Requests\Settings;
 
 use App\Concerns\NormalizesBrazilianNumbers;
 use App\Enums\ShowcaseColor;
+use App\Enums\ShowcaseText;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Routing\Route as AppRoute;
@@ -23,7 +24,19 @@ class ShowcaseSettingsRequest extends FormRequest
     private const array RESERVED_SLUGS = ['admin', 'api', 'app', 'build', 'imoveis', 'login', 'register', 'storage', 'vitrine', 'www'];
 
     /**
-     * Read the address in lowercase and the WhatsApp as digits only, however they were typed.
+     * The social networks the showcase links to: where a bare profile name leads, and the sites a link may point to.
+     *
+     * @var array<string, array{base: string, hosts: string}>
+     */
+    private const array SOCIAL_NETWORKS = [
+        'showcase_instagram' => ['base' => 'https://www.instagram.com/', 'hosts' => 'instagram\.com'],
+        'showcase_facebook' => ['base' => 'https://www.facebook.com/', 'hosts' => 'facebook\.com|fb\.com'],
+        'showcase_youtube' => ['base' => 'https://www.youtube.com/@', 'hosts' => 'youtube\.com|youtu\.be'],
+    ];
+
+    /**
+     * Read the address in lowercase, the WhatsApp as digits only and the social profiles as links,
+     * however they were typed.
      */
     protected function prepareForValidation(): void
     {
@@ -33,7 +46,26 @@ class ShowcaseSettingsRequest extends FormRequest
             'showcase_enabled' => $this->boolean('showcase_enabled'),
             'showcase_slug' => is_string($slug) && trim($slug) !== '' ? Str::lower(trim($slug)) : null,
             'showcase_whatsapp' => $this->digitsOnly($this->input('showcase_whatsapp')),
+            'showcase_shows_address' => $this->boolean('showcase_shows_address'),
+            ...collect(self::SOCIAL_NETWORKS)
+                ->map(fn (array $network, string $field): ?string => $this->socialLink($this->input($field), $network['base']))
+                ->all(),
         ]);
+    }
+
+    /**
+     * Turn a profile name, with or without @, or a link without https into the full link of the profile.
+     */
+    private function socialLink(mixed $value, string $base): ?string
+    {
+        $value = is_string($value) ? trim($value) : '';
+
+        return match (true) {
+            $value === '' => null,
+            (bool) preg_match('~^https?://~i', $value) => $value,
+            (bool) preg_match('~^(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}/~i', $value) => "https://{$value}",
+            default => $base.ltrim($value, '@'),
+        };
     }
 
     /**
@@ -58,6 +90,14 @@ class ShowcaseSettingsRequest extends FormRequest
             'showcase_whatsapp' => [Rule::requiredIf($this->boolean('showcase_enabled')), 'nullable', 'string', self::PHONE_RULE],
             'showcase_color' => ['required', Rule::enum(ShowcaseColor::class)],
             'showcase_headline' => ['nullable', 'string', 'max:120'],
+            'showcase_shows_address' => ['boolean'],
+            ...collect(self::SOCIAL_NETWORKS)
+                ->map(fn (array $network): array => ['nullable', 'string', 'max:255', 'url:http,https', "regex:~^https?://([a-z0-9-]+\\.)*({$network['hosts']})(/|$)~i"])
+                ->all(),
+            'showcase_texts' => ['sometimes', 'array'],
+            ...collect(ShowcaseText::cases())
+                ->mapWithKeys(fn (ShowcaseText $text): array => ["showcase_texts.{$text->value}" => ['nullable', 'string', "max:{$text->maxLength()}"]])
+                ->all(),
         ];
     }
 
@@ -88,6 +128,10 @@ class ShowcaseSettingsRequest extends FormRequest
             'showcase_whatsapp' => __('WhatsApp'),
             'showcase_color' => __('cor'),
             'showcase_headline' => __('título'),
+            'showcase_instagram' => __('Instagram'),
+            'showcase_facebook' => __('Facebook'),
+            'showcase_youtube' => __('YouTube'),
+            'showcase_texts.*' => __('texto'),
         ];
     }
 
@@ -103,6 +147,12 @@ class ShowcaseSettingsRequest extends FormRequest
             'showcase_slug.regex' => __('Use só letras minúsculas, números e hífens, como "imobiliaria-silva".'),
             'showcase_slug.not_in' => __('Esse endereço é usado pelo sistema. Escolha outro.'),
             'showcase_slug.unique' => __('Esse endereço já é de outra vitrine. Escolha outro.'),
+            ...collect(array_keys(self::SOCIAL_NETWORKS))
+                ->flatMap(fn (string $field): array => [
+                    "{$field}.url" => __('Informe o @ do perfil ou o link completo da página.'),
+                    "{$field}.regex" => __('Esse link não é de um perfil do :attribute.'),
+                ])
+                ->all(),
         ];
     }
 }

@@ -8,6 +8,7 @@ use App\Enums\PayoutMode;
 use App\Enums\PayoutRule;
 use App\Enums\PayoutSchedule;
 use App\Enums\ShowcaseColor;
+use App\Enums\ShowcaseText;
 use Database\Factories\AccountFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -39,6 +40,11 @@ use Illuminate\Support\Carbon;
  * @property string|null $showcase_whatsapp The WhatsApp number visitors talk to, as digits.
  * @property ShowcaseColor|null $showcase_color
  * @property string|null $showcase_headline The showcase title, in place of the one written from the account's city.
+ * @property bool $showcase_shows_address Whether the showcase shows the street, the number and a map of each property.
+ * @property string|null $showcase_instagram The links to the account's profiles, shown in the showcase footer.
+ * @property string|null $showcase_facebook
+ * @property string|null $showcase_youtube
+ * @property array<string, string>|null $showcase_texts The showcase texts the account rewrote, by ShowcaseText.
  * @property string $sale_commission_percent The commission the agency usually charges on sales.
  * @property string $admin_fee_percent Payout rule defaults, see PayoutRule.
  * @property string $intermediation_fee_percent
@@ -81,6 +87,11 @@ use Illuminate\Support\Carbon;
     'showcase_whatsapp',
     'showcase_color',
     'showcase_headline',
+    'showcase_shows_address',
+    'showcase_instagram',
+    'showcase_facebook',
+    'showcase_youtube',
+    'showcase_texts',
     'sale_commission_percent',
     'admin_fee_percent',
     'intermediation_fee_percent',
@@ -218,6 +229,63 @@ class Account extends Model
     }
 
     /**
+     * Get the city the showcase speaks of: the agency's own, or the one with the most properties on it.
+     */
+    public function showcaseCity(): ?string
+    {
+        return $this->city ?? Property::withoutGlobalScope(Property::BRANCH_SCOPE)
+            ->withoutGlobalScope(Owner::SELECTION_SCOPE)
+            ->where('account_id', $this->id)
+            ->onShowcase()
+            ->groupBy('city')
+            ->orderByRaw('count(*) desc')
+            ->value('city');
+    }
+
+    /**
+     * Get the texts of the showcase, the account's own where it rewrote them and the defaults elsewhere.
+     *
+     * @return array<string, string>
+     */
+    public function showcaseTexts(): array
+    {
+        return [...$this->defaultShowcaseTexts(), ...($this->showcase_texts ?? [])];
+    }
+
+    /**
+     * Get the default texts of the showcase, written from the account's name and city.
+     *
+     * @return array<string, string>
+     */
+    public function defaultShowcaseTexts(): array
+    {
+        $city = $this->showcaseCity();
+        $where = $city === null ? '' : " em {$city}";
+
+        return collect(ShowcaseText::cases())
+            ->mapWithKeys(fn (ShowcaseText $text): array => [$text->value => $text->defaultText($this, $where)])
+            ->all();
+    }
+
+    /**
+     * Keep only the showcase texts that differ from the defaults, so a blank field brings its default back.
+     *
+     * @param  array<array-key, mixed>  $texts
+     * @return array<string, string>|null
+     */
+    public function showcaseTextOverrides(array $texts): ?array
+    {
+        $defaults = $this->defaultShowcaseTexts();
+        $overrides = collect($texts)
+            ->only(array_keys($defaults))
+            ->map(fn (mixed $text): string => is_string($text) ? trim($text) : '')
+            ->filter(fn (string $text, string $key): bool => $text !== '' && $text !== $defaults[$key])
+            ->all();
+
+        return $overrides === [] ? null : $overrides;
+    }
+
+    /**
      * Get the address of the agency logo, changing whenever the account is saved so browsers fetch a new logo.
      *
      * @return Attribute<string|null, never>
@@ -241,6 +309,8 @@ class Account extends Model
             'status' => AccountStatus::class,
             'showcase_enabled' => 'boolean',
             'showcase_color' => ShowcaseColor::class,
+            'showcase_shows_address' => 'boolean',
+            'showcase_texts' => 'array',
             'sale_commission_percent' => 'decimal:2',
             ...PayoutRule::casts(),
         ];
