@@ -38,6 +38,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { usePermissions } from '@/composables/usePermissions';
+import { badgeTones } from '@/lib/badge-tones';
 import { formatCurrency } from '@/lib/currency';
 import {
     formatDate,
@@ -128,7 +129,7 @@ const formatPercent = (value: string): string =>
                         <Badge
                             v-if="canSettleDeposit(lease)"
                             variant="outline"
-                            class="border-attention-border bg-attention text-attention-foreground"
+                            :class="badgeTones.warning"
                         >
                             <PiggyBank class="size-3" />
                             Caução em aberto

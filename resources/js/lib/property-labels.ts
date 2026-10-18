@@ -8,6 +8,7 @@ import {
     Warehouse,
 } from '@lucide/vue';
 import type { LucideIcon } from '@lucide/vue';
+import { badgeDotTones, badgeTones } from '@/lib/badge-tones';
 import type {
     Property,
     PropertyAmenity,
@@ -84,21 +85,19 @@ export const propertyStatusLabels: Record<PropertyStatus, string> = {
 };
 
 export const propertyStatusBadgeClasses: Record<PropertyStatus, string> = {
-    available: 'border-primary/25 bg-primary/10 text-primary',
-    rented: 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/60 dark:text-sky-300',
-    maintenance:
-        'border-attention-border bg-attention text-attention-foreground',
-    inactive:
-        'border-zinc-200 bg-zinc-100 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400',
-    sold: 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/60 dark:text-violet-300',
+    available: badgeTones.success,
+    rented: badgeTones.info,
+    maintenance: badgeTones.warning,
+    inactive: badgeTones.neutral,
+    sold: badgeTones.accent,
 };
 
 export const propertyStatusDotClasses: Record<PropertyStatus, string> = {
-    available: 'bg-primary',
-    rented: 'bg-sky-500',
-    maintenance: 'bg-attention-strong',
-    inactive: 'bg-zinc-400',
-    sold: 'bg-violet-500',
+    available: badgeDotTones.success,
+    rented: badgeDotTones.info,
+    maintenance: badgeDotTones.warning,
+    inactive: badgeDotTones.neutral,
+    sold: badgeDotTones.accent,
 };
 
 type PropertyFeatures = Pick<

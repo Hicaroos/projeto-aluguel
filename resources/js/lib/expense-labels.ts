@@ -1,5 +1,6 @@
 import { CircleEllipsis, Landmark, Building2, Wrench } from '@lucide/vue';
 import type { LucideIcon } from '@lucide/vue';
+import { badgeDotTones, badgeTones } from '@/lib/badge-tones';
 import { daysUntil } from '@/lib/formatters';
 import type {
     Expense,
@@ -55,20 +56,17 @@ export const expenseStatusLabels: Record<ExpenseDisplayStatus, string> = {
 };
 
 export const expenseStatusBadgeClasses: Record<ExpenseDisplayStatus, string> = {
-    pending:
-        'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/60 dark:text-sky-300',
-    paid: 'border-primary/25 bg-primary/10 text-primary',
-    overdue:
-        'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-300',
-    canceled:
-        'border-zinc-200 bg-zinc-100 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400',
+    pending: badgeTones.info,
+    paid: badgeTones.success,
+    overdue: badgeTones.danger,
+    canceled: badgeTones.neutral,
 };
 
 export const expenseStatusDotClasses: Record<ExpenseDisplayStatus, string> = {
-    pending: 'bg-sky-500',
-    paid: 'bg-primary',
-    overdue: 'bg-rose-500',
-    canceled: 'bg-zinc-400',
+    pending: badgeDotTones.info,
+    paid: badgeDotTones.success,
+    overdue: badgeDotTones.danger,
+    canceled: badgeDotTones.neutral,
 };
 
 export function expenseDisplayStatus(

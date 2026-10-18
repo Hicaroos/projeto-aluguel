@@ -1,3 +1,4 @@
+import { badgeDotTones, badgeTones } from '@/lib/badge-tones';
 import { daysUntil, formatMonthYear } from '@/lib/formatters';
 import type {
     LateCharges,
@@ -16,22 +17,19 @@ export const paymentStatusLabels: Record<PaymentDisplayStatus, string> = {
 };
 
 export const paymentStatusBadgeClasses: Record<PaymentDisplayStatus, string> = {
-    pending:
-        'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/60 dark:text-sky-300',
-    partial: 'border-attention-border bg-attention text-attention-foreground',
-    paid: 'border-primary/25 bg-primary/10 text-primary',
-    overdue:
-        'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-300',
-    canceled:
-        'border-zinc-200 bg-zinc-100 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400',
+    pending: badgeTones.info,
+    partial: badgeTones.warning,
+    paid: badgeTones.success,
+    overdue: badgeTones.danger,
+    canceled: badgeTones.neutral,
 };
 
 export const paymentStatusDotClasses: Record<PaymentDisplayStatus, string> = {
-    pending: 'bg-sky-500',
-    partial: 'bg-attention-strong',
-    paid: 'bg-primary',
-    overdue: 'bg-rose-500',
-    canceled: 'bg-zinc-400',
+    pending: badgeDotTones.info,
+    partial: badgeDotTones.warning,
+    paid: badgeDotTones.success,
+    overdue: badgeDotTones.danger,
+    canceled: badgeDotTones.neutral,
 };
 
 export const paymentMethodLabels: Record<PaymentMethod, string> = {

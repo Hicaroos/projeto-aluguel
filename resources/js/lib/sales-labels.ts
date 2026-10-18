@@ -1,3 +1,4 @@
+import { badgeTones } from '@/lib/badge-tones';
 import type {
     DealType,
     LeadInterest,
@@ -27,9 +28,9 @@ export const leadInterestLabels: Record<LeadInterest, string> = {
 };
 
 export const leadInterestBadgeClasses: Record<LeadInterest, string> = {
-    buy: 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/60 dark:text-violet-300',
-    rent: 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/60 dark:text-sky-300',
-    list: 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300',
+    buy: badgeTones.accent,
+    rent: badgeTones.info,
+    list: badgeTones.warning,
 };
 
 export const paymentPlanLabels: Record<PaymentPlan, string> = {
@@ -52,10 +53,9 @@ export const visitStatusLabels: Record<VisitStatus, string> = {
 };
 
 export const visitStatusBadgeClasses: Record<VisitStatus, string> = {
-    scheduled:
-        'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/60 dark:text-sky-300',
-    done: 'border-primary/25 bg-primary/10 text-primary',
-    canceled: 'text-muted-foreground',
+    scheduled: badgeTones.info,
+    done: badgeTones.success,
+    canceled: badgeTones.neutral,
 };
 
 export const proposalStatusLabels: Record<ProposalStatus, string> = {
@@ -66,12 +66,10 @@ export const proposalStatusLabels: Record<ProposalStatus, string> = {
 };
 
 export const proposalStatusBadgeClasses: Record<ProposalStatus, string> = {
-    pending: 'border-attention-border bg-attention text-attention-foreground',
-    accepted: 'border-primary/25 bg-primary/10 text-primary',
-    rejected:
-        'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-300',
-    countered:
-        'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/60 dark:text-sky-300',
+    pending: badgeTones.warning,
+    accepted: badgeTones.success,
+    rejected: badgeTones.danger,
+    countered: badgeTones.info,
 };
 
 /** Format a date and time such as "2026-10-12T14:30:00" as "12/10 às 14:30". */

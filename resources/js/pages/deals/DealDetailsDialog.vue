@@ -22,6 +22,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { usePermissions } from '@/composables/usePermissions';
+import { badgeTones } from '@/lib/badge-tones';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate, formatPhone } from '@/lib/formatters';
 import { propertyTypeIcons } from '@/lib/property-labels';
@@ -70,9 +71,9 @@ function stageOf(deal: Deal): DealStage | undefined {
                     <Badge
                         variant="outline"
                         :class="{
-                            'border-primary/25 bg-primary/10 text-primary':
+                            [badgeTones.success]:
                                 stageOf(deal)?.outcome === 'won',
-                            'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-300':
+                            [badgeTones.danger]:
                                 stageOf(deal)?.outcome === 'lost',
                         }"
                     >

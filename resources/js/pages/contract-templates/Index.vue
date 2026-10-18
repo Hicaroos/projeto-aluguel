@@ -24,6 +24,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { badgeTones } from '@/lib/badge-tones';
 import { formatDate } from '@/lib/formatters';
 import {
     create,
@@ -210,7 +211,7 @@ function confirmDelete() {
                         <Badge
                             v-if="template.is_default"
                             variant="outline"
-                            class="border-primary/25 bg-primary/10 text-primary"
+                            :class="badgeTones.success"
                         >
                             <Star class="size-3" />
                             Padrão

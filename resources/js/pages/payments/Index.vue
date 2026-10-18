@@ -57,6 +57,7 @@ import {
 } from '@/components/ui/table';
 import { getInitials } from '@/composables/useInitials';
 import { usePermissions } from '@/composables/usePermissions';
+import { badgeTones } from '@/lib/badge-tones';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate, formatMonthYear } from '@/lib/formatters';
 import {
@@ -515,7 +516,7 @@ function openRegisterDialog(paymentId: number) {
                                 <Badge
                                     v-if="payment.type === 'extra'"
                                     variant="outline"
-                                    class="border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/60 dark:text-violet-300"
+                                    :class="badgeTones.accent"
                                 >
                                     Avulsa
                                 </Badge>

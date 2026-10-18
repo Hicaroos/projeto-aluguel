@@ -1,3 +1,4 @@
+import { badgeTones } from '@/lib/badge-tones';
 import type { Role, TeamMemberStatus } from '@/types';
 
 /** What each role may do, shown when choosing a role. */
@@ -18,10 +19,8 @@ export const teamMemberStatusLabels: Record<TeamMemberStatus, string> = {
 };
 
 export const teamMemberStatusClasses: Record<TeamMemberStatus, string> = {
-    active: 'border-primary/25 bg-primary/10 text-primary',
-    pending:
-        'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-400',
-    expired:
-        'border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-400',
-    inactive: 'text-muted-foreground',
+    active: badgeTones.success,
+    pending: badgeTones.warning,
+    expired: badgeTones.danger,
+    inactive: badgeTones.neutral,
 };

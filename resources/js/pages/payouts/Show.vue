@@ -24,6 +24,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { badgeTones } from '@/lib/badge-tones';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate, formatDocument, formatMonthYear } from '@/lib/formatters';
 import AdjustmentDialog from '@/pages/payouts/AdjustmentDialog.vue';
@@ -275,7 +276,7 @@ const headClass =
                                 <Badge
                                     v-if="entry.is_pending"
                                     variant="outline"
-                                    class="text-amber-700 dark:text-amber-400"
+                                    :class="badgeTones.warning"
                                 >
                                     A partir de
                                     {{ formatDate(entry.available_on) }}

@@ -1,3 +1,4 @@
+import { badgeDotTones, badgeTones } from '@/lib/badge-tones';
 import { daysUntil } from '@/lib/formatters';
 import type {
     AdjustmentIndex,
@@ -18,9 +19,8 @@ export const adjustmentStatusBadgeClasses: Record<
     LeaseAdjustmentStatus,
     string
 > = {
-    available: 'border-attention-border bg-attention text-attention-foreground',
-    overdue:
-        'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-300',
+    available: badgeTones.warning,
+    overdue: badgeTones.danger,
 };
 
 /** Where to look up the accumulated 12-month variation of each index. */
@@ -81,16 +81,15 @@ export const leaseStatusLabels: Record<LeaseStatus, string> = {
 };
 
 export const leaseStatusBadgeClasses: Record<LeaseStatus, string> = {
-    active: 'border-primary/25 bg-primary/10 text-primary',
-    ended: 'border-zinc-200 bg-zinc-100 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400',
-    terminated:
-        'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-300',
+    active: badgeTones.success,
+    ended: badgeTones.neutral,
+    terminated: badgeTones.danger,
 };
 
 export const leaseStatusDotClasses: Record<LeaseStatus, string> = {
-    active: 'bg-primary',
-    ended: 'bg-zinc-400',
-    terminated: 'bg-rose-500',
+    active: badgeDotTones.success,
+    ended: badgeDotTones.neutral,
+    terminated: badgeDotTones.danger,
 };
 
 export const guaranteeTypeLabels: Record<GuaranteeType, string> = {
