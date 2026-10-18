@@ -8,6 +8,7 @@ import {
     FileText,
     HandCoins,
     PartyPopper,
+    Store,
     Receipt,
     TrendingUp,
     TriangleAlert,
@@ -115,6 +116,18 @@ const details: Record<DashboardAgendaKey, ItemDetails> = {
                 'propostas aguardando resposta',
             ),
         detail: () => 'Veja no funil',
+        href: dealsIndex().url,
+    },
+    showcase_requests: {
+        icon: Store,
+        tone: 'bg-primary/10 text-primary',
+        title: (count) =>
+            plural(
+                count,
+                'pedido de visita pela vitrine',
+                'pedidos de visita pela vitrine',
+            ),
+        detail: () => 'Chame no WhatsApp e agende a visita',
         href: dealsIndex().url,
     },
 };

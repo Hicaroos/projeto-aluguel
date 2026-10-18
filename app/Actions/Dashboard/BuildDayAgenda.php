@@ -4,11 +4,14 @@ namespace App\Actions\Dashboard;
 
 use App\Actions\Payouts\SummarizeOwnerBalances;
 use App\Enums\ExpenseStatus;
+use App\Enums\LeadSource;
 use App\Enums\Permission;
 use App\Enums\ProposalStatus;
 use App\Enums\Role;
 use App\Enums\VisitStatus;
+use App\Models\Deal;
 use App\Models\DealProposal;
+use App\Models\DealStage;
 use App\Models\DealVisit;
 use App\Models\Expense;
 use App\Models\Lease;
@@ -28,7 +31,7 @@ class BuildDayAgenda
     /**
      * List what needs the user's attention today, as far as their permissions go: payments to
      * collect, payouts to make, expenses to pay, leases to renew or adjust, proposals to answer and
-     * the visits of the day. Agents only see their own deals and visits.
+     * the visits of the day and the visits asked through the showcase. Agents only see their own deals and visits.
      *
      * @return array{items: list<AgendaItem>, visits: Collection<int, DealVisit>}
      */
@@ -92,12 +95,40 @@ class BuildDayAgenda
             ]);
 
             $items[] = $this->item('proposals_pending', $proposals);
+            $items[] = $this->item('showcase_requests', Owner::ignoringSelection(fn (): int => $this->showcaseRequests($user, $ownOnly)));
         }
 
         return [
             'items' => array_values(array_filter($items, fn (array $item): bool => $item['count'] > 0)),
             'visits' => $visits,
         ];
+    }
+
+    /**
+     * Count the visits asked through the showcase that nobody has followed up yet: their deals are still
+     * in the first stage of the funnel, with no visit scheduled. Agents count theirs and the unassigned ones.
+     */
+    private function showcaseRequests(User $user, bool $ownOnly): int
+    {
+        $firstStageId = DealStage::query()
+            ->whereNull('outcome')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->value('id');
+
+        if ($firstStageId === null) {
+            return 0;
+        }
+
+        return Deal::query()
+            ->where('deal_stage_id', $firstStageId)
+            ->whereNull('closed_at')
+            ->whereDoesntHave('visits')
+            ->whereHas('lead', fn (Builder $query) => $query->where('source', LeadSource::Website))
+            ->when($ownOnly, fn (Builder $query) => $query->where(fn (Builder $query) => $query
+                ->where('user_id', $user->id)
+                ->orWhereNull('user_id')))
+            ->count();
     }
 
     /**
