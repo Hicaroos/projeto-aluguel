@@ -5,6 +5,7 @@ use App\Http\Controllers\BranchSelectionController;
 use App\Http\Controllers\ContractTemplateController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DealController;
+use App\Http\Controllers\DealLeaseController;
 use App\Http\Controllers\DealProposalController;
 use App\Http\Controllers\DealVisitController;
 use App\Http\Controllers\ExpenseController;
@@ -85,6 +86,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::middleware('can:manage-rentals')->group(function () {
+        Route::get('deals/{deal}/lease', DealLeaseController::class)->name('deals.lease');
         Route::post('owners/link', [OwnerController::class, 'link'])->name('owners.link');
         Route::resource('owners', OwnerController::class)->only(['store', 'update', 'destroy']);
         Route::resource('properties', PropertyController::class)->only(['store', 'update', 'destroy']);

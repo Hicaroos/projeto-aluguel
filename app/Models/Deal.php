@@ -146,6 +146,36 @@ class Deal extends Model
     }
 
     /**
+     * Find the tenant the lead already is, by their phone or e-mail, to lease the property to.
+     */
+    public function leadTenant(): ?Tenant
+    {
+        $phone = $this->lead->phone;
+        $email = $this->lead->email;
+
+        if ($phone === null && $email === null) {
+            return null;
+        }
+
+        return Tenant::query()
+            ->where('account_id', $this->account_id)
+            ->where(fn (Builder $query) => $query
+                ->when($phone !== null, fn (Builder $query) => $query->orWhere('phone', $phone))
+                ->when($email !== null, fn (Builder $query) => $query->orWhere('email', $email)))
+            ->first();
+    }
+
+    /**
+     * Find the rent deal a lease is being registered from, among the user's deals.
+     */
+    public static function findForLease(mixed $id): ?self
+    {
+        return is_numeric($id)
+            ? static::query()->where('type', DealType::Rent)->with(['lead', 'property'])->find((int) $id)
+            : null;
+    }
+
+    /**
      * Determine whether the deal is still being negotiated.
      */
     public function isOpen(): bool

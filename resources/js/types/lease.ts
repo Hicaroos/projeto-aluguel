@@ -43,6 +43,15 @@ export type LeasePropertyOption = Pick<
 
 export type LeaseTenantOption = Pick<Tenant, 'id' | 'name'>;
 
+/** A rent deal just closed in the funnel, to start the new lease from. */
+export type LeaseFromDeal = {
+    deal_id: number;
+    property_id: number | null;
+    tenant_id: number | null;
+    /** The agreed rent. */
+    amount: string | null;
+};
+
 export type Lease = Partial<PayoutRuleOverrides> & {
     id: number;
     account_id: number;

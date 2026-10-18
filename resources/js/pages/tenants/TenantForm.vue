@@ -13,10 +13,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { link } from '@/routes/tenants';
-import type { Tenant } from '@/types';
+import type { Tenant, TenantFromDeal } from '@/types';
 
 const props = defineProps<{
     tenant?: Tenant | null;
+    /** The lead of a closed rent deal, to fill a new tenant with; saving goes on to the lease. */
+    fromDeal?: TenantFromDeal | null;
 }>();
 
 const emit = defineEmits<{
@@ -59,6 +61,13 @@ function useExistingTenant() {
         class="flex flex-col gap-8"
         @success="emit('success')"
     >
+        <input
+            v-if="fromDeal"
+            type="hidden"
+            name="deal_id"
+            :value="fromDeal.deal_id"
+        />
+
         <section class="grid gap-4">
             <h3
                 class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
@@ -73,7 +82,7 @@ function useExistingTenant() {
                     name="name"
                     autofocus
                     placeholder="Ex.: Maria da Silva"
-                    :default-value="tenant?.name"
+                    :default-value="tenant?.name ?? fromDeal?.name"
                 />
                 <InputError :message="errors.name" />
             </div>
@@ -112,7 +121,7 @@ function useExistingTenant() {
                         name="phone"
                         type="tel"
                         placeholder="(00) 00000-0000"
-                        :default-value="tenant?.phone"
+                        :default-value="tenant?.phone ?? fromDeal?.phone"
                     />
                     <InputError :message="errors.phone" />
                 </div>
@@ -130,7 +139,7 @@ function useExistingTenant() {
                     name="email"
                     type="email"
                     placeholder="nome@exemplo.com"
-                    :default-value="tenant?.email ?? ''"
+                    :default-value="tenant?.email ?? fromDeal?.email ?? ''"
                 />
                 <InputError :message="errors.email" />
             </div>

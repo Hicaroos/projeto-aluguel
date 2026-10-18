@@ -13,6 +13,7 @@ use App\Models\DealStage;
 use App\Models\DealVisit;
 use App\Models\Lead;
 use App\Models\Property;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -365,4 +366,59 @@ test('removing a lead removes their deals', function () {
 
     $this->assertModelMissing($lead);
     $this->assertModelMissing($deal);
+});
+
+test('a closed rent deal goes on to its lease, registering the lead as a tenant first when needed', function () {
+    ['account' => $account, 'user' => $user, 'lead' => $lead, 'stages' => $stages] = pipelineScenario();
+    $lead->update(['phone' => '87999991111', 'email' => 'carlos@example.com']);
+    $property = Property::factory()->for($account, 'account')->create(['rent_amount' => 1200]);
+    $deal = Deal::factory()->for($account, 'account')->for($lead)->create([
+        'type' => DealType::Rent,
+        'property_id' => $property->id,
+        'value' => 1100,
+        'deal_stage_id' => $stages->firstWhere('outcome', DealOutcome::Won)->id,
+    ]);
+
+    $this->actingAs($user)->get(route('deals.lease', $deal))->assertRedirect(route('tenants.index', ['negocio' => $deal->id]));
+
+    $this->actingAs($user)
+        ->get(route('tenants.index', ['negocio' => $deal->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('fromDeal', [
+            'deal_id' => $deal->id,
+            'name' => 'Carlos Comprador',
+            'phone' => '87999991111',
+            'email' => 'carlos@example.com',
+        ]));
+
+    $response = $this->actingAs($user)->post(route('tenants.store'), [
+        'name' => 'Carlos Comprador',
+        'cpf_cnpj' => '98765432100',
+        'phone' => '(87) 99999-1111',
+        'deal_id' => $deal->id,
+    ]);
+
+    $tenant = Tenant::sole();
+    $response->assertRedirect(route('leases.index', ['negocio' => $deal->id, 'inquilino' => $tenant->id]));
+
+    $this->actingAs($user)
+        ->get(route('leases.index', ['negocio' => $deal->id, 'inquilino' => $tenant->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('fromDeal', [
+            'deal_id' => $deal->id,
+            'property_id' => $property->id,
+            'tenant_id' => $tenant->id,
+            'amount' => '1100.00',
+        ]));
+
+    $this->actingAs($user)->get(route('deals.lease', $deal))->assertRedirect(route('leases.index', ['negocio' => $deal->id]));
+});
+
+test('only rent deals go on to a lease', function () {
+    ['account' => $account, 'user' => $user, 'lead' => $lead] = pipelineScenario();
+    $deal = Deal::factory()->for($account, 'account')->for($lead)->create(['type' => DealType::Sale]);
+
+    $this->actingAs($user)->get(route('deals.lease', $deal))->assertNotFound();
+
+    $this->actingAs($user)
+        ->get(route('leases.index', ['negocio' => $deal->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('fromDeal', null));
 });

@@ -15,6 +15,7 @@ use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
 use App\Http\Controllers\Concerns\SortsTable;
 use App\Http\Requests\LeaseRequest;
 use App\Models\ContractTemplate;
+use App\Models\Deal;
 use App\Models\Lease;
 use App\Models\Property;
 use App\Models\Tenant;
@@ -83,7 +84,35 @@ class LeaseController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name', 'is_default']),
             'payoutDefaults' => $showsPayoutRules ? $request->user()->account->only(PayoutRule::columns()) : null,
+            'fromDeal' => $this->fromDeal($request),
         ]);
+    }
+
+    /**
+     * Get what a new lease starts with when it comes from a rent deal closed in the funnel: its property,
+     * the agreed rent and the tenant the lead became.
+     *
+     * @return array{deal_id: int, property_id: int|null, tenant_id: int|null, amount: string|null}|null
+     */
+    private function fromDeal(Request $request): ?array
+    {
+        $deal = Deal::findForLease($request->query('negocio'));
+
+        if ($deal === null) {
+            return null;
+        }
+
+        $tenantId = Tenant::query()
+            ->where('account_id', $deal->account_id)
+            ->whereKey($request->integer('inquilino'))
+            ->value('id') ?? $deal->leadTenant()?->id;
+
+        return [
+            'deal_id' => $deal->id,
+            'property_id' => $deal->property_id,
+            'tenant_id' => $tenantId,
+            'amount' => $deal->value ?? $deal->property?->rent_amount,
+        ];
     }
 
     /**

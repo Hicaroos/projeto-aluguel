@@ -11,7 +11,7 @@ import {
     Users,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
@@ -51,7 +51,7 @@ import type { TableSort } from '@/lib/table-sort';
 import TenantDetailsDialog from '@/pages/tenants/TenantDetailsDialog.vue';
 import TenantForm from '@/pages/tenants/TenantForm.vue';
 import { destroy, index } from '@/routes/tenants';
-import type { Tenant, TenantPaginator } from '@/types';
+import type { Tenant, TenantFromDeal, TenantPaginator } from '@/types';
 
 const can = usePermissions();
 
@@ -59,6 +59,8 @@ const props = defineProps<{
     tenants: TenantPaginator;
     filters: TableSort & { search: string };
     selected: Tenant | null;
+    /** The lead of a rent deal just closed in the funnel, to register as the tenant of its lease. */
+    fromDeal: TenantFromDeal | null;
 }>();
 
 defineOptions({
@@ -95,6 +97,19 @@ function openCreateDialog() {
     formDialogTenant.value = null;
     isFormDialogOpen.value = true;
 }
+
+/** Coming from a closed rent deal: open the form filled with the lead, once, and clean the address. */
+if (props.fromDeal) {
+    openCreateDialog();
+}
+
+onMounted(() => {
+    if (props.fromDeal) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('negocio');
+        window.history.replaceState(window.history.state, '', url);
+    }
+});
 
 function openEditDialog(tenant: Tenant) {
     tenantToShow.value = null;
@@ -313,7 +328,9 @@ function confirmDelete() {
                         {{
                             formDialogTenant
                                 ? 'Atualize os dados do inquilino.'
-                                : 'Preencha os dados para cadastrar um novo inquilino.'
+                                : fromDeal
+                                  ? `Locação fechada! Complete os dados de ${fromDeal.name} para seguir ao contrato.`
+                                  : 'Preencha os dados para cadastrar um novo inquilino.'
                         }}
                     </DialogDescription>
                 </div>
@@ -321,6 +338,7 @@ function confirmDelete() {
             <TenantForm
                 :key="formDialogTenant?.id ?? 'create'"
                 :tenant="formDialogTenant"
+                :from-deal="formDialogTenant ? null : fromDeal"
                 @success="isFormDialogOpen = false"
             />
         </DialogScrollContent>

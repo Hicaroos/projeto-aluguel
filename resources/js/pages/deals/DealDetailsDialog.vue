@@ -3,6 +3,7 @@ import { Link } from '@inertiajs/vue3';
 import {
     BadgeCheck,
     CircleX,
+    FileSignature,
     House,
     MessageCircle,
     Pencil,
@@ -27,6 +28,7 @@ import { propertyTypeIcons } from '@/lib/property-labels';
 import { dealTypeLabels } from '@/lib/sales-labels';
 import DealProposals from '@/pages/deals/DealProposals.vue';
 import DealVisits from '@/pages/deals/DealVisits.vue';
+import { lease } from '@/routes/deals';
 import { index as leadsIndex } from '@/routes/leads';
 import { index as propertiesIndex } from '@/routes/properties';
 import { index as salesIndex } from '@/routes/sales';
@@ -199,6 +201,22 @@ function stageOf(deal: Deal): DealStage | undefined {
                 <Link :href="salesIndex({ query: { show: deal.sale.id } })">
                     <BadgeCheck class="size-4" />
                     Ver venda
+                </Link>
+            </Button>
+
+            <Button
+                v-if="
+                    deal.type === 'rent' &&
+                    stageOf(deal)?.outcome === 'won' &&
+                    can.manageRentals
+                "
+                variant="outline"
+                class="w-fit"
+                as-child
+            >
+                <Link :href="lease(deal)">
+                    <FileSignature class="size-4" />
+                    Cadastrar contrato
                 </Link>
             </Button>
 

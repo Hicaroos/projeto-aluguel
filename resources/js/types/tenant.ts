@@ -3,6 +3,14 @@ import type { Paginator } from './pagination';
 import type { PersonQualification } from './person';
 import type { Property } from './property';
 
+/** The lead of a rent deal closed in the funnel, to register as the tenant of its lease. */
+export type TenantFromDeal = {
+    deal_id: number;
+    name: string;
+    phone: string | null;
+    email: string | null;
+};
+
 export type Tenant = PersonQualification & {
     id: number;
     account_id: number;

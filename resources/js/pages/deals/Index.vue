@@ -41,7 +41,7 @@ import DealForm from '@/pages/deals/DealForm.vue';
 import DealStagesDialog from '@/pages/deals/DealStagesDialog.vue';
 import LostDealDialog from '@/pages/deals/LostDealDialog.vue';
 import SaleDialog from '@/pages/deals/SaleDialog.vue';
-import { destroy, index, move } from '@/routes/deals';
+import { destroy, index, lease, move } from '@/routes/deals';
 import type {
     Deal,
     DealLeadOption,
@@ -149,10 +149,17 @@ function win(deal: Deal) {
             { deal_stage_id: wonStage.value.id },
             {
                 preserveScroll: true,
-                onSuccess: () =>
+                onSuccess: () => {
+                    if (can.value.manageRentals) {
+                        router.visit(lease(deal).url);
+
+                        return;
+                    }
+
                     toast.success(
                         'Locação fechada. Agora cadastre o contrato de aluguel.',
-                    ),
+                    );
+                },
             },
         );
     }

@@ -15,7 +15,7 @@ import {
     TrendingUp,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
-import { ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
@@ -80,6 +80,7 @@ import type {
     ContractTemplateOption,
     PayoutRules,
     Lease,
+    LeaseFromDeal,
     LeasePaginator,
     LeasePropertyOption,
     LeaseStatus,
@@ -100,6 +101,8 @@ const props = defineProps<{
     contractTemplates: ContractTemplateOption[];
     /** The agency payout defaults, for members who handle the money. */
     payoutDefaults: PayoutRules | null;
+    /** A rent deal just closed in the funnel, to start the new lease from. */
+    fromDeal: LeaseFromDeal | null;
 }>();
 
 defineOptions({
@@ -146,6 +149,20 @@ function openCreateDialog() {
     formDialogLease.value = null;
     isFormDialogOpen.value = true;
 }
+
+/** Coming from a closed rent deal: open the new lease filled with it, once, and clean the address. */
+if (props.fromDeal) {
+    openCreateDialog();
+}
+
+onMounted(() => {
+    if (props.fromDeal) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('negocio');
+        url.searchParams.delete('inquilino');
+        window.history.replaceState(window.history.state, '', url);
+    }
+});
 
 function openEditDialog(lease: Lease) {
     leaseToShow.value = null;
@@ -571,7 +588,9 @@ function confirmDelete() {
                         {{
                             formDialogLease
                                 ? 'Atualize as informações do contrato.'
-                                : 'Vincule um inquilino a um imóvel disponível.'
+                                : fromDeal
+                                  ? 'Já preenchido com o imóvel, o inquilino e o valor do negócio fechado. Confira e complete o resto.'
+                                  : 'Vincule um inquilino a um imóvel disponível.'
                         }}
                     </DialogDescription>
                 </div>
@@ -582,6 +601,7 @@ function confirmDelete() {
                 :properties="properties"
                 :tenants="tenants"
                 :payout-defaults="payoutDefaults"
+                :from-deal="formDialogLease ? null : fromDeal"
                 @success="isFormDialogOpen = false"
             />
         </DialogScrollContent>

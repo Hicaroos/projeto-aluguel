@@ -32,6 +32,7 @@ import type {
     AdjustmentIndex,
     GuaranteeType,
     Lease,
+    LeaseFromDeal,
     LeasePurpose,
     LeasePropertyOption,
     LeaseTenantOption,
@@ -44,6 +45,8 @@ const props = defineProps<{
     tenants: LeaseTenantOption[];
     /** The agency payout defaults, for members who handle the money; null hides the payout terms. */
     payoutDefaults?: PayoutRules | null;
+    /** A rent deal just closed in the funnel, to fill a new lease with. */
+    fromDeal?: LeaseFromDeal | null;
 }>();
 
 const emit = defineEmits<{
@@ -79,9 +82,17 @@ const tenantOptions = computed<SearchableSelectOption[]>(() =>
     })),
 );
 
-const propertyId = ref(props.lease ? String(props.lease.property_id) : '');
-const tenantId = ref(props.lease ? String(props.lease.tenant_id) : '');
-const amount = ref(props.lease?.amount ?? '');
+const propertyId = ref(
+    props.lease
+        ? String(props.lease.property_id)
+        : String(props.fromDeal?.property_id ?? ''),
+);
+const tenantId = ref(
+    props.lease
+        ? String(props.lease.tenant_id)
+        : String(props.fromDeal?.tenant_id ?? ''),
+);
+const amount = ref(props.lease?.amount ?? props.fromDeal?.amount ?? '');
 
 /** An active lease's rent being edited directly, instead of through an adjustment. */
 const isChangingActiveRent = computed(

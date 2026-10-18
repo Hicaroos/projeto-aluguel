@@ -7,6 +7,7 @@ use App\Http\Controllers\Concerns\LinksToUserBranches;
 use App\Http\Controllers\Concerns\ResolvesSelectedRecord;
 use App\Http\Controllers\Concerns\SortsTable;
 use App\Http\Requests\TenantRequest;
+use App\Models\Deal;
 use App\Models\Owner;
 use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Builder;
@@ -45,17 +46,23 @@ class TenantController extends Controller
             'created_at' => fn (Builder $query, SortDirection $direction) => $query->orderBy('created_at', $direction),
         ], default: 'name');
 
+        $deal = Deal::findForLease($request->query('negocio'));
+
         return Inertia::render('tenants/Index', [
             'tenants' => $list
                 ->paginate(10)
                 ->appends($this->queryWithoutSelection($request)),
             'selected' => $this->resolveSelectedRecord($request, $tenants()),
             'filters' => ['search' => $search, ...$sorting],
+            'fromDeal' => $deal === null ? null : [
+                'deal_id' => $deal->id,
+                ...$deal->lead->only(['name', 'phone', 'email']),
+            ],
         ]);
     }
 
     /**
-     * Store a newly created tenant.
+     * Store a newly created tenant. One registered while closing a rent deal goes on to its lease.
      */
     public function store(TenantRequest $request): RedirectResponse
     {
@@ -65,6 +72,14 @@ class TenantController extends Controller
         ]);
 
         $this->linkToUserBranches($request->user(), $tenant);
+
+        $deal = Deal::findForLease($request->input('deal_id'));
+
+        if ($deal !== null) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('Inquilino cadastrado. Agora confira o contrato de aluguel.')]);
+
+            return to_route('leases.index', ['negocio' => $deal->id, 'inquilino' => $tenant->id]);
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Inquilino cadastrado com sucesso.')]);
 
