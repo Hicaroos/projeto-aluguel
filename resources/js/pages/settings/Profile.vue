@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { Form, Head, usePage } from '@inertiajs/vue3';
 import { Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/DeleteUser.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import MaskedInput from '@/components/MaskedInput.vue';
+import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,6 +34,9 @@ defineOptions({
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+
+/** A new e-mail takes the current password, asked for only once the e-mail changes. */
+const email = ref(user.value.email);
 
 /** Single owner accounts edit their name in the owner details, where it is used in contracts. */
 const isSingleOwner = computed(() => props.account?.type === 'single_owner');
@@ -86,15 +90,31 @@ const isSingleOwner = computed(() => props.account?.type === 'single_owner');
                 <Label for="email">E-mail</Label>
                 <Input
                     id="email"
+                    v-model="email"
                     type="email"
                     class="mt-1 block w-full"
                     name="email"
-                    :default-value="user.email"
                     required
                     autocomplete="username"
                     placeholder="E-mail"
                 />
                 <InputError class="mt-2" :message="errors.email" />
+            </div>
+
+            <div v-if="email !== user.email" class="grid gap-2">
+                <Label for="current_password">Senha atual</Label>
+                <PasswordInput
+                    id="current_password"
+                    name="current_password"
+                    class="mt-1 block w-full"
+                    autocomplete="current-password"
+                    placeholder="Senha atual"
+                    required
+                />
+                <p class="text-sm text-muted-foreground">
+                    Para trocar o e-mail, confirme sua senha.
+                </p>
+                <InputError class="mt-2" :message="errors.current_password" />
             </div>
 
             <div v-if="owner" class="grid gap-2">

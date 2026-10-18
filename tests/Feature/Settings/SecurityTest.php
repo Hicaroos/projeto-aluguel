@@ -79,6 +79,36 @@ test('password can be updated', function () {
     expect(Hash::check('new-password', $user->refresh()->password))->toBeTrue();
 });
 
+test('the other sessions of a user end when their password changes, as after a reset', function () {
+    $user = User::factory()->create();
+
+    $this->post(route('login.store'), ['email' => $user->email, 'password' => 'password']);
+    $this->get(route('dashboard'))->assertOk();
+
+    $user->forceFill(['password' => 'nova-senha-123'])->save();
+    $this->app['auth']->forgetGuards();
+
+    $this->get(route('dashboard'))->assertRedirect(route('login'));
+    $this->assertGuest();
+});
+
+test('the session that changes the password stays signed in', function () {
+    $user = User::factory()->create();
+
+    $this->post(route('login.store'), ['email' => $user->email, 'password' => 'password']);
+    $this->get(route('dashboard'))->assertOk();
+
+    $this->put(route('user-password.update'), [
+        'current_password' => 'password',
+        'password' => 'nova-senha-123',
+        'password_confirmation' => 'nova-senha-123',
+    ])->assertSessionHasNoErrors();
+    $this->app['auth']->forgetGuards();
+
+    $this->get(route('dashboard'))->assertOk();
+    $this->assertAuthenticatedAs($user);
+});
+
 test('correct password must be provided to update password', function () {
     $user = User::factory()->create();
 

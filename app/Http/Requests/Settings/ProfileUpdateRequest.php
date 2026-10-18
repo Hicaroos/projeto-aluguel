@@ -3,13 +3,14 @@
 namespace App\Http\Requests\Settings;
 
 use App\Concerns\NormalizesBrazilianNumbers;
+use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ProfileUpdateRequest extends FormRequest
 {
-    use NormalizesBrazilianNumbers, ProfileValidationRules;
+    use NormalizesBrazilianNumbers, PasswordValidationRules, ProfileValidationRules;
 
     /**
      * Store the owner phone as digits only, however it was typed.
@@ -36,7 +37,17 @@ class ProfileUpdateRequest extends FormRequest
             // An agency's name changes only in the agency settings, which take the permission to manage the agency.
             'account_name' => $isSingleOwner ? ['sometimes', 'required', 'string', 'max:255'] : ['exclude'],
             'owner_phone' => ['nullable', 'string', self::PHONE_RULE],
+            // The e-mail is what a password reset goes to, so whoever changes it must know the password.
+            'current_password' => $this->changesEmail() ? $this->currentPasswordRules() : ['exclude'],
         ];
+    }
+
+    /**
+     * Determine whether the request gives the user another e-mail.
+     */
+    public function changesEmail(): bool
+    {
+        return $this->input('email') !== $this->user()->email;
     }
 
     /**

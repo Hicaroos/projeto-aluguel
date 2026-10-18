@@ -51,6 +51,7 @@ test('profile information can be updated', function () {
         ->patch(route('profile.update'), [
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'current_password' => 'password',
         ]);
 
     $response
@@ -100,6 +101,7 @@ test('updating the profile of a single owner account keeps the owner name and em
         ->patch(route('profile.update'), [
             'name' => 'Nome Novo',
             'email' => 'novo@example.com',
+            'current_password' => 'password',
         ])
         ->assertSessionHasNoErrors();
 
@@ -113,7 +115,7 @@ test('a single owner account can update the profile without the name, which is e
     $user = User::factory()->for($account, 'account')->create(['name' => 'Maria Dona']);
 
     $this->actingAs($user)
-        ->patch(route('profile.update'), ['email' => 'maria@example.com', 'account_name' => 'Imóveis da Maria'])
+        ->patch(route('profile.update'), ['email' => 'maria@example.com', 'current_password' => 'password', 'account_name' => 'Imóveis da Maria'])
         ->assertSessionHasNoErrors();
 
     expect($user->fresh()->name)->toBe('Maria Dona')
@@ -153,11 +155,25 @@ test('updating the profile of an agency does not change its owners', function ()
     $user = User::factory()->for($account, 'account')->create();
 
     $this->actingAs($user)
-        ->patch(route('profile.update'), ['name' => 'Corretor', 'email' => 'corretor@example.com'])
+        ->patch(route('profile.update'), ['name' => 'Corretor', 'email' => 'corretor@example.com', 'current_password' => 'password'])
         ->assertSessionHasNoErrors();
 
     expect($owner->fresh()->name)->toBe('Proprietário Cliente');
 });
+
+test('changing the email takes the current password', function (?string $password) {
+    $user = User::factory()->create(['email' => 'antigo@example.com']);
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'name' => $user->name,
+            'email' => 'novo@example.com',
+            'current_password' => $password,
+        ])
+        ->assertSessionHasErrors('current_password');
+
+    expect($user->fresh()->email)->toBe('antigo@example.com');
+})->with(['no password' => null, 'a wrong password' => 'errada']);
 
 test('email verification status is unchanged when the email address is unchanged', function () {
     $user = User::factory()->create();

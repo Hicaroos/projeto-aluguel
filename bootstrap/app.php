@@ -23,6 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->append(AddSecurityHeaders::class);
 
+        // Sign out the other sessions of a user whose password changed, e.g. after they reset it.
+        $middleware->authenticateSessions();
+
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->web(append: [
