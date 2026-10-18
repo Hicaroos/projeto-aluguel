@@ -117,3 +117,20 @@ test('agencies must give their name, a valid CNPJ and a phone; the CRECI is opti
     'a CPF as CNPJ' => ['agency_document', '123.456.789-00'],
     'no phone' => ['agency_phone', ''],
 ]);
+
+test('sign ups from one address are rate limited', function () {
+    foreach (range(1, 10) as $attempt) {
+        $this->post(route('register.store'), registrationPayload(['email' => "pessoa{$attempt}@example.com"]))
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('dashboard', absolute: false));
+
+        // Each sign up signs the new user in; come back as a guest for the next one.
+        $this->app['auth']->forgetGuards();
+        $this->flushSession();
+    }
+
+    $this->post(route('register.store'), registrationPayload(['email' => 'mais-uma@example.com']))
+        ->assertTooManyRequests();
+
+    expect(User::count())->toBe(10);
+});

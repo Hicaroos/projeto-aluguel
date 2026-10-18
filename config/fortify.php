@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\ThrottleAuthenticationRequests;
 use Laravel\Fortify\Features;
 
 return [
@@ -101,7 +102,9 @@ return [
     |
     */
 
-    'middleware' => ['web'],
+    // Fortify throttles only logins and two-factor codes; the second one throttles sign ups, password
+    // resets and password confirmation.
+    'middleware' => ['web', ThrottleAuthenticationRequests::class],
 
     /*
     |--------------------------------------------------------------------------

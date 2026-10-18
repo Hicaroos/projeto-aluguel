@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Fortify\LoginRateLimiter;
 use App\Models\User;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Fortify\Features;
@@ -74,6 +75,21 @@ test('users are rate limited with a message instead of a bare error page', funct
     ]);
 
     $response->assertSessionHasErrors('email');
+    expect(session('errors')->first('email'))->toStartWith('Muitas tentativas de login.');
+    $this->assertGuest();
+});
+
+test('failed logins from one address are capped whatever the e-mails tried', function () {
+    $user = User::factory()->create();
+
+    foreach (range(1, LoginRateLimiter::MAX_FAILURES_PER_ADDRESS) as $attempt) {
+        $this->post(route('login.store'), ['email' => "alvo{$attempt}@example.com", 'password' => 'errada'])
+            ->assertSessionHasErrors(['email' => __('auth.failed')]);
+    }
+
+    $this->post(route('login.store'), ['email' => $user->email, 'password' => 'password'])
+        ->assertSessionHasErrors('email');
+
     expect(session('errors')->first('email'))->toStartWith('Muitas tentativas de login.');
     $this->assertGuest();
 });

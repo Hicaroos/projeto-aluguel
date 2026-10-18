@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
+use App\Actions\Fortify\LoginRateLimiter;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -15,6 +16,7 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
+use Laravel\Fortify\LoginRateLimiter as FortifyLoginRateLimiter;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -23,7 +25,7 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(FortifyLoginRateLimiter::class, LoginRateLimiter::class);
     }
 
     /**
@@ -101,6 +103,22 @@ class FortifyServiceProvider extends ServiceProvider
     {
         RateLimiter::for('two-factor', function (Request $request) {
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
+        });
+
+        // The limiters below guard the routes listed in ThrottleAuthenticationRequests.
+        RateLimiter::for('register', function (Request $request) {
+            return Limit::perHour(10)->by($request->ip());
+        });
+
+        RateLimiter::for('password-reset', function (Request $request) {
+            return [
+                Limit::perMinute(5)->by('minute:'.$request->ip()),
+                Limit::perHour(20)->by('hour:'.$request->ip()),
+            ];
+        });
+
+        RateLimiter::for('password-confirmation', function (Request $request) {
+            return Limit::perMinute(5)->by($request->user()?->id ?: $request->ip());
         });
     }
 }

@@ -64,6 +64,15 @@ test('password can be reset with valid token', function () {
     });
 });
 
+test('reset link requests from one address are rate limited', function () {
+    foreach (range(1, 5) as $attempt) {
+        $this->post(route('password.email'), ['email' => "pessoa{$attempt}@example.com"])
+            ->assertSessionHasErrors('email');
+    }
+
+    $this->post(route('password.email'), ['email' => 'pessoa6@example.com'])->assertTooManyRequests();
+});
+
 test('password cannot be reset with invalid token', function () {
     $user = User::factory()->create();
 
