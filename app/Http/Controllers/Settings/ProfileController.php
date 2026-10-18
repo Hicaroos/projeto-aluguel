@@ -21,7 +21,8 @@ class ProfileController extends Controller
     public function edit(Request $request): Response
     {
         $account = $request->user()->account;
-        $owner = $account?->owners()->first();
+        // Only a single owner is their account's owner; an agency's owners are its clients.
+        $owner = $account?->isAgency() ? null : $account?->primaryOwner();
 
         return Inertia::render('settings/Profile', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,

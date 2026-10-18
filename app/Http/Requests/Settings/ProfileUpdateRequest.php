@@ -28,10 +28,13 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
+        $isSingleOwner = $this->user()->account?->isAgency() === false;
+
         return [
             ...$this->profileRules($this->user()->id),
             'name' => ['sometimes', ...$this->nameRules()],
-            'account_name' => ['sometimes', 'required', 'string', 'max:255'],
+            // An agency's name changes only in the agency settings, which take the permission to manage the agency.
+            'account_name' => $isSingleOwner ? ['sometimes', 'required', 'string', 'max:255'] : ['exclude'],
             'owner_phone' => ['nullable', 'string', self::PHONE_RULE],
         ];
     }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Role;
 use App\Models\Account;
 use App\Models\Branch;
 use App\Models\Guarantor;
@@ -118,6 +119,32 @@ test('a single owner account can update the profile without the name, which is e
     expect($user->fresh()->name)->toBe('Maria Dona')
         ->and($owner->fresh()->name)->toBe('Maria Dona')
         ->and($owner->fresh()->email)->toBe('maria@example.com');
+});
+
+test('agency members cannot rename the agency through their profile', function (Role $role) {
+    $account = Account::factory()->agency()->create(['name' => 'Imobiliária Silva']);
+    User::factory()->for($account, 'account')->create();
+    $member = User::factory()->for($account, 'account')->withRole($role)->create();
+
+    $this->actingAs($member)
+        ->patch(route('profile.update'), [
+            'name' => $member->name,
+            'email' => $member->email,
+            'account_name' => 'Nome trocado',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($account->fresh()->name)->toBe('Imobiliária Silva');
+})->with([Role::Admin, Role::General, Role::Agent, Role::Finance]);
+
+test('the profile of an agency member shows none of the agency owners', function () {
+    $account = Account::factory()->agency()->create();
+    Owner::factory()->for($account, 'account')->create(['phone' => '11999999999']);
+    $member = User::factory()->for($account, 'account')->withRole(Role::Agent)->create();
+
+    $this->actingAs($member)
+        ->get(route('profile.edit'))
+        ->assertInertia(fn (Assert $page) => $page->where('owner', null));
 });
 
 test('updating the profile of an agency does not change its owners', function () {

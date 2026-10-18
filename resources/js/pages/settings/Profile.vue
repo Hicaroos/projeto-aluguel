@@ -55,7 +55,7 @@ const isSingleOwner = computed(() => props.account?.type === 'single_owner');
             class="space-y-6"
             v-slot="{ errors, processing }"
         >
-            <div v-if="account" class="grid gap-2">
+            <div v-if="account && isSingleOwner" class="grid gap-2">
                 <Label for="account_name">Nome da conta</Label>
                 <Input
                     id="account_name"
