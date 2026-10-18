@@ -15,7 +15,7 @@ import {
     Wallet,
     Clock,
 } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import ShowcaseListingController from '@/actions/App/Http/Controllers/ShowcaseListingController';
 import ShowcaseCard from '@/components/showcase/ShowcaseCard.vue';
 import ShowcaseEditableText from '@/components/showcase/ShowcaseEditableText.vue';
@@ -31,6 +31,7 @@ import {
 import { index } from '@/routes/showcase';
 import type {
     ShowcaseCard as ShowcaseCardData,
+    ShowcaseCity,
     ShowcasePurpose,
     ShowcaseSite,
     ShowcaseTextKey,
@@ -44,6 +45,8 @@ const props = defineProps<{
     forSale: ShowcaseCardData[];
     forRent: ShowcaseCardData[];
     neighborhoods: string[];
+    /** The cities on the showcase; the search asks for a city only when there are several. */
+    cities: ShowcaseCity[];
 }>();
 
 const purposes = computed(() =>
@@ -55,19 +58,42 @@ const purposes = computed(() =>
 /* ---------- Search ---------- */
 
 const purpose = ref<ShowcasePurpose>(purposes.value[0] ?? 'rent');
+const city = ref('');
 const neighborhood = ref('');
 const bedrooms = ref('0');
 const max = ref('0');
+
+const hasCities = computed(() => props.cities.length > 1);
+
+/** The neighborhoods of the chosen city, or of every city. */
+const neighborhoodOptions = computed(() =>
+    city.value
+        ? (props.cities.find((option) => option.name === city.value)
+              ?.neighborhoods ?? [])
+        : props.neighborhoods,
+);
+
+/** Let go of a neighborhood that belongs to another city. */
+watch(neighborhoodOptions, (options) => {
+    if (!options.includes(neighborhood.value)) {
+        neighborhood.value = '';
+    }
+});
 
 function choosePurpose(chosen: ShowcasePurpose) {
     purpose.value = chosen;
     max.value = '0';
 }
 
-function listingUrl(chosen: ShowcasePurpose, chosenNeighborhood = '') {
+function listingUrl(
+    chosen: ShowcasePurpose,
+    chosenNeighborhood = '',
+    chosenCity = '',
+) {
     return index(props.site.slug, {
         query: {
             finalidade: purposeParams[chosen],
+            cidade: chosenCity || undefined,
             bairro: chosenNeighborhood || undefined,
         },
     });
@@ -78,6 +104,7 @@ function search() {
         index(props.site.slug, {
             query: {
                 finalidade: purposeParams[purpose.value],
+                cidade: city.value || undefined,
                 bairro: neighborhood.value || undefined,
                 quartos: bedrooms.value !== '0' ? bedrooms.value : undefined,
                 ate: max.value !== '0' ? max.value : undefined,
@@ -257,7 +284,20 @@ function onOwnerSent() {
             <p v-else class="sc-search-label">
                 Imóveis {{ purposeWords[purpose] }}
             </p>
-            <div class="sc-search-row">
+            <div class="sc-search-row" :class="{ 'has-city': hasCities }">
+                <div v-if="hasCities" class="sc-field">
+                    <label for="search-city">Cidade</label>
+                    <select id="search-city" v-model="city" class="sc-select">
+                        <option value="">Todas as cidades</option>
+                        <option
+                            v-for="option in cities"
+                            :key="option.name"
+                            :value="option.name"
+                        >
+                            {{ option.name }}
+                        </option>
+                    </select>
+                </div>
                 <div class="sc-field">
                     <label for="search-neighborhood">Bairro</label>
                     <select
@@ -267,7 +307,7 @@ function onOwnerSent() {
                     >
                         <option value="">Todos os bairros</option>
                         <option
-                            v-for="name in neighborhoods"
+                            v-for="name in neighborhoodOptions"
                             :key="name"
                             :value="name"
                         >
@@ -310,12 +350,12 @@ function onOwnerSent() {
                     Buscar
                 </button>
             </div>
-            <p v-if="neighborhoods.length > 1" class="sc-search-foot">
+            <p v-if="neighborhoodOptions.length > 1" class="sc-search-foot">
                 <span>Bairros:</span>
                 <Link
-                    v-for="name in neighborhoods.slice(0, 6)"
+                    v-for="name in neighborhoodOptions.slice(0, 6)"
                     :key="name"
-                    :href="listingUrl(purpose, name)"
+                    :href="listingUrl(purpose, name, city)"
                 >
                     {{ name }}
                 </Link>

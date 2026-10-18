@@ -117,8 +117,16 @@ export type ShowcaseEditorSettings = {
 
 export type ShowcasePurpose = 'sale' | 'rent';
 
+/** A city with properties on the showcase, with its own neighborhoods to filter by. */
+export type ShowcaseCity = {
+    name: string;
+    neighborhoods: string[];
+};
+
 export type ShowcaseFilters = {
     purpose: ShowcasePurpose;
+    /** The city; blank for any. */
+    city: string;
     neighborhood: string;
     bedrooms: number;
     /** The highest price; 0 for any. */

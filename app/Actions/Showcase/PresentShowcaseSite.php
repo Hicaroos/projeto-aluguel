@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\Branch;
 use App\Models\Property;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 /**
  * Present what every page of an account's showcase shows about the account, and its home.
@@ -13,7 +14,8 @@ use Illuminate\Database\Eloquent\Builder;
  * @phpstan-import-type ShowcaseCard from PresentShowcaseProperty
  *
  * @phpstan-type ShowcaseSite array{name: string, slug: string, creci: string|null, phone: string|null, whatsapp: string|null, email: string|null, office: string|null, headline: string, texts: array<string, string>, socials: list<array{network: string, label: string, url: string}>, color: array{accent: string, strong: string, wash: string}, logo_url: string|null, is_agency: bool, branches: list<array{name: string, city: string|null, state: string|null, phone: string|null}>, offers: array{sale: int, rent: int}}
- * @phpstan-type ShowcaseHome array{site: ShowcaseSite, featured: ShowcaseCard|null, heroPhoto: string|null, forSale: list<ShowcaseCard>, forRent: list<ShowcaseCard>, neighborhoods: list<string>}
+ * @phpstan-type ShowcaseCity array{name: string, neighborhoods: list<string>}
+ * @phpstan-type ShowcaseHome array{site: ShowcaseSite, featured: ShowcaseCard|null, heroPhoto: string|null, forSale: list<ShowcaseCard>, forRent: list<ShowcaseCard>, neighborhoods: list<string>, cities: list<ShowcaseCity>}
  */
 class PresentShowcaseSite
 {
@@ -46,6 +48,7 @@ class PresentShowcaseSite
             'forSale' => $this->latestCards($showcase, 'sale'),
             'forRent' => $this->latestCards($showcase, 'rent'),
             'neighborhoods' => $this->neighborhoods($showcase),
+            'cities' => $this->cities($showcase),
         ];
     }
 
@@ -134,6 +137,29 @@ class PresentShowcaseSite
             ->distinct()
             ->orderBy('neighborhood')
             ->pluck('neighborhood')
+            ->all());
+    }
+
+    /**
+     * Get the cities with properties on the showcase, each with its own neighborhoods, so a visitor
+     * picking a city only sees that city's neighborhoods.
+     *
+     * @return list<ShowcaseCity>
+     */
+    public function cities(Account $showcase): array
+    {
+        return array_values(Property::query()
+            ->where('account_id', $showcase->id)
+            ->onShowcase()
+            ->distinct()
+            ->orderBy('city')
+            ->orderBy('neighborhood')
+            ->get(['city', 'neighborhood'])
+            ->groupBy('city')
+            ->map(fn (Collection $properties, string $city): array => [
+                'name' => $city,
+                'neighborhoods' => array_values($properties->pluck('neighborhood')->unique()->all()),
+            ])
             ->all());
     }
 

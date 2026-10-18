@@ -110,6 +110,38 @@ test('the listing filters by purpose, neighborhood and price, and sorts', functi
         );
 });
 
+test('the listing filters by city, each city with its own neighborhoods', function () {
+    ['account' => $account, 'owner' => $owner, 'rent' => $rent] = showcaseScenario();
+    $elsewhere = Property::factory()
+        ->for($account, 'account')
+        ->for($owner, 'owner')
+        ->published()
+        ->create(['city' => 'Araripina', 'state' => 'PE', 'neighborhood' => 'Centro', 'rent_amount' => 900]);
+
+    $this->get(route('showcase.home', 'imobizilla'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('cities', [
+                ['name' => 'Araripina', 'neighborhoods' => ['Centro']],
+                ['name' => 'Ouricuri', 'neighborhoods' => ['Centro', 'Horizonte', 'São Sebastião']],
+            ])
+        );
+
+    $this->get(route('showcase.index', ['showcase' => 'imobizilla', 'finalidade' => 'alugar', 'cidade' => 'Araripina', 'bairro' => 'Centro']))
+        ->assertSee('<meta property="og:title" content="Imóveis para alugar em Araripina · Imobizilla">', false)
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.city', 'Araripina')
+            ->where('properties.total', 1)
+            ->where('properties.data.0.id', $elsewhere->id)
+            ->has('cities', 2)
+        );
+
+    $this->get(route('showcase.index', ['showcase' => 'imobizilla', 'finalidade' => 'alugar', 'bairro' => 'Centro']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.city', '')
+            ->where('properties.data', fn ($cards) => collect($cards)->pluck('id')->sort()->values()->all() === collect([$rent->id, $elsewhere->id])->sort()->values()->all())
+        );
+});
+
 test('the listing also filters by type, price range, bathrooms, parking, area and every amenity asked', function () {
     ['rent' => $rent, 'both' => $both] = showcaseScenario();
     $rent->update(['type' => PropertyType::Apartment, 'bathrooms' => 1, 'parking_spaces' => 1, 'built_area' => 70, 'amenities' => [PropertyAmenity::Pool]]);

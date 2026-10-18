@@ -791,6 +791,15 @@ html[data-showcase] body {
     padding-inline: 26px;
 }
 
+@media (min-width: 961px) {
+    .sc-search-row.has-city {
+        grid-template-columns: repeat(2, minmax(0, 1.4fr)) repeat(
+                2,
+                minmax(0, 1fr)
+            ) auto;
+    }
+}
+
 .sc-search-foot {
     display: flex;
     flex-wrap: wrap;
@@ -1252,6 +1261,13 @@ html[data-showcase] body {
     grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
     gap: 12px;
     align-items: end;
+}
+
+/* With properties in several cities the bar gains a city field. */
+@media (min-width: 961px) {
+    .sc-filterbar.has-city {
+        grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+    }
 }
 
 .sc-more-toggle {
@@ -1893,6 +1909,11 @@ html[data-showcase] body {
         grid-column: 1 / -1;
     }
 
+    /* With a city field the four fields pair up on two rows. */
+    .sc-search-row.has-city .sc-field:first-child {
+        grid-column: auto;
+    }
+
     .sc-promos {
         grid-template-columns: minmax(0, 1fr);
     }
@@ -1925,6 +1946,11 @@ html[data-showcase] body {
 
     .sc-more-toggle {
         grid-column: 1 / -1;
+    }
+
+    /* The city field makes the fields odd, so the toggle takes the free spot beside the sort. */
+    .sc-filterbar.has-city .sc-more-toggle {
+        grid-column: auto;
     }
 
     .sc-aside {

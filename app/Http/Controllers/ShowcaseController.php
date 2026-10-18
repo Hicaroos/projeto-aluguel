@@ -68,6 +68,7 @@ class ShowcaseController extends Controller
         $priceColumn = $purpose === 'sale' ? 'sale_price' : 'rent_amount';
         $filters = [
             'purpose' => $purpose,
+            'city' => $request->string('cidade')->toString(),
             'neighborhood' => $request->string('bairro')->toString(),
             'bedrooms' => max(0, $request->integer('quartos')),
             'max' => max(0, $request->integer('ate')),
@@ -84,6 +85,7 @@ class ShowcaseController extends Controller
         ];
 
         $properties = $this->presentSite->properties($showcase, $purpose)
+            ->when($filters['city'] !== '', fn (Builder $query) => $query->where('city', $filters['city']))
             ->when($filters['neighborhood'] !== '', fn (Builder $query) => $query->where('neighborhood', $filters['neighborhood']))
             ->when($filters['bedrooms'] > 0, fn (Builder $query) => $query->where('bedrooms', '>=', $filters['bedrooms']))
             ->when($filters['max'] > 0, fn (Builder $query) => $query->where($priceColumn, '<=', $filters['max']))
@@ -108,20 +110,26 @@ class ShowcaseController extends Controller
             ->withQueryString()
             ->through(fn (Property $property): array => $this->present->card($showcase, $property));
 
-        $title = $purpose === 'sale' ? __('Imóveis à venda') : __('Imóveis para alugar');
+        $title = ($purpose === 'sale' ? __('Imóveis à venda') : __('Imóveis para alugar'))
+            .($filters['city'] !== '' ? " em {$filters['city']}" : '');
 
         return Inertia::render('showcase/Index', [
             'site' => $site,
             'filters' => $filters,
             'properties' => $properties,
             'neighborhoods' => $this->presentSite->neighborhoods($showcase),
+            'cities' => $this->presentSite->cities($showcase),
             'types' => $this->types($showcase),
             'amenities' => $this->amenities($showcase),
         ])->withViewData(['isShowcase' => true, 'meta' => [
             'title' => "{$title} · {$showcase->name}",
             'description' => $site['headline'],
             'image' => $this->ogImage($showcase, null),
-            'url' => route('showcase.index', ['showcase' => $showcase->showcase_slug, 'finalidade' => $purpose === 'sale' ? 'comprar' : 'alugar']),
+            'url' => route('showcase.index', array_filter([
+                'showcase' => $showcase->showcase_slug,
+                'finalidade' => $purpose === 'sale' ? 'comprar' : 'alugar',
+                'cidade' => $filters['city'],
+            ])),
         ]]);
     }
 

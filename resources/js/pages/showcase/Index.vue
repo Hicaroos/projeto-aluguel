@@ -28,6 +28,7 @@ import type {
     PropertyAmenity,
     PropertyType,
     ShowcaseCard as ShowcaseCardData,
+    ShowcaseCity,
     ShowcaseFilters,
     ShowcasePurpose,
     ShowcaseSite,
@@ -38,6 +39,8 @@ const props = defineProps<{
     filters: ShowcaseFilters;
     properties: Paginator<ShowcaseCardData>;
     neighborhoods: string[];
+    /** The cities on the showcase; the city filter shows only when there are several. */
+    cities: ShowcaseCity[];
     /** The property types on the showcase. */
     types: PropertyType[];
     /** What the properties on the showcase offer. */
@@ -57,9 +60,30 @@ const purposes = computed(() =>
     ),
 );
 
+/** Where the visitor is looking, for the title and the WhatsApp message: " no bairro Centro, em Ouricuri". */
+const place = computed(() =>
+    [
+        props.filters.neighborhood
+            ? ` no bairro ${props.filters.neighborhood}`
+            : '',
+        props.filters.city ? ` em ${props.filters.city}` : '',
+    ]
+        .filter(Boolean)
+        .join(','),
+);
+
 const title = computed(
-    () =>
-        `Imóveis ${purposeWords[props.filters.purpose]}${props.filters.neighborhood ? ` no bairro ${props.filters.neighborhood}` : ''}`,
+    () => `Imóveis ${purposeWords[props.filters.purpose]}${place.value}`,
+);
+
+const hasCities = computed(() => props.cities.length > 1);
+
+/** The neighborhoods of the chosen city, or of every city. */
+const neighborhoodOptions = computed(() =>
+    props.filters.city
+        ? (props.cities.find((city) => city.name === props.filters.city)
+              ?.neighborhoods ?? [])
+        : props.neighborhoods,
 );
 
 /** How many of the filters behind "Mais filtros" are in use. */
@@ -77,6 +101,7 @@ const moreFilters = computed(
 const activeFilters = computed(
     () =>
         [
+            props.filters.city !== '',
             props.filters.neighborhood !== '',
             props.filters.bedrooms > 0,
             props.filters.max > 0,
@@ -84,6 +109,7 @@ const activeFilters = computed(
 );
 
 const noFilters: Partial<ShowcaseFilters> = {
+    city: '',
     neighborhood: '',
     bedrooms: 0,
     max: 0,
@@ -153,6 +179,7 @@ function query(
 
     return {
         finalidade: purposeParams[filters.purpose],
+        cidade: filters.city || undefined,
         bairro: filters.neighborhood || undefined,
         quartos: filters.bedrooms || undefined,
         de: filters.min || undefined,
@@ -200,6 +227,22 @@ function onSelect(
     } as Partial<ShowcaseFilters>);
 }
 
+/** Pick a city, letting go of a neighborhood that belongs to another one. */
+function onSelectCity(event: Event) {
+    const city = (event.target as HTMLSelectElement).value;
+    const keepsNeighborhood =
+        city === '' ||
+        (props.cities
+            .find((option) => option.name === city)
+            ?.neighborhoods.includes(props.filters.neighborhood) ??
+            false);
+
+    filterBy({
+        city,
+        neighborhood: keepsNeighborhood ? props.filters.neighborhood : '',
+    });
+}
+
 function toggleAmenity(amenity: PropertyAmenity) {
     filterBy({
         amenities: props.filters.amenities.includes(amenity)
@@ -211,7 +254,7 @@ function toggleAmenity(amenity: PropertyAmenity) {
 const askUrl = computed(() =>
     whatsappUrl(
         props.site,
-        `Olá! Procuro um imóvel ${props.filters.purpose === 'sale' ? 'para comprar' : 'para alugar'}${props.filters.neighborhood ? ` no bairro ${props.filters.neighborhood}` : ''} e não achei no site. Podem me avisar quando entrar algum?`,
+        `Olá! Procuro um imóvel ${props.filters.purpose === 'sale' ? 'para comprar' : 'para alugar'}${place.value} e não achei no site. Podem me avisar quando entrar algum?`,
     ),
 );
 </script>
@@ -247,7 +290,25 @@ const askUrl = computed(() =>
                 </Link>
             </nav>
 
-            <div class="sc-filterbar">
+            <div class="sc-filterbar" :class="{ 'has-city': hasCities }">
+                <div v-if="hasCities" class="sc-field">
+                    <label for="list-city">Cidade</label>
+                    <select
+                        id="list-city"
+                        class="sc-select"
+                        :value="filters.city"
+                        @change="onSelectCity"
+                    >
+                        <option value="">Todas as cidades</option>
+                        <option
+                            v-for="city in cities"
+                            :key="city.name"
+                            :value="city.name"
+                        >
+                            {{ city.name }}
+                        </option>
+                    </select>
+                </div>
                 <div class="sc-field">
                     <label for="list-neighborhood">Bairro</label>
                     <select
@@ -258,7 +319,7 @@ const askUrl = computed(() =>
                     >
                         <option value="">Todos os bairros</option>
                         <option
-                            v-for="name in neighborhoods"
+                            v-for="name in neighborhoodOptions"
                             :key="name"
                             :value="name"
                         >
