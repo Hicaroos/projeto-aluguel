@@ -114,7 +114,8 @@ const mainNavItems = computed<NavItem[]>(() => [
         : []),
 ]);
 
-const salesNavItems: NavItem[] = [
+/** Leads and deals for renting and for selling, plus the closed sales. */
+const commercialNavItems: NavItem[] = [
     {
         title: 'Funil',
         href: deals(),
@@ -178,7 +179,7 @@ const footerNavItems = computed<NavItem[]>(() =>
 
         <SidebarContent>
             <NavMain :items="mainNavItems" />
-            <NavMain label="Vendas" :items="salesNavItems" />
+            <NavMain label="Comercial" :items="commercialNavItems" />
             <NavMain
                 v-if="managementNavItems.length > 0"
                 label="Gestão"
