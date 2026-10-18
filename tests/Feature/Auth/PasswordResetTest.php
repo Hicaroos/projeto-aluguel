@@ -64,10 +64,34 @@ test('password can be reset with valid token', function () {
     });
 });
 
+test('a reset request answers the same whether the e-mail has an account or not', function () {
+    Notification::fake();
+    $user = User::factory()->create();
+
+    $known = $this->from(route('password.request'))->post(route('password.email'), ['email' => $user->email]);
+    $unknown = $this->from(route('password.request'))->post(route('password.email'), ['email' => 'ninguem@example.com']);
+
+    foreach ([$known, $unknown] as $response) {
+        $response->assertRedirect(route('password.request'))
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', __('passwords.sent'));
+    }
+});
+
+test('a member with a pending invitation gets no reset link, which would bypass the invitation', function () {
+    Notification::fake();
+    $member = User::factory()->invited()->create();
+
+    $this->post(route('password.email'), ['email' => $member->email])
+        ->assertSessionHas('status', __('passwords.sent'));
+
+    Notification::assertNothingSentTo($member);
+});
+
 test('reset link requests from one address are rate limited', function () {
     foreach (range(1, 5) as $attempt) {
         $this->post(route('password.email'), ['email' => "pessoa{$attempt}@example.com"])
-            ->assertSessionHasErrors('email');
+            ->assertSessionHas('status');
     }
 
     $this->post(route('password.email'), ['email' => 'pessoa6@example.com'])->assertTooManyRequests();

@@ -2,6 +2,7 @@
 
 use App\Actions\Fortify\LoginRateLimiter;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Fortify\Features;
 
@@ -50,6 +51,24 @@ test('users can not authenticate with invalid password', function () {
         'email' => $user->email,
         'password' => 'wrong-password',
     ]);
+
+    $this->assertGuest();
+});
+
+test('a login with an e-mail without an account still hashes the password, taking as long as a wrong one', function () {
+    Hash::spy();
+
+    $this->post(route('login.store'), ['email' => 'ninguem@example.com', 'password' => 'qualquer'])
+        ->assertSessionHasErrors(['email' => __('auth.failed')]);
+
+    Hash::shouldHaveReceived('make')->once()->with('qualquer');
+});
+
+test('a member with a pending invitation cannot sign in, even knowing a password', function () {
+    $member = User::factory()->invited()->create();
+
+    $this->post(route('login.store'), ['email' => $member->email, 'password' => 'password'])
+        ->assertSessionHasErrors('email');
 
     $this->assertGuest();
 });

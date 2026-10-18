@@ -7,6 +7,7 @@ use App\Actions\Fortify\LoginRateLimiter;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Auth\PasswordBroker;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
@@ -14,8 +15,10 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
+use Laravel\Fortify\Http\Responses\SuccessfulPasswordResetLinkRequestResponse;
 use Laravel\Fortify\LoginRateLimiter as FortifyLoginRateLimiter;
 
 class FortifyServiceProvider extends ServiceProvider
@@ -26,6 +29,13 @@ class FortifyServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(FortifyLoginRateLimiter::class, LoginRateLimiter::class);
+
+        // Answer a reset request for an e-mail without an account as one for an e-mail with an account,
+        // so the form doesn't tell who uses the app.
+        $this->app->bind(
+            FailedPasswordResetLinkRequestResponse::class,
+            fn (): SuccessfulPasswordResetLinkRequestResponse => new SuccessfulPasswordResetLinkRequestResponse(PasswordBroker::RESET_LINK_SENT),
+        );
     }
 
     /**
@@ -48,9 +58,25 @@ class FortifyServiceProvider extends ServiceProvider
 
         Fortify::authenticateUsing(function (Request $request): ?User {
             $user = User::where('email', $request->string(Fortify::username())->toString())->first();
+            $password = $request->string('password')->toString();
 
-            if ($user === null || ! Hash::check($request->string('password')->toString(), $user->password)) {
+            if ($user === null) {
+                // Hash anyway, so the answer takes as long as for a wrong password and doesn't tell
+                // which e-mails have an account.
+                Hash::make($password);
+
                 return null;
+            }
+
+            if (! Hash::check($password, $user->password)) {
+                return null;
+            }
+
+            // Until they accept the invitation, only its link lets an invited member in.
+            if ($user->hasPendingInvitation()) {
+                throw ValidationException::withMessages([
+                    Fortify::username() => __('Seu convite ainda não foi aceito. Peça um novo link ao administrador da imobiliária.'),
+                ]);
             }
 
             if (! $user->isActive()) {

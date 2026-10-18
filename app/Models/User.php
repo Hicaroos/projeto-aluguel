@@ -122,6 +122,21 @@ class User extends Authenticatable
     }
 
     /**
+     * Send the password reset link, unless the user has a pending invitation: until they accept it,
+     * only its link lets them in, so an invitation sent to a mistyped e-mail can't be taken over.
+     *
+     * @param  string  $token
+     */
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        if ($this->hasPendingInvitation()) {
+            return;
+        }
+
+        parent::sendPasswordResetNotification($token);
+    }
+
+    /**
      * Determine whether the user may still use the app.
      */
     public function isActive(): bool
