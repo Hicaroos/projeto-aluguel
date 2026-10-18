@@ -2017,3 +2017,36 @@ html[data-showcase] body {
         right: 12px;
     }
 }
+
+/*
+ * Edit mode, opened from the settings: every text the account may rewrite shows a faint dashed
+ * outline in its own color, so it reads on white cards and on accent bands alike. The outline gets
+ * stronger on hover and solid while typing. The bottom padding keeps the editor bar off the footer.
+ */
+.sc.is-editing {
+    padding-bottom: 120px;
+}
+
+.sc-editable {
+    border-radius: 4px;
+    outline: 1.5px dashed color-mix(in srgb, currentColor 30%, transparent);
+    outline-offset: 3px;
+    cursor: text;
+    transition: outline-color 0.15s;
+}
+
+.sc-editable:hover {
+    outline-color: color-mix(in srgb, currentColor 65%, transparent);
+}
+
+.sc-editable:focus,
+.sc-editable:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+}
+
+/* An emptied text shows the default it falls back to. */
+.sc-editable:empty::before {
+    content: attr(data-placeholder);
+    opacity: 0.45;
+}

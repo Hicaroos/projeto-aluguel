@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
-import { Check, Copy, ExternalLink } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { Check, Copy, ExternalLink, PencilLine } from '@lucide/vue';
+import { ref } from 'vue';
 import ShowcaseController from '@/actions/App/Http/Controllers/Settings/ShowcaseController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { index as propertiesIndex } from '@/routes/properties';
 import { edit } from '@/routes/showcase-settings';
-import type { ShowcaseTextKey } from '@/types';
+import { edit as editTexts } from '@/routes/showcase-settings/texts';
 
 const props = defineProps<{
     showcase: {
@@ -20,7 +20,6 @@ const props = defineProps<{
         showcase_slug: string;
         showcase_whatsapp: string | null;
         showcase_color: string;
-        showcase_headline: string | null;
         showcase_shows_address: boolean;
         showcase_instagram: string | null;
         showcase_facebook: string | null;
@@ -31,12 +30,6 @@ const props = defineProps<{
     /** The site address the showcase address goes after. */
     baseUrl: string;
     colors: { value: string; label: string; hex: string }[];
-    /** The showcase texts, the account's own or the defaults. */
-    texts: Record<ShowcaseTextKey, string>;
-    defaultTexts: Record<ShowcaseTextKey, string>;
-    textLimits: Record<ShowcaseTextKey, number>;
-    /** Only agencies show the "why us" section and the banners. */
-    isAgency: boolean;
     publishedCount: number;
     propertiesCount: number;
 }>();
@@ -69,60 +62,6 @@ const socials = [
         placeholder: '@suaimobiliaria',
     },
 ] as const;
-
-type TextField = { key: ShowcaseTextKey; label: string; isLong?: boolean };
-
-type TextGroup = { title: string; fields: TextField[] };
-
-const textGroups = computed<TextGroup[]>(() => {
-    const groups: TextGroup[] = [
-        {
-            title: 'Rodapé',
-            fields: [{ key: 'about', label: 'Sobre', isLong: true }],
-        },
-    ];
-
-    if (!props.isAgency) {
-        return groups;
-    }
-
-    return [
-        ...groups,
-        {
-            title: 'Por que escolher',
-            fields: [
-                { key: 'why_lead', label: 'Introdução', isLong: true },
-                ...([1, 2, 3, 4] as const).flatMap((position): TextField[] => [
-                    {
-                        key: `benefit_${position}_title` as ShowcaseTextKey,
-                        label: `Vantagem ${position}`,
-                    },
-                    {
-                        key: `benefit_${position}_text` as ShowcaseTextKey,
-                        label: `Explicação da vantagem ${position}`,
-                        isLong: true,
-                    },
-                ]),
-            ],
-        },
-        {
-            title: 'Banners da página inicial',
-            fields: ([1, 2, 3] as const).flatMap((position): TextField[] => [
-                {
-                    key: `banner_${position}_title` as ShowcaseTextKey,
-                    label: `Banner ${position}`,
-                },
-                {
-                    key: `banner_${position}_action` as ShowcaseTextKey,
-                    label: `Chamada do banner ${position}`,
-                },
-            ]),
-        },
-    ];
-});
-
-const textareaClass =
-    'w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm dark:bg-input/30';
 
 function copyUrl() {
     if (!props.showcase.url) {
@@ -298,25 +237,31 @@ function copyUrl() {
                     <InputError :message="errors.showcase_color" />
                 </fieldset>
 
-                <div class="grid gap-2">
-                    <Label for="showcase_headline">
-                        Título da página inicial
-                        <span class="font-normal text-muted-foreground"
-                            >(opcional)</span
-                        >
-                    </Label>
-                    <Input
-                        id="showcase_headline"
-                        name="showcase_headline"
-                        maxlength="120"
-                        placeholder="Ex.: Casas para comprar e alugar em Ouricuri."
-                        :default-value="showcase.showcase_headline ?? ''"
-                    />
-                    <p class="text-xs text-muted-foreground">
-                        Em branco, a vitrine escreve um título com a cidade e o
-                        que você oferece.
-                    </p>
-                    <InputError :message="errors.showcase_headline" />
+                <div
+                    class="flex flex-col gap-3 rounded-md border p-4 sm:flex-row sm:items-center"
+                >
+                    <div class="grid flex-1 gap-1">
+                        <p class="text-sm font-medium">Textos</p>
+                        <p class="text-sm text-muted-foreground">
+                            O título, os banners e os outros textos da página
+                            inicial são alterados na própria vitrine: clique no
+                            texto e escreva por cima.
+                            <template v-if="!showcase.url">
+                                Coloque a vitrine no ar para editar.
+                            </template>
+                        </p>
+                    </div>
+                    <Button
+                        v-if="showcase.url"
+                        variant="outline"
+                        size="sm"
+                        as-child
+                    >
+                        <a :href="editTexts().url">
+                            <PencilLine class="size-4" />
+                            Editar textos na vitrine
+                        </a>
+                    </Button>
                 </div>
             </section>
 
@@ -376,60 +321,6 @@ function copyUrl() {
                             :default-value="showcase[social.name] ?? ''"
                         />
                         <InputError :message="errors[social.name]" />
-                    </div>
-                </div>
-            </section>
-
-            <section class="grid gap-4">
-                <div>
-                    <h3
-                        class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-                    >
-                        Textos
-                    </h3>
-                    <p class="mt-1 text-sm text-muted-foreground">
-                        Apague um texto para voltar ao padrão.
-                    </p>
-                </div>
-
-                <div
-                    v-for="group in textGroups"
-                    :key="group.title"
-                    class="grid gap-3"
-                >
-                    <p class="text-sm font-medium">{{ group.title }}</p>
-                    <div
-                        v-for="field in group.fields"
-                        :key="field.key"
-                        class="grid gap-2"
-                    >
-                        <Label
-                            :for="`text_${field.key}`"
-                            class="text-muted-foreground"
-                        >
-                            {{ field.label }}
-                        </Label>
-                        <textarea
-                            v-if="field.isLong"
-                            :id="`text_${field.key}`"
-                            :name="`showcase_texts[${field.key}]`"
-                            rows="2"
-                            :maxlength="textLimits[field.key]"
-                            :placeholder="defaultTexts[field.key]"
-                            :class="textareaClass"
-                            :value="texts[field.key]"
-                        />
-                        <Input
-                            v-else
-                            :id="`text_${field.key}`"
-                            :name="`showcase_texts[${field.key}]`"
-                            :maxlength="textLimits[field.key]"
-                            :placeholder="defaultTexts[field.key]"
-                            :default-value="texts[field.key]"
-                        />
-                        <InputError
-                            :message="errors[`showcase_texts.${field.key}`]"
-                        />
                     </div>
                 </div>
             </section>

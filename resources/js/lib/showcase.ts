@@ -1,4 +1,44 @@
-import type { ShowcaseCard, ShowcasePurpose, ShowcaseSite } from '@/types';
+import type {
+    ShowcaseCard,
+    ShowcaseEditableKey,
+    ShowcasePurpose,
+    ShowcaseSite,
+} from '@/types';
+
+/** What each text of the showcase is, shown while the account rewrites it. */
+export const showcaseTextLabels: Record<ShowcaseEditableKey, string> = {
+    headline: 'Título do topo',
+    hero_lead: 'Texto do topo',
+    rent_title: 'Título dos imóveis para alugar',
+    sale_title: 'Título dos imóveis à venda',
+    about: 'Texto do rodapé',
+    why_title: 'Título de "Por que escolher"',
+    why_lead: 'Introdução de "Por que escolher"',
+    benefit_1_title: 'Vantagem 1',
+    benefit_1_text: 'Explicação da vantagem 1',
+    benefit_2_title: 'Vantagem 2',
+    benefit_2_text: 'Explicação da vantagem 2',
+    benefit_3_title: 'Vantagem 3',
+    benefit_3_text: 'Explicação da vantagem 3',
+    benefit_4_title: 'Vantagem 4',
+    benefit_4_text: 'Explicação da vantagem 4',
+    banner_1_title: 'Banner 1',
+    banner_1_action: 'Chamada do banner 1',
+    banner_2_title: 'Banner 2',
+    banner_2_action: 'Chamada do banner 2',
+    banner_3_title: 'Banner 3',
+    banner_3_action: 'Chamada do banner 3',
+    owner_title: 'Título da seção para proprietários',
+    owner_lead: 'Texto da seção para proprietários',
+    owner_point_1_title: 'Serviço 1 para proprietários',
+    owner_point_1_text: 'Explicação do serviço 1',
+    owner_point_2_title: 'Serviço 2 para proprietários',
+    owner_point_2_text: 'Explicação do serviço 2',
+    owner_point_3_title: 'Serviço 3 para proprietários',
+    owner_point_3_text: 'Explicação do serviço 3',
+    owner_form_title: 'Título do formulário de anúncio',
+    owner_form_lead: 'Texto do formulário de anúncio',
+};
 
 /** Format a price as the showcase shows it, without cents: "R$ 320.000". */
 export function formatShowcasePrice(value: number): string {

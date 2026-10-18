@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Showcase\PresentShowcaseProperty;
+use App\Actions\Showcase\PresentShowcaseSite;
 use App\Enums\PropertyAmenity;
 use App\Enums\PropertyType;
 use App\Models\Account;
-use App\Models\Branch;
 use App\Models\Property;
 use App\Models\PropertyPhoto;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,8 +18,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * The public showcase of an account's properties, open to anyone with its address.
- *
- * @phpstan-import-type ShowcaseCard from PresentShowcaseProperty
  */
 class ShowcaseController extends Controller
 {
@@ -35,12 +33,10 @@ class ShowcaseController extends Controller
      */
     private const array SORTS = ['recentes', 'menor-preco', 'maior-preco', 'maior-area'];
 
-    public function __construct(private PresentShowcaseProperty $present) {}
-
-    /**
-     * How many properties each carousel on the home shows.
-     */
-    private const int PER_CAROUSEL = 8;
+    public function __construct(
+        private PresentShowcaseProperty $present,
+        private PresentShowcaseSite $presentSite,
+    ) {}
 
     /**
      * Show the showcase home: a search over the featured property's photo and carousels of the latest
@@ -48,26 +44,12 @@ class ShowcaseController extends Controller
      */
     public function home(Account $showcase): Response
     {
-        $featured = $this->properties($showcase)
-            ->orderByDesc('is_featured')
-            ->latest('published_at')
-            ->latest('id')
-            ->first();
-        $cover = $featured?->photos->first();
+        $home = $this->presentSite->home($showcase);
 
-        $site = $this->site($showcase);
-
-        return Inertia::render('showcase/Home', [
-            'site' => $site,
-            'featured' => $featured === null ? null : $this->present->card($showcase, $featured),
-            'heroPhoto' => $cover === null ? null : route('showcase.photos.show', ['showcase' => $showcase->showcase_slug, 'photo' => $cover->id]),
-            'forSale' => $this->latestCards($showcase, 'sale'),
-            'forRent' => $this->latestCards($showcase, 'rent'),
-            'neighborhoods' => $this->neighborhoods($showcase),
-        ])->withViewData(['isShowcase' => true, 'meta' => [
+        return Inertia::render('showcase/Home', $home)->withViewData(['isShowcase' => true, 'meta' => [
             'title' => $showcase->name,
-            'description' => $site['headline'],
-            'image' => $this->ogImage($showcase, $featured),
+            'description' => $home['site']['headline'],
+            'image' => $home['heroPhoto'],
             'url' => route('showcase.home', $showcase->showcase_slug),
         ]]);
     }
@@ -77,7 +59,7 @@ class ShowcaseController extends Controller
      */
     public function index(Request $request, Account $showcase): Response
     {
-        $site = $this->site($showcase);
+        $site = $this->presentSite->site($showcase);
         $purpose = match ($request->query('finalidade')) {
             'comprar' => 'sale',
             'alugar' => 'rent',
@@ -101,7 +83,7 @@ class ShowcaseController extends Controller
             )),
         ];
 
-        $properties = $this->properties($showcase, $purpose)
+        $properties = $this->presentSite->properties($showcase, $purpose)
             ->when($filters['neighborhood'] !== '', fn (Builder $query) => $query->where('neighborhood', $filters['neighborhood']))
             ->when($filters['bedrooms'] > 0, fn (Builder $query) => $query->where('bedrooms', '>=', $filters['bedrooms']))
             ->when($filters['max'] > 0, fn (Builder $query) => $query->where($priceColumn, '<=', $filters['max']))
@@ -132,7 +114,7 @@ class ShowcaseController extends Controller
             'site' => $site,
             'filters' => $filters,
             'properties' => $properties,
-            'neighborhoods' => $this->neighborhoods($showcase),
+            'neighborhoods' => $this->presentSite->neighborhoods($showcase),
             'types' => $this->types($showcase),
             'amenities' => $this->amenities($showcase),
         ])->withViewData(['isShowcase' => true, 'meta' => [
@@ -148,11 +130,11 @@ class ShowcaseController extends Controller
      */
     public function show(Account $showcase, int $property): Response
     {
-        $shown = $this->properties($showcase)->findOrFail($property);
+        $shown = $this->presentSite->properties($showcase)->findOrFail($property);
         $details = $this->present->details($showcase, $shown);
         $purpose = $details['sale_price'] !== null ? 'sale' : 'rent';
 
-        $others = $this->properties($showcase, $purpose)
+        $others = $this->presentSite->properties($showcase, $purpose)
             ->whereKeyNot($shown->id)
             ->orderByRaw('case when neighborhood = ? then 0 else 1 end', [$shown->neighborhood])
             ->latest('published_at')
@@ -166,10 +148,10 @@ class ShowcaseController extends Controller
             : PresentShowcaseProperty::price((float) $details['rent']).'/mês';
 
         return Inertia::render('showcase/Show', [
-            'site' => $this->site($showcase),
+            'site' => $this->presentSite->site($showcase),
             'property' => $details,
             'others' => $others,
-            'neighborhoods' => $this->neighborhoods($showcase),
+            'neighborhoods' => $this->presentSite->neighborhoods($showcase),
         ])->withViewData(['isShowcase' => true, 'meta' => [
             'title' => $details['headline'],
             'description' => collect([
@@ -209,113 +191,6 @@ class ShowcaseController extends Controller
         abort_if($showcase->logo_path === null, 404);
 
         return $this->serve($showcase->logo_path, Account::LOGO_DISK);
-    }
-
-    /**
-     * Get what every showcase page shows about the account: its name, contacts, look and offers.
-     *
-     * @return array{name: string, slug: string, creci: string|null, phone: string|null, whatsapp: string|null, email: string|null, office: string|null, headline: string, texts: array<string, string>, socials: list<array{network: string, label: string, url: string}>, color: array{accent: string, strong: string, wash: string}, logo_url: string|null, is_agency: bool, branches: list<array{name: string, city: string|null, state: string|null, phone: string|null}>, offers: array{sale: int, rent: int}}
-     */
-    private function site(Account $showcase): array
-    {
-        $offers = [
-            'sale' => $this->properties($showcase, 'sale')->count(),
-            'rent' => $this->properties($showcase, 'rent')->count(),
-        ];
-        $city = $showcase->showcaseCity();
-        $where = $city === null ? '' : " em {$city}";
-        $color = $showcase->showcaseColor();
-
-        $branches = Branch::withoutGlobalScopes()
-            ->where('account_id', $showcase->id)
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['name', 'city', 'state', 'phone']);
-
-        return [
-            'name' => $showcase->name,
-            'slug' => (string) $showcase->showcase_slug,
-            'creci' => $showcase->creci,
-            'phone' => $showcase->phone,
-            'whatsapp' => $showcase->showcase_whatsapp,
-            'email' => $showcase->email,
-            'office' => $showcase->street === null ? null : collect([
-                trim("{$showcase->street}, {$showcase->number}", ', '),
-                $showcase->neighborhood,
-                $showcase->city === null ? null : trim("{$showcase->city}, {$showcase->state}", ', '),
-            ])->filter()->join(' · '),
-            'headline' => $showcase->showcase_headline ?? match (true) {
-                $offers['sale'] > 0 && $offers['rent'] > 0 => "Imóveis para comprar e alugar{$where}.",
-                $offers['rent'] > 0 => "Imóveis para alugar{$where}.",
-                default => "Imóveis à venda{$where}.",
-            },
-            'texts' => $showcase->showcaseTexts(),
-            'socials' => array_values(array_filter([
-                $showcase->showcase_instagram === null ? null : ['network' => 'instagram', 'label' => 'Instagram', 'url' => $showcase->showcase_instagram],
-                $showcase->showcase_facebook === null ? null : ['network' => 'facebook', 'label' => 'Facebook', 'url' => $showcase->showcase_facebook],
-                $showcase->showcase_youtube === null ? null : ['network' => 'youtube', 'label' => 'YouTube', 'url' => $showcase->showcase_youtube],
-            ])),
-            'color' => ['accent' => $color->hex(), 'strong' => $color->strongHex(), 'wash' => $color->washHex()],
-            'logo_url' => $showcase->logo_path === null ? null : route('showcase.logo', ['showcase' => $showcase->showcase_slug, 'v' => $showcase->updated_at?->timestamp]),
-            'is_agency' => $showcase->isAgency(),
-            'branches' => $branches->count() > 1
-                ? array_values($branches->map(fn (Branch $branch): array => [
-                    'name' => $branch->name,
-                    'city' => $branch->city,
-                    'state' => $branch->state,
-                    'phone' => $branch->phone,
-                ])->all())
-                : [],
-            'offers' => $offers,
-        ];
-    }
-
-    /**
-     * Get the latest properties for the purpose as cards, the featured ones first.
-     *
-     * @param  'sale'|'rent'  $purpose
-     * @return list<ShowcaseCard>
-     */
-    private function latestCards(Account $showcase, string $purpose): array
-    {
-        return array_values($this->properties($showcase, $purpose)
-            ->orderByDesc('is_featured')
-            ->latest('published_at')
-            ->latest('id')
-            ->limit(self::PER_CAROUSEL)
-            ->get()
-            ->map(fn (Property $property): array => $this->present->card($showcase, $property))
-            ->all());
-    }
-
-    /**
-     * Get the account's properties on the showcase, with their photos.
-     *
-     * @param  'sale'|'rent'|null  $purpose
-     * @return Builder<Property>
-     */
-    private function properties(Account $showcase, ?string $purpose = null): Builder
-    {
-        return Property::query()
-            ->where('account_id', $showcase->id)
-            ->onShowcase($purpose)
-            ->with('photos:id,property_id,sort_order');
-    }
-
-    /**
-     * Get the neighborhoods with properties on the showcase, to filter by.
-     *
-     * @return list<string>
-     */
-    private function neighborhoods(Account $showcase): array
-    {
-        return array_values(Property::query()
-            ->where('account_id', $showcase->id)
-            ->onShowcase()
-            ->distinct()
-            ->orderBy('neighborhood')
-            ->pluck('neighborhood')
-            ->all());
     }
 
     /**
@@ -362,7 +237,7 @@ class ShowcaseController extends Controller
      */
     private function ogImage(Account $showcase, ?Property $property): ?string
     {
-        $property ??= $this->properties($showcase)->orderByDesc('is_featured')->latest('published_at')->first();
+        $property ??= $this->presentSite->properties($showcase)->orderByDesc('is_featured')->latest('published_at')->first();
         $cover = $property?->photos->first();
 
         return $cover === null ? null : route('showcase.photos.show', ['showcase' => $showcase->showcase_slug, 'photo' => $cover->id]);

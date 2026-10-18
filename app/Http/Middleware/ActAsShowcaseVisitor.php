@@ -17,12 +17,26 @@ class ActAsShowcaseVisitor
      */
     public function handle(Request $request, Closure $next): Response
     {
+        return self::during(fn (): Response => $next($request));
+    }
+
+    /**
+     * Run the callback as a visitor of the showcase, so it sees what anyone with the address sees,
+     * not what the signed in user's branches or selected owner narrow it to.
+     *
+     * @template TResult
+     *
+     * @param  Closure(): TResult  $callback
+     * @return TResult
+     */
+    public static function during(Closure $callback): mixed
+    {
         $previousGuard = Auth::getDefaultDriver();
 
         Auth::shouldUse('visitor');
 
         try {
-            return $next($request);
+            return $callback();
         } finally {
             Auth::shouldUse($previousGuard);
         }

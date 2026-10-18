@@ -1,15 +1,49 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { Mail, MapPin, MessageCircle, Phone, X } from '@lucide/vue';
+import { useEventListener } from '@vueuse/core';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import ShowcaseEditableText from '@/components/showcase/ShowcaseEditableText.vue';
+import ShowcaseEditorBar from '@/components/showcase/ShowcaseEditorBar.vue';
 import ShowcaseSocialIcon from '@/components/showcase/ShowcaseSocialIcon.vue';
+import { provideShowcaseEditor } from '@/composables/useShowcaseEditor';
 import { formatPhone } from '@/lib/formatters';
 import { purposeParams, whatsappUrl } from '@/lib/showcase';
 import { home, index } from '@/routes/showcase';
-import type { ShowcasePurpose, ShowcaseSite } from '@/types';
+import type {
+    ShowcaseEditorSettings,
+    ShowcasePurpose,
+    ShowcaseSite,
+} from '@/types';
 
-const page = usePage<{ site: ShowcaseSite }>();
+const page = usePage<{ site: ShowcaseSite; editor?: ShowcaseEditorSettings }>();
 const site = computed(() => page.props.site);
+
+/** The texts editor, when the account opened its showcase from the settings to rewrite the texts. */
+const editor = page.props.editor
+    ? provideShowcaseEditor(page.props.site, page.props.editor)
+    : null;
+
+/** In edit mode, links and forms stay put, so a click only picks the text to rewrite. */
+function stayOnPage(event: Event) {
+    if (!editor || !(event.target instanceof Element)) {
+        return;
+    }
+
+    if (
+        event.type === 'submit' ||
+        event.target.closest('a[href], button[type="submit"]')
+    ) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+}
+
+useEventListener(window, 'beforeunload', (event: BeforeUnloadEvent) => {
+    if (editor?.shouldWarnOnLeave()) {
+        event.preventDefault();
+    }
+});
 
 const accent = computed(() => ({
     '--sc-accent': site.value.color.accent,
@@ -86,7 +120,13 @@ const year = new Date().getFullYear();
 </script>
 
 <template>
-    <div class="sc" :class="{ 'has-mobile-bar': hasMobileBar }" :style="accent">
+    <div
+        class="sc"
+        :class="{ 'has-mobile-bar': hasMobileBar, 'is-editing': editor }"
+        :style="accent"
+        @click.capture="stayOnPage"
+        @submit.capture="stayOnPage"
+    >
         <header class="sc-header">
             <div class="sc-wrap">
                 <Link class="sc-brand" :href="homeUrl">
@@ -169,7 +209,12 @@ const year = new Date().getFullYear();
                                 <span class="sc-brand-sub">Imóveis</span>
                             </span>
                         </Link>
-                        <p class="sc-footer-about">{{ site.texts.about }}</p>
+                        <ShowcaseEditableText
+                            as="p"
+                            class="sc-footer-about"
+                            field="about"
+                            :text="site.texts.about"
+                        />
                         <div v-if="site.socials.length > 0" class="sc-social">
                             <a
                                 v-for="social in site.socials"
@@ -276,8 +321,12 @@ const year = new Date().getFullYear();
             </div>
         </footer>
 
+        <Teleport v-if="editor" to="body">
+            <ShowcaseEditorBar :editor="editor" />
+        </Teleport>
+
         <a
-            v-if="generalWhatsapp"
+            v-if="generalWhatsapp && !editor"
             class="sc-wa-float"
             :href="generalWhatsapp"
             target="_blank"

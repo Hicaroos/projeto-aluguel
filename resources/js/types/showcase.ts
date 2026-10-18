@@ -75,7 +75,11 @@ export type ShowcaseProperty = ShowcaseCard & {
 
 /** The texts of the showcase an account may rewrite, see ShowcaseText. */
 export type ShowcaseTextKey =
+    | 'hero_lead'
+    | 'rent_title'
+    | 'sale_title'
     | 'about'
+    | 'why_title'
     | 'why_lead'
     | 'benefit_1_title'
     | 'benefit_1_text'
@@ -90,7 +94,26 @@ export type ShowcaseTextKey =
     | 'banner_2_title'
     | 'banner_2_action'
     | 'banner_3_title'
-    | 'banner_3_action';
+    | 'banner_3_action'
+    | 'owner_title'
+    | 'owner_lead'
+    | 'owner_point_1_title'
+    | 'owner_point_1_text'
+    | 'owner_point_2_title'
+    | 'owner_point_2_text'
+    | 'owner_point_3_title'
+    | 'owner_point_3_text'
+    | 'owner_form_title'
+    | 'owner_form_lead';
+
+/** A text the showcase editor rewrites in place: one of the account's texts, or the home title. */
+export type ShowcaseEditableKey = ShowcaseTextKey | 'headline';
+
+/** What the showcase editor needs besides the page: each text's default and longest length. */
+export type ShowcaseEditorSettings = {
+    defaults: Record<ShowcaseEditableKey, string>;
+    limits: Record<ShowcaseEditableKey, number>;
+};
 
 export type ShowcasePurpose = 'sale' | 'rent';
 

@@ -316,7 +316,7 @@ test('the app pages keep their addresses', function () {
 
 test('administrators and single owners set up the showcase; its address must be free', function () {
     ['admin' => $admin, 'account' => $account] = showcaseScenario();
-    $settings = ['showcase_enabled' => true, 'showcase_whatsapp' => '(87) 99999-1234', 'showcase_color' => 'ocean', 'showcase_headline' => ''];
+    $settings = ['showcase_enabled' => true, 'showcase_whatsapp' => '(87) 99999-1234', 'showcase_color' => 'ocean'];
 
     $this->actingAs($admin)
         ->patch(route('showcase-settings.update'), [...$settings, 'showcase_slug' => ' Imobizilla-Ouricuri '])
@@ -324,8 +324,7 @@ test('administrators and single owners set up the showcase; its address must be 
 
     expect($account->fresh())
         ->showcase_slug->toBe('imobizilla-ouricuri')
-        ->showcase_whatsapp->toBe('87999991234')
-        ->showcase_headline->toBeNull();
+        ->showcase_whatsapp->toBe('87999991234');
 
     foreach (['dashboard', 'login', 'outra-imobiliaria', 'com espaço'] as $slug) {
         $this->actingAs($admin)
@@ -429,8 +428,9 @@ test('the property page lists the amenities apart from the condominium ones, and
         ->assertInertia(fn (Assert $page) => $page->where('property.address', 'Rua Secreta, 42'));
 });
 
-test('the showcase settings save the social profiles as links and only the texts that differ from the defaults', function () {
+test('the showcase settings save the social profiles as links and leave the texts alone', function () {
     ['admin' => $admin, 'account' => $account] = showcaseScenario();
+    $account->update(['showcase_headline' => 'Casas em Ouricuri.', 'showcase_texts' => ['why_lead' => 'Vinte anos cuidando de imóveis.']]);
     $settings = [
         'showcase_enabled' => true,
         'showcase_slug' => 'imobizilla',
@@ -439,11 +439,6 @@ test('the showcase settings save the social profiles as links and only the texts
         'showcase_instagram' => '@imobizilla',
         'showcase_facebook' => 'facebook.com/imobizilla',
         'showcase_youtube' => 'https://www.youtube.com/@imobizilla',
-        'showcase_texts' => [
-            'about' => 'Venda, aluguel e administração de imóveis em Ouricuri.',
-            'why_lead' => '  Vinte anos cuidando de imóveis em Ouricuri.  ',
-            'benefit_1_title' => '',
-        ],
     ];
 
     $this->actingAs($admin)->patch(route('showcase-settings.update'), $settings)->assertSessionHasNoErrors();
@@ -452,12 +447,11 @@ test('the showcase settings save the social profiles as links and only the texts
         ->showcase_instagram->toBe('https://www.instagram.com/imobizilla')
         ->showcase_facebook->toBe('https://facebook.com/imobizilla')
         ->showcase_youtube->toBe('https://www.youtube.com/@imobizilla')
-        ->showcase_texts->toBe(['why_lead' => 'Vinte anos cuidando de imóveis em Ouricuri.']);
+        ->showcase_headline->toBe('Casas em Ouricuri.')
+        ->showcase_texts->toBe(['why_lead' => 'Vinte anos cuidando de imóveis.']);
 
     $this->get('/imobizilla')
         ->assertInertia(fn (Assert $page) => $page
-            ->where('site.texts.why_lead', 'Vinte anos cuidando de imóveis em Ouricuri.')
-            ->where('site.texts.benefit_1_title', 'Repasse todo mês')
             ->where('site.socials.0', ['network' => 'instagram', 'label' => 'Instagram', 'url' => 'https://www.instagram.com/imobizilla'])
             ->has('site.socials', 3)
         );
@@ -465,10 +459,78 @@ test('the showcase settings save the social profiles as links and only the texts
     $this->actingAs($admin)
         ->patch(route('showcase-settings.update'), [...$settings, 'showcase_instagram' => 'https://facebook.com/imobizilla', 'showcase_youtube' => 'meu canal'])
         ->assertSessionHasErrors(['showcase_instagram', 'showcase_youtube']);
+});
+
+test('the showcase texts are edited on its home, shown as visitors see it', function () {
+    ['admin' => $admin, 'account' => $account] = showcaseScenario();
+    $otherOwner = Owner::factory()->for($account, 'account')->create();
 
     $this->actingAs($admin)
-        ->patch(route('showcase-settings.update'), [...$settings, 'showcase_texts' => ['why_lead' => '']])
+        ->withSession([User::SELECTED_OWNER_SESSION_KEY => $otherOwner->id])
+        ->get(route('showcase-settings.texts.edit'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('showcase/Home')
+            ->where('site.offers', ['sale' => 3, 'rent' => 2])
+            ->where('site.texts.why_title', 'Por que escolher Imobizilla?')
+            ->where('editor.defaults.headline', 'Imóveis para comprar e alugar em Ouricuri.')
+            ->where('editor.defaults.owner_title', 'Tem um imóvel para alugar ou vender?')
+            ->where('editor.limits.headline', 120)
+            ->where('editor.limits.hero_lead', 240)
+        );
+
+    $agent = User::factory()->for($account, 'account')->withRole(Role::Agent)->create();
+    $this->actingAs($agent)->get(route('showcase-settings.texts.edit'))->assertForbidden();
+    $this->actingAs($agent)->put(route('showcase-settings.texts.update'), [])->assertForbidden();
+
+    $account->update(['showcase_enabled' => false]);
+
+    $this->actingAs($admin)
+        ->get(route('showcase-settings.texts.edit'))
+        ->assertRedirect(route('showcase-settings.edit'));
+});
+
+test('the showcase editor saves only the texts that differ from the defaults', function () {
+    ['admin' => $admin, 'account' => $account] = showcaseScenario();
+    $texts = [
+        ...$account->showcaseTexts(),
+        'why_lead' => '  Vinte anos cuidando de imóveis em Ouricuri.  ',
+        'benefit_1_title' => '',
+    ];
+
+    $this->actingAs($admin)
+        ->put(route('showcase-settings.texts.update'), [
+            'showcase_headline' => 'Imóveis para comprar e alugar em Ouricuri.',
+            'showcase_texts' => $texts,
+        ])
+        ->assertRedirect(route('showcase-settings.texts.edit'));
+
+    expect($account->fresh())
+        ->showcase_headline->toBeNull()
+        ->showcase_texts->toBe(['why_lead' => 'Vinte anos cuidando de imóveis em Ouricuri.']);
+
+    $this->actingAs($admin)
+        ->put(route('showcase-settings.texts.update'), [
+            'showcase_headline' => 'Casas e terrenos no sertão.',
+            'showcase_texts' => [...$texts, 'owner_title' => 'Quer anunciar?'],
+        ])
         ->assertSessionHasNoErrors();
 
-    expect($account->fresh()->showcase_texts)->toBeNull();
+    expect($account->fresh())
+        ->showcase_headline->toBe('Casas e terrenos no sertão.')
+        ->showcase_texts->toBe(['why_lead' => 'Vinte anos cuidando de imóveis em Ouricuri.', 'owner_title' => 'Quer anunciar?']);
+
+    $this->get('/imobizilla')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('site.headline', 'Casas e terrenos no sertão.')
+            ->where('site.texts.owner_title', 'Quer anunciar?')
+            ->where('site.texts.benefit_1_title', 'Repasse todo mês')
+        );
+
+    $this->actingAs($admin)
+        ->put(route('showcase-settings.texts.update'), [
+            'showcase_headline' => str_repeat('a', 121),
+            'showcase_texts' => [...$texts, 'banner_1_action' => str_repeat('a', 31)],
+        ])
+        ->assertSessionHasErrors(['showcase_headline', 'showcase_texts.banner_1_action']);
 });

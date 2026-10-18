@@ -18,6 +18,8 @@ import {
 import { computed, ref } from 'vue';
 import ShowcaseListingController from '@/actions/App/Http/Controllers/ShowcaseListingController';
 import ShowcaseCard from '@/components/showcase/ShowcaseCard.vue';
+import ShowcaseEditableText from '@/components/showcase/ShowcaseEditableText.vue';
+import { useShowcaseEditor } from '@/composables/useShowcaseEditor';
 import { maskPhone } from '@/lib/formatters';
 import {
     formatShowcasePrice,
@@ -114,11 +116,8 @@ const offersLine = computed(() =>
         .join(' · '),
 );
 
-const lead = computed(() =>
-    props.site.is_agency
-        ? 'Escolha o imóvel, peça uma visita pelo site e combine tudo direto com a equipe pelo WhatsApp.'
-        : 'Escolha o imóvel e combine a visita direto com o proprietário.',
-);
+/** In edit mode the banners lose their links, so a click only picks the text to rewrite. */
+const isEditing = useShowcaseEditor() !== null;
 
 /* ---------- Carousels ---------- */
 
@@ -126,13 +125,13 @@ const sections = computed(() =>
     [
         {
             purpose: 'rent' as const,
-            title: 'Imóveis para alugar',
+            title: 'rent_title' as const,
             items: props.forRent,
             total: props.site.offers.rent,
         },
         {
             purpose: 'sale' as const,
-            title: 'Imóveis à venda',
+            title: 'sale_title' as const,
             items: props.forSale,
             total: props.site.offers.sale,
         },
@@ -157,18 +156,21 @@ function scrollRail(chosen: ShowcasePurpose, direction: number) {
 }
 
 /** The "why us" benefits, in the account's words, each with its own icon. */
-const benefits = computed(() =>
-    ([Wallet, ShieldCheck, Clock, MessageCircle] as const).map(
-        (icon, position) => ({
-            icon,
-            title: props.site.texts[
-                `benefit_${position + 1}_title` as ShowcaseTextKey
-            ],
-            text: props.site.texts[
-                `benefit_${position + 1}_text` as ShowcaseTextKey
-            ],
-        }),
-    ),
+const benefits = ([Wallet, ShieldCheck, Clock, MessageCircle] as const).map(
+    (icon, position) => ({
+        icon,
+        title: `benefit_${position + 1}_title` as ShowcaseTextKey,
+        text: `benefit_${position + 1}_text` as ShowcaseTextKey,
+    }),
+);
+
+/** What the agency does for owners who list with it, in the account's words. */
+const ownerPoints = ([TrendingUp, Megaphone, Users] as const).map(
+    (icon, position) => ({
+        icon,
+        title: `owner_point_${position + 1}_title` as ShowcaseTextKey,
+        text: `owner_point_${position + 1}_text` as ShowcaseTextKey,
+    }),
 );
 
 /** Photos of the properties on the showcase, to dress the banners and the "why us" section. */
@@ -218,8 +220,16 @@ function onOwnerSent() {
                     <House />
                     {{ offersLine || site.name }}
                 </p>
-                <h1>{{ site.headline }}</h1>
-                <p>{{ lead }}</p>
+                <ShowcaseEditableText
+                    as="h1"
+                    field="headline"
+                    :text="site.headline"
+                />
+                <ShowcaseEditableText
+                    as="p"
+                    field="hero_lead"
+                    :text="site.texts.hero_lead"
+                />
             </div>
         </div>
     </section>
@@ -325,20 +335,58 @@ function onOwnerSent() {
 
     <section v-if="site.is_agency" class="sc-section" style="padding-bottom: 0">
         <div class="sc-wrap sc-promos">
-            <a class="sc-promo" href="#anunciar" @click="goal = 'alugar'">
+            <a
+                class="sc-promo"
+                :href="isEditing ? undefined : '#anunciar'"
+                @click="goal = 'alugar'"
+            >
                 <img v-if="photos[1]" :src="photos[1]" alt="" loading="lazy" />
-                <strong>{{ site.texts.banner_1_title }}</strong>
-                <span>{{ site.texts.banner_1_action }} <ArrowRight /></span>
+                <ShowcaseEditableText
+                    as="strong"
+                    field="banner_1_title"
+                    :text="site.texts.banner_1_title"
+                />
+                <span>
+                    <ShowcaseEditableText
+                        field="banner_1_action"
+                        :text="site.texts.banner_1_action"
+                    />
+                    <ArrowRight />
+                </span>
             </a>
-            <a class="sc-promo" href="#anunciar" @click="goal = 'avaliar'">
+            <a
+                class="sc-promo"
+                :href="isEditing ? undefined : '#anunciar'"
+                @click="goal = 'avaliar'"
+            >
                 <img v-if="photos[2]" :src="photos[2]" alt="" loading="lazy" />
-                <strong>{{ site.texts.banner_2_title }}</strong>
-                <span>{{ site.texts.banner_2_action }} <ArrowRight /></span>
+                <ShowcaseEditableText
+                    as="strong"
+                    field="banner_2_title"
+                    :text="site.texts.banner_2_title"
+                />
+                <span>
+                    <ShowcaseEditableText
+                        field="banner_2_action"
+                        :text="site.texts.banner_2_action"
+                    />
+                    <ArrowRight />
+                </span>
             </a>
-            <a class="sc-promo" href="#sobre">
+            <a class="sc-promo" :href="isEditing ? undefined : '#sobre'">
                 <img v-if="photos[3]" :src="photos[3]" alt="" loading="lazy" />
-                <strong>{{ site.texts.banner_3_title }}</strong>
-                <span>{{ site.texts.banner_3_action }} <ArrowRight /></span>
+                <ShowcaseEditableText
+                    as="strong"
+                    field="banner_3_title"
+                    :text="site.texts.banner_3_title"
+                />
+                <span>
+                    <ShowcaseEditableText
+                        field="banner_3_action"
+                        :text="site.texts.banner_3_action"
+                    />
+                    <ArrowRight />
+                </span>
             </a>
         </div>
     </section>
@@ -352,7 +400,11 @@ function onOwnerSent() {
         <div class="sc-wrap">
             <div class="sc-section-head">
                 <div>
-                    <h2>{{ section.title }}</h2>
+                    <ShowcaseEditableText
+                        as="h2"
+                        :field="section.title"
+                        :text="site.texts[section.title]"
+                    />
                     <p class="sc-num">
                         {{
                             plural(
@@ -425,8 +477,17 @@ function onOwnerSent() {
                 </div>
             </div>
             <div>
-                <h2>Por que escolher {{ site.name }}?</h2>
-                <p class="sc-why-lead">{{ site.texts.why_lead }}</p>
+                <ShowcaseEditableText
+                    as="h2"
+                    field="why_title"
+                    :text="site.texts.why_title"
+                />
+                <ShowcaseEditableText
+                    as="p"
+                    class="sc-why-lead"
+                    field="why_lead"
+                    :text="site.texts.why_lead"
+                />
                 <div class="sc-benefits">
                     <div
                         v-for="(benefit, position) in benefits"
@@ -437,8 +498,16 @@ function onOwnerSent() {
                             <component :is="benefit.icon" />
                         </span>
                         <div>
-                            <h3>{{ benefit.title }}</h3>
-                            <p>{{ benefit.text }}</p>
+                            <ShowcaseEditableText
+                                as="h3"
+                                :field="benefit.title"
+                                :text="site.texts[benefit.title]"
+                            />
+                            <ShowcaseEditableText
+                                as="p"
+                                :field="benefit.text"
+                                :text="site.texts[benefit.text]"
+                            />
                         </div>
                     </div>
                 </div>
@@ -449,48 +518,48 @@ function onOwnerSent() {
     <section v-if="site.is_agency" id="anunciar" class="sc-owner">
         <div class="sc-wrap">
             <div>
-                <h2>Tem um imóvel para alugar ou vender?</h2>
-                <p class="sc-owner-lead">
-                    Deixe seus dados e a equipe de {{ site.name }} entra em
-                    contato para avaliar o imóvel e combinar o anúncio.
-                </p>
+                <ShowcaseEditableText
+                    as="h2"
+                    field="owner_title"
+                    :text="site.texts.owner_title"
+                />
+                <ShowcaseEditableText
+                    as="p"
+                    class="sc-owner-lead"
+                    field="owner_lead"
+                    :text="site.texts.owner_lead"
+                />
                 <ul class="sc-owner-list">
-                    <li>
-                        <span class="sc-owner-icon"><TrendingUp /></span>
+                    <li v-for="point in ownerPoints" :key="point.title">
+                        <span class="sc-owner-icon">
+                            <component :is="point.icon" />
+                        </span>
                         <div>
-                            <strong>Avaliação de preço</strong>
-                            <span>
-                                Comparamos com imóveis parecidos no mesmo
-                                bairro.
-                            </span>
-                        </div>
-                    </li>
-                    <li>
-                        <span class="sc-owner-icon"><Megaphone /></span>
-                        <div>
-                            <strong>Divulgação no site</strong>
-                            <span>
-                                Fotos e anúncio prontos para compartilhar no
-                                WhatsApp.
-                            </span>
-                        </div>
-                    </li>
-                    <li>
-                        <span class="sc-owner-icon"><Users /></span>
-                        <div>
-                            <strong>Visitas acompanhadas</strong>
-                            <span>
-                                A equipe mostra o imóvel e atende os
-                                interessados.
-                            </span>
+                            <ShowcaseEditableText
+                                as="strong"
+                                :field="point.title"
+                                :text="site.texts[point.title]"
+                            />
+                            <ShowcaseEditableText
+                                :field="point.text"
+                                :text="site.texts[point.text]"
+                            />
                         </div>
                     </li>
                 </ul>
             </div>
 
             <div class="sc-owner-form">
-                <h3>Anuncie com a gente</h3>
-                <p>Responda em um minuto. A equipe chama você no WhatsApp.</p>
+                <ShowcaseEditableText
+                    as="h3"
+                    field="owner_form_title"
+                    :text="site.texts.owner_form_title"
+                />
+                <ShowcaseEditableText
+                    as="p"
+                    field="owner_form_lead"
+                    :text="site.texts.owner_form_lead"
+                />
 
                 <div v-if="ownerSentTo !== null" class="sc-sent" role="status">
                     <CircleCheck />

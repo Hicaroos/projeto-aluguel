@@ -4,7 +4,6 @@ namespace App\Http\Requests\Settings;
 
 use App\Concerns\NormalizesBrazilianNumbers;
 use App\Enums\ShowcaseColor;
-use App\Enums\ShowcaseText;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Routing\Route as AppRoute;
@@ -89,14 +88,9 @@ class ShowcaseSettingsRequest extends FormRequest
             ],
             'showcase_whatsapp' => [Rule::requiredIf($this->boolean('showcase_enabled')), 'nullable', 'string', self::PHONE_RULE],
             'showcase_color' => ['required', Rule::enum(ShowcaseColor::class)],
-            'showcase_headline' => ['nullable', 'string', 'max:120'],
             'showcase_shows_address' => ['boolean'],
             ...collect(self::SOCIAL_NETWORKS)
                 ->map(fn (array $network): array => ['nullable', 'string', 'max:255', 'url:http,https', "regex:~^https?://([a-z0-9-]+\\.)*({$network['hosts']})(/|$)~i"])
-                ->all(),
-            'showcase_texts' => ['sometimes', 'array'],
-            ...collect(ShowcaseText::cases())
-                ->mapWithKeys(fn (ShowcaseText $text): array => ["showcase_texts.{$text->value}" => ['nullable', 'string', "max:{$text->maxLength()}"]])
                 ->all(),
         ];
     }
@@ -127,11 +121,9 @@ class ShowcaseSettingsRequest extends FormRequest
             'showcase_slug' => __('endereço da vitrine'),
             'showcase_whatsapp' => __('WhatsApp'),
             'showcase_color' => __('cor'),
-            'showcase_headline' => __('título'),
             'showcase_instagram' => __('Instagram'),
             'showcase_facebook' => __('Facebook'),
             'showcase_youtube' => __('YouTube'),
-            'showcase_texts.*' => __('texto'),
         ];
     }
 

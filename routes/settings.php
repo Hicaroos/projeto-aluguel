@@ -6,6 +6,7 @@ use App\Http\Controllers\Settings\PayoutSettingsController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\ShowcaseController;
+use App\Http\Controllers\Settings\ShowcaseTextController;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
@@ -35,6 +36,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('can:manage-showcase')->group(function () {
         Route::get('settings/showcase', [ShowcaseController::class, 'edit'])->name('showcase-settings.edit');
         Route::patch('settings/showcase', [ShowcaseController::class, 'update'])->name('showcase-settings.update');
+        Route::get('settings/showcase/texts', [ShowcaseTextController::class, 'edit'])->name('showcase-settings.texts.edit');
+        Route::put('settings/showcase/texts', [ShowcaseTextController::class, 'update'])->name('showcase-settings.texts.update');
     });
 
     Route::middleware('can:manage-agency')->group(function () {
