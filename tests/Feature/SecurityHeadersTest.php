@@ -5,6 +5,7 @@ use App\Models\Lease;
 use App\Models\LeaseDocument;
 use App\Models\User;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Vite;
@@ -16,28 +17,45 @@ test('pages carry the security headers', function () {
         ->assertHeader('X-Content-Type-Options', 'nosniff')
         ->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
         ->assertHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
-        ->assertHeader('Content-Security-Policy', "frame-ancestors 'self'; base-uri 'self'; object-src 'none'")
         ->assertHeaderMissing('Strict-Transport-Security');
 });
 
-test('pages report what the full policy would block, letting in the inline scripts with its nonce', function () {
+test('pages keep to the content policy, which lets in the inline scripts with its nonce', function () {
     // As with the built assets, even while the Vite dev server runs.
     Vite::useHotFile(storage_path('framework/testing/no-hot-file'));
 
-    $response = $this->get(route('login'))->assertOk();
-    $policy = (string) $response->headers->get('Content-Security-Policy-Report-Only');
+    $response = $this->get(route('login'))->assertOk()->assertHeaderMissing('Content-Security-Policy-Report-Only');
+    $policy = (string) $response->headers->get('Content-Security-Policy');
 
     expect($policy)
         ->toContain("default-src 'self'")
         ->toContain("connect-src 'self' https://viacep.com.br")
         ->toContain("object-src 'none'")
+        ->toContain('report-uri /csp-report')
         ->toMatch("/script-src 'self' 'nonce-([^']+)'/");
 
     preg_match("/'nonce-([^']+)'/", $policy, $nonce);
     $response->assertSee('<script nonce="'.$nonce[1].'">', escape: false);
 });
 
-test('the dev server is left out of the full policy, which would report all of its assets', function () {
+test('what the policy blocks is logged from the reports browsers send, which carry no csrf token', function () {
+    Log::spy();
+
+    $this->call('POST', '/csp-report', server: ['CONTENT_TYPE' => 'application/csp-report'], content: json_encode(['csp-report' => [
+        'document-uri' => 'http://localhost/dashboard',
+        'violated-directive' => 'script-src-elem',
+        'blocked-uri' => 'https://cdn.example/x.js',
+        'original-policy' => 'irrelevante',
+    ]]))->assertNoContent();
+
+    Log::shouldHaveReceived('warning')->once()->with('Content security policy violation', [
+        'document-uri' => 'http://localhost/dashboard',
+        'violated-directive' => 'script-src-elem',
+        'blocked-uri' => 'https://cdn.example/x.js',
+    ]);
+});
+
+test('while the dev server runs, its assets load and only the rules that leave them alone apply', function () {
     $hotFile = storage_path('framework/testing/hot');
     File::ensureDirectoryExists(dirname($hotFile));
     File::put($hotFile, 'http://localhost:5173');
@@ -46,7 +64,7 @@ test('the dev server is left out of the full policy, which would report all of i
     try {
         $this->get(route('login'))
             ->assertOk()
-            ->assertHeaderMissing('Content-Security-Policy-Report-Only');
+            ->assertHeader('Content-Security-Policy', "frame-ancestors 'self'; base-uri 'self'; object-src 'none'");
     } finally {
         File::delete($hotFile);
     }

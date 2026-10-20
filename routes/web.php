@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\BranchSelectionController;
+use App\Http\Controllers\ContentSecurityReportController;
 use App\Http\Controllers\ContractTemplateController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DealController;
@@ -31,10 +32,17 @@ use App\Http\Controllers\SaleDocumentController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TenantController;
 use App\Http\Middleware\IgnoreOwnerSelection;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn (Request $request) => to_route($request->user() ? 'dashboard' : 'login'))->name('home');
+
+// Browsers post here what the content policy blocks; they send no CSRF token.
+Route::post('csp-report', ContentSecurityReportController::class)
+    ->withoutMiddleware(PreventRequestForgery::class)
+    ->middleware('throttle:30,1')
+    ->name('csp-report');
 
 Route::get('invitation/{token}', [InvitationController::class, 'show'])->name('invitation.show');
 Route::post('invitation/{token}', [InvitationController::class, 'accept'])->middleware('throttle:6,1')->name('invitation.accept');

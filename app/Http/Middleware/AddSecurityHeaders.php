@@ -24,17 +24,19 @@ class AddSecurityHeaders
     ];
 
     /**
-     * The content policy of the pages. Files such as PDFs go without it, so the browser's viewer opens them.
+     * The content policy of the pages while the Vite dev server runs: it serves the assets from
+     * another address, so only the rules that don't touch assets apply.
      */
-    private const string PAGE_POLICY = "frame-ancestors 'self'; base-uri 'self'; object-src 'none'";
+    private const string DEV_PAGE_POLICY = "frame-ancestors 'self'; base-uri 'self'; object-src 'none'";
 
     /**
      * Where the pages may load from: our own scripts (plus inline ones carrying the nonce), the
-     * showcase fonts, the ZIP code lookup and the Google map of the property.
+     * showcase fonts, the ZIP code lookup and the Google map of the property. Files such as PDFs go
+     * without it, so the browser's viewer opens them.
      *
      * @var array<string, list<string>>
      */
-    private const array FULL_PAGE_POLICY = [
+    private const array PAGE_POLICY = [
         'default-src' => ["'self'"],
         'script-src' => ["'self'"],
         'style-src' => ["'self'", "'unsafe-inline'", 'https://fonts.bunny.net'],
@@ -46,6 +48,8 @@ class AddSecurityHeaders
         'frame-ancestors' => ["'self'"],
         'base-uri' => ["'self'"],
         'object-src' => ["'none'"],
+        // Where browsers post what the policy blocks, logged by ContentSecurityReportController.
+        'report-uri' => ['/csp-report'],
     ];
 
     /**
@@ -72,13 +76,7 @@ class AddSecurityHeaders
         }
 
         if (str_starts_with((string) $headers->get('Content-Type'), 'text/html') && ! $headers->has('Content-Security-Policy')) {
-            $headers->set('Content-Security-Policy', self::PAGE_POLICY);
-
-            // Only reported for now, in the browser console, until the pages are seen to keep to it.
-            // The Vite dev server is left out: it serves from another address, which would be reported throughout.
-            if (! Vite::isRunningHot()) {
-                $headers->set('Content-Security-Policy-Report-Only', $this->fullPagePolicy($nonce));
-            }
+            $headers->set('Content-Security-Policy', Vite::isRunningHot() ? self::DEV_PAGE_POLICY : $this->pagePolicy($nonce));
         }
 
         if ($request->isSecure() && ! $headers->has('Strict-Transport-Security')) {
@@ -89,11 +87,11 @@ class AddSecurityHeaders
     }
 
     /**
-     * Get the full page policy, letting in the inline scripts that carry the nonce of this response.
+     * Get the page policy, letting in the inline scripts that carry the nonce of this response.
      */
-    private function fullPagePolicy(string $nonce): string
+    private function pagePolicy(string $nonce): string
     {
-        $policy = self::FULL_PAGE_POLICY;
+        $policy = self::PAGE_POLICY;
         $policy['script-src'][] = "'nonce-{$nonce}'";
 
         return collect($policy)
