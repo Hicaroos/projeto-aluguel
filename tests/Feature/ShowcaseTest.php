@@ -15,6 +15,7 @@ use App\Models\Lead;
 use App\Models\Owner;
 use App\Models\Property;
 use App\Models\PropertyPhoto;
+use App\Models\ShowcaseRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -230,8 +231,13 @@ test('a visit request becomes a lead in the funnel, once per phone', function ()
         ->branch_id->toBe($both->branch_id)
         ->phone->toBe('87988887777')
         ->source->toBe(LeadSource::Website)
-        ->notes->toContain('REF '.str_pad((string) $both->id, 4, '0', STR_PAD_LEFT))
-        ->notes->toContain('pela tarde')
+        ->notes->toBeNull()
+        ->and(ShowcaseRequest::withoutGlobalScopes()->sole())
+        ->lead_id->toBe($lead->id)
+        ->property_id->toBe($both->id)
+        ->name->toBe('Ana Souza')
+        ->summary->toContain('REF '.str_pad((string) $both->id, 4, '0', STR_PAD_LEFT))
+        ->summary->toContain('pela tarde')
         ->and($deal)
         ->lead_id->toBe($lead->id)
         ->property_id->toBe($both->id)
@@ -243,7 +249,7 @@ test('a visit request becomes a lead in the funnel, once per phone', function ()
 
     expect(Lead::withoutGlobalScopes()->count())->toBe(1)
         ->and(Deal::withoutGlobalScopes()->count())->toBe(1)
-        ->and($lead->fresh()->notes)->toContain('no sábado');
+        ->and(ShowcaseRequest::withoutGlobalScopes()->latest('id')->first()->summary)->toContain('no sábado');
 
     $this->actingAs($admin);
     $items = collect(app(BuildDayAgenda::class)->handle($admin)['items'])->keyBy('key');
@@ -279,14 +285,40 @@ test('an owner who wants to list a property becomes a lead, once per phone', fun
         ->phone->toBe('87977776666')
         ->source->toBe(LeadSource::Website)
         ->interest->toBe(LeadInterest::List)
-        ->notes->toContain('alugar o imóvel, no bairro Centro')
-        ->notes->toContain('Casa de 3 quartos, desocupada.');
+        ->notes->toBeNull()
+        ->and(ShowcaseRequest::withoutGlobalScopes()->sole())
+        ->name->toBe('João Dono')
+        ->summary->toContain('alugar o imóvel, no bairro Centro')
+        ->message->toBe('Casa de 3 quartos, desocupada.');
 
     $this->post($url, [...$listing, 'goal' => 'vender', 'neighborhood' => '', 'message' => '']);
 
     expect(Lead::withoutGlobalScopes()->count())->toBe(1)
-        ->and(Lead::withoutGlobalScopes()->sole()->notes)->toContain('vender o imóvel.')
+        ->and(ShowcaseRequest::withoutGlobalScopes()->latest('id')->first()->summary)->toContain('vender o imóvel.')
         ->and(Deal::withoutGlobalScopes()->count())->toBe(0);
+});
+
+test('a request with the phone of a lead leaves their notes alone and shows apart on the lead', function () {
+    ['account' => $account, 'admin' => $admin, 'both' => $both] = showcaseScenario();
+    $lead = Lead::factory()->for($account, 'account')->create(['name' => 'Cliente Real', 'phone' => '87977776666', 'notes' => 'Prefere contato à noite.']);
+
+    $this->post(route('showcase.listings.store', ['showcase' => 'imobizilla']), [
+        'name' => 'Outra Pessoa', 'phone' => '(87) 97777-6666', 'goal' => 'vender', 'message' => 'Deposite na conta 123.',
+    ])->assertSessionHasNoErrors();
+    $this->post(route('showcase.visits.store', ['showcase' => 'imobizilla', 'property' => $both->id]), [
+        'name' => 'Outra Pessoa', 'phone' => '(87) 97777-6666', 'period' => 'tarde', 'purpose' => 'rent',
+    ])->assertSessionHasNoErrors();
+
+    expect($lead->fresh())
+        ->name->toBe('Cliente Real')
+        ->notes->toBe('Prefere contato à noite.');
+
+    $this->actingAs($admin)
+        ->get(route('leads.index', ['show' => $lead->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('selected.showcase_requests', 2)
+            ->where('selected.showcase_requests.0.name', 'Outra Pessoa')
+            ->where('selected.showcase_requests.1.message', 'Deposite na conta 123.'));
 });
 
 test('a listing request waits on the agenda until the person is registered as an owner', function () {

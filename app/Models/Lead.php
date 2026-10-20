@@ -41,6 +41,7 @@ use Illuminate\Support\Carbon;
  * @property-read Branch|null $branch
  * @property-read User|null $user
  * @property-read Collection<int, Deal> $deals
+ * @property-read Collection<int, ShowcaseRequest> $showcaseRequests
  */
 #[Fillable([
     'account_id',
@@ -91,6 +92,16 @@ class Lead extends Model
     public function deals(): HasMany
     {
         return $this->hasMany(Deal::class);
+    }
+
+    /**
+     * Get the requests sent through the showcase with the lead's phone.
+     *
+     * @return HasMany<ShowcaseRequest, $this>
+     */
+    public function showcaseRequests(): HasMany
+    {
+        return $this->hasMany(ShowcaseRequest::class);
     }
 
     /**

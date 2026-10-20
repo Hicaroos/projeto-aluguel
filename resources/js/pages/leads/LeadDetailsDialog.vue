@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import {
+    Globe,
     Handshake,
     Mail,
     MessageCircle,
@@ -26,7 +27,7 @@ import {
 import { getInitials } from '@/composables/useInitials';
 import { usePermissions } from '@/composables/usePermissions';
 import { formatCurrency } from '@/lib/currency';
-import { formatPhone } from '@/lib/formatters';
+import { formatDate, formatPhone } from '@/lib/formatters';
 import { propertyTypeLabels } from '@/lib/property-labels';
 import {
     dealTypeLabels,
@@ -164,6 +165,42 @@ function whatsAppUrl(phone: string): string {
                     </div>
                 </li>
             </ul>
+
+            <div v-if="lead.showcase_requests?.length" class="space-y-3">
+                <div class="space-y-1">
+                    <h3
+                        class="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                    >
+                        <Globe class="size-3.5" />
+                        Pedidos pela vitrine
+                    </h3>
+                    <p class="text-xs text-muted-foreground">
+                        Enviados pelo site por quem informou este telefone. Nome
+                        e telefone não são confirmados: confira com a pessoa
+                        antes de agir.
+                    </p>
+                </div>
+
+                <ul class="divide-y rounded-lg border">
+                    <li
+                        v-for="request in lead.showcase_requests"
+                        :key="request.id"
+                        class="space-y-1 p-3"
+                    >
+                        <p class="text-xs text-muted-foreground tabular-nums">
+                            {{ formatDate(request.created_at) }} · como
+                            {{ request.name }}
+                        </p>
+                        <p class="text-sm font-medium">{{ request.summary }}</p>
+                        <p
+                            v-if="request.message"
+                            class="text-sm whitespace-pre-line text-muted-foreground"
+                        >
+                            “{{ request.message }}”
+                        </p>
+                    </li>
+                </ul>
+            </div>
 
             <div class="space-y-3">
                 <div class="flex items-center justify-between gap-2">

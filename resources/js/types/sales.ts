@@ -51,6 +51,17 @@ export type Lead = {
     user?: TeamMemberOption | null;
     deals_count?: number;
     deals?: LeadDeal[];
+    showcase_requests?: ShowcaseRequest[];
+};
+
+/** A request sent through the showcase with the lead's phone; its name and phone are not confirmed. */
+export type ShowcaseRequest = {
+    id: number;
+    property_id: number | null;
+    name: string;
+    summary: string;
+    message: string | null;
+    created_at: string;
 };
 
 export type LeadPaginator = Paginator<Lead>;

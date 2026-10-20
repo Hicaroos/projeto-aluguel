@@ -25,6 +25,7 @@ class DeleteAccount
         'sales',
         'deal_proposals',
         'deal_visits',
+        'showcase_requests',
         'deals',
         'deal_stages',
         'leads',

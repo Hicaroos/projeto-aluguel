@@ -11,6 +11,7 @@ use App\Models\Deal;
 use App\Models\DealStage;
 use App\Models\Lead;
 use App\Models\Property;
+use App\Models\ShowcaseRequest;
 use Illuminate\Support\Facades\DB;
 
 class RegisterShowcaseVisit
@@ -23,7 +24,8 @@ class RegisterShowcaseVisit
     /**
      * Bring a visit request from the showcase into the funnel: the person as a lead, found again by
      * their phone when they asked before, and a deal for the property in the first stage, unless they
-     * already have one open for it. The request goes into the lead notes.
+     * already have one open for it. The request is kept apart from the lead's notes, since anyone can
+     * send one with any phone.
      *
      * @param  array{name: string, phone: string, period: string, purpose: 'sale'|'rent'}  $visit
      */
@@ -45,12 +47,16 @@ class RegisterShowcaseVisit
                     'property_type' => $property->type,
                 ]);
 
-            $note = __('Pediu uma visita pela vitrine em :date (REF :ref), de preferência :period.', [
-                'date' => now()->format('d/m/Y'),
-                'ref' => PresentShowcaseProperty::ref($property),
-                'period' => $visit['period'],
+            ShowcaseRequest::create([
+                'account_id' => $property->account_id,
+                'lead_id' => $lead->id,
+                'property_id' => $property->id,
+                'name' => $visit['name'],
+                'summary' => __('Pediu uma visita ao imóvel REF :ref, de preferência :period.', [
+                    'ref' => PresentShowcaseProperty::ref($property),
+                    'period' => $visit['period'],
+                ]),
             ]);
-            $lead->update(['notes' => trim(($lead->notes ?? '')."\n".$note)]);
 
             $deal = Deal::query()
                 ->where('lead_id', $lead->id)

@@ -38,6 +38,7 @@ class LeadController extends Controller
                 'deals' => fn ($query) => $query->latest('id'),
                 'deals.stage:id,name,outcome',
                 'deals.property:id,type,street,number,neighborhood,deleted_at',
+                'showcaseRequests' => fn ($query) => $query->latest('id'),
             ]);
 
         $list = $leads()
