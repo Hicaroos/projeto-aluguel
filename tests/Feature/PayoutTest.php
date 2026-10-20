@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Payouts\RegisterOwnerPayout;
 use App\Enums\GuaranteeType;
 use App\Enums\LedgerEntryType;
 use App\Enums\PaymentType;
@@ -13,6 +14,7 @@ use App\Models\OwnerPayout;
 use App\Models\Payment;
 use App\Models\Property;
 use App\Models\User;
+use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -139,6 +141,20 @@ test('owners are paid at most what is already theirs to receive', function () {
     $this->actingAs($user)
         ->get(route('payouts.index'))
         ->assertInertia(fn (Assert $page) => $page->where('owners.0.available', 0)->where('owners.0.last_payout_on', '2026-03-20'));
+});
+
+test('a payout checked against a balance another one already took is refused, as on a double click', function () {
+    ['user' => $user, 'owner' => $owner] = payoutScenario();
+    $payout = ['amount' => '900', 'paid_on' => '2026-03-20', 'payment_method' => 'pix'];
+
+    $this->actingAs($user)->post(route('payouts.store', $owner), $payout)->assertSessionHasNoErrors();
+
+    // The second click passed the form validation before the first was saved.
+    expect(fn () => app(RegisterOwnerPayout::class)->handle($owner, $payout, $user))
+        ->toThrow(ValidationException::class);
+
+    expect(OwnerPayout::count())->toBe(1)
+        ->and(OwnerLedgerEntry::where('type', LedgerEntryType::Payout)->count())->toBe(1);
 });
 
 test('a payout registered by mistake can be removed, giving the amount back', function () {

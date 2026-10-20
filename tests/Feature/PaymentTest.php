@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Payments\CreateExtraCharge;
+use App\Actions\Payments\RegisterReceipt;
 use App\Enums\LeaseStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\PaymentType;
@@ -9,6 +10,7 @@ use App\Models\Lease;
 use App\Models\Payment;
 use App\Models\Receipt;
 use App\Models\User;
+use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -145,6 +147,22 @@ test('a receipt cannot exceed the open amount or be dated in the future', functi
         ->assertSessionHasErrors(['amount', 'date']);
 
     expect($payment->receipts()->count())->toBe(0);
+});
+
+test('a receipt checked against a balance another one already paid is refused, as on a double click', function () {
+    ['user' => $user, 'lease' => $lease] = paymentScenario();
+    $payment = Payment::factory()->for($lease)->create();
+
+    $this->actingAs($user)
+        ->post(route('payments.receipts.store', $payment), receiptPayload())
+        ->assertSessionHasNoErrors();
+
+    // The second click passed the form validation before the first was saved.
+    expect(fn () => app(RegisterReceipt::class)->handle($payment, receiptPayload()))
+        ->toThrow(ValidationException::class);
+
+    expect($payment->receipts()->count())->toBe(1)
+        ->and($payment->fresh()->status)->toBe(PaymentStatus::Paid);
 });
 
 test('receipts cannot be registered for paid or canceled payments', function (PaymentStatus $status) {
