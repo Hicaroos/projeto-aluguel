@@ -17,6 +17,7 @@ import {
 import type { LucideIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import DashboardPanel from '@/components/DashboardPanel.vue';
+import { iconTones } from '@/lib/badge-tones';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate } from '@/lib/formatters';
 import { index as dealsIndex } from '@/routes/deals';
@@ -46,7 +47,7 @@ const plural = (count: number, one: string, many: string): string =>
 const details: Record<DashboardAgendaKey, ItemDetails> = {
     overdue_payments: {
         icon: TriangleAlert,
-        tone: 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300',
+        tone: iconTones.danger,
         title: (count) =>
             plural(count, 'cobrança atrasada', 'cobranças atrasadas'),
         detail: (amount) => `${formatCurrency(amount ?? 0)} a receber`,
@@ -54,7 +55,7 @@ const details: Record<DashboardAgendaKey, ItemDetails> = {
     },
     payments_due_today: {
         icon: CalendarClock,
-        tone: 'bg-attention text-attention-foreground',
+        tone: iconTones.warning,
         title: (count) =>
             count === 1
                 ? '1 cobrança vence hoje'
@@ -76,7 +77,7 @@ const details: Record<DashboardAgendaKey, ItemDetails> = {
     },
     expenses_due: {
         icon: Receipt,
-        tone: 'bg-attention text-attention-foreground',
+        tone: iconTones.warning,
         title: (count) =>
             plural(
                 count,
@@ -88,7 +89,7 @@ const details: Record<DashboardAgendaKey, ItemDetails> = {
     },
     leases_ending: {
         icon: FileClock,
-        tone: 'bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300',
+        tone: iconTones.info,
         title: (count) =>
             count === 1
                 ? '1 contrato termina nos próximos 30 dias'
@@ -98,7 +99,7 @@ const details: Record<DashboardAgendaKey, ItemDetails> = {
     },
     adjustments_due: {
         icon: TrendingUp,
-        tone: 'bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300',
+        tone: iconTones.info,
         title: (count) =>
             plural(
                 count,
@@ -110,7 +111,7 @@ const details: Record<DashboardAgendaKey, ItemDetails> = {
     },
     proposals_pending: {
         icon: FileText,
-        tone: 'bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300',
+        tone: iconTones.accent,
         title: (count) =>
             plural(
                 count,
@@ -190,7 +191,8 @@ const rowClass =
                     :class="rowClass"
                 >
                     <div
-                        class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300"
+                        class="flex size-9 shrink-0 items-center justify-center rounded-lg"
+                        :class="iconTones.accent"
                     >
                         <CalendarCheck class="size-4" />
                     </div>

@@ -55,6 +55,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { useOpenSelectedRecord } from '@/composables/useOpenSelectedRecord';
+import { iconTones } from '@/lib/badge-tones';
 import { formatCurrency } from '@/lib/currency';
 import {
     expenseDisplayStatus,
@@ -159,13 +160,13 @@ const summaryCards = computed(() => [
         label: 'A pagar',
         value: props.summary.pending,
         icon: Clock,
-        class: 'bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300',
+        class: iconTones.info,
     },
     {
         label: 'Em atraso',
         value: props.summary.overdue,
         icon: TriangleAlert,
-        class: 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300',
+        class: iconTones.danger,
     },
 ]);
 

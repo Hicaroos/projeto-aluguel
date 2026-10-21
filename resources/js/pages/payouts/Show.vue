@@ -29,7 +29,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { badgeTones } from '@/lib/badge-tones';
+import { badgeTones, iconTones } from '@/lib/badge-tones';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate, formatDocument, formatMonthYear } from '@/lib/formatters';
 import AdjustmentDialog from '@/pages/payouts/AdjustmentDialog.vue';
@@ -163,7 +163,7 @@ const summaryCards = computed(() => [
         label: 'Aguardando o prazo',
         value: props.statement.pending,
         icon: Clock,
-        class: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+        class: iconTones.warning,
     },
     {
         label: 'Saldo do mês anterior',

@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/table';
 import { getInitials } from '@/composables/useInitials';
 import { usePermissions } from '@/composables/usePermissions';
+import { iconTones } from '@/lib/badge-tones';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate } from '@/lib/formatters';
 import { edit as editPayoutSettings } from '@/routes/payout-settings';
@@ -69,19 +70,19 @@ const summaryCards = computed(() => [
         label: 'Aguardando o prazo',
         value: props.totals.pending,
         icon: Clock,
-        class: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+        class: iconTones.warning,
     },
     {
         label: 'Aluguel garantido em aberto',
         value: props.totals.advanced,
         icon: ShieldCheck,
-        class: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
+        class: iconTones.info,
     },
     {
         label: 'Taxas da imobiliária no mês',
         value: props.totals.fees,
         icon: Percent,
-        class: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+        class: iconTones.success,
     },
 ]);
 

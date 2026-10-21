@@ -32,6 +32,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getInitials } from '@/composables/useInitials';
 import { usePermissions } from '@/composables/usePermissions';
+import { iconTones } from '@/lib/badge-tones';
 import { formatCurrency } from '@/lib/currency';
 import { daysUntil, formatDate, formatMonthYear } from '@/lib/formatters';
 import {
@@ -450,7 +451,7 @@ const clickableRow =
                         class="flex size-8 items-center justify-center rounded-lg"
                         :class="
                             stats.overdueCount > 0
-                                ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                                ? iconTones.danger
                                 : 'bg-muted text-muted-foreground'
                         "
                     >
@@ -475,7 +476,8 @@ const clickableRow =
                 <div class="flex items-center justify-between">
                     <p class="text-sm text-muted-foreground">Ocupação</p>
                     <div
-                        class="flex size-8 items-center justify-center rounded-lg bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300"
+                        class="flex size-8 items-center justify-center rounded-lg"
+                        :class="iconTones.info"
                     >
                         <KeyRound class="size-4" />
                     </div>
@@ -830,7 +832,8 @@ const clickableRow =
                         @keydown.enter="shownLeaseId = lease.id"
                     >
                         <div
-                            class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-attention text-attention-foreground"
+                            class="flex size-9 shrink-0 items-center justify-center rounded-lg"
+                            :class="iconTones.warning"
                         >
                             <FileText class="size-4" />
                         </div>
@@ -1120,7 +1123,8 @@ const clickableRow =
                 >
                     <Avatar class="size-9">
                         <AvatarFallback
-                            class="bg-rose-100 text-xs font-medium text-rose-700 dark:bg-rose-950/60 dark:text-rose-300"
+                            class="text-xs font-medium"
+                            :class="iconTones.danger"
                         >
                             {{ getInitials(payment.lease.tenant.name) }}
                         </AvatarFallback>

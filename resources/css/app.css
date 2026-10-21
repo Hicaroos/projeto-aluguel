@@ -111,9 +111,13 @@
     --accent-foreground: hsl(222 47% 11%);
     --destructive: hsl(0 72% 51%);
     --destructive-foreground: hsl(0 0% 98%);
-    --attention: var(--color-amber-50);
-    --attention-foreground: var(--color-amber-700);
-    --attention-border: var(--color-amber-200);
+    --attention: color-mix(in oklab, var(--color-amber-400) 18%, transparent);
+    --attention-foreground: var(--color-amber-800);
+    --attention-border: color-mix(
+        in oklab,
+        var(--color-amber-600) 30%,
+        transparent
+    );
     --attention-strong: var(--color-amber-500);
     --border: hsl(220 13% 90%);
     --input: hsl(220 13% 87%);

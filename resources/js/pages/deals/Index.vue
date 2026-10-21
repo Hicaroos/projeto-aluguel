@@ -34,6 +34,7 @@ import {
 import { getInitials } from '@/composables/useInitials';
 import { useOpenSelectedRecord } from '@/composables/useOpenSelectedRecord';
 import { usePermissions } from '@/composables/usePermissions';
+import { iconTones } from '@/lib/badge-tones';
 import { formatCurrency } from '@/lib/currency';
 import { dealTypeLabels, formatVisitTime } from '@/lib/sales-labels';
 import DealDetailsDialog from '@/pages/deals/DealDetailsDialog.vue';
@@ -487,7 +488,8 @@ function confirmDelete() {
 
                             <p
                                 v-if="nextVisit(deal)"
-                                class="mt-2 flex items-center gap-1 rounded-md bg-sky-50 px-2 py-1 text-xs text-sky-700 dark:bg-sky-950/60 dark:text-sky-300"
+                                class="mt-2 flex items-center gap-1 rounded-md px-2 py-1 text-xs"
+                                :class="iconTones.info"
                             >
                                 <CalendarClock class="size-3" />
                                 Visita

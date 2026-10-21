@@ -15,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { iconTones } from '@/lib/badge-tones';
 import { move } from '@/routes/deals';
 import type { Deal, DealStage } from '@/types';
 
@@ -72,7 +73,8 @@ function confirm() {
         <DialogContent class="sm:max-w-md">
             <DialogHeader class="flex-row items-center gap-3 text-left">
                 <div
-                    class="flex size-10 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-300"
+                    class="flex size-10 shrink-0 items-center justify-center rounded-full"
+                    :class="iconTones.danger"
                 >
                     <CircleX class="size-5" />
                 </div>

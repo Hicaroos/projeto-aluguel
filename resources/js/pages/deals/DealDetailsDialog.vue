@@ -90,7 +90,8 @@ function stageOf(deal: Deal): DealStage | undefined {
 
             <p
                 v-if="deal.lost_reason"
-                class="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-300"
+                class="rounded-lg border p-3 text-sm"
+                :class="badgeTones.danger"
             >
                 <span class="font-medium">Motivo da perda:</span>
                 {{ deal.lost_reason }}

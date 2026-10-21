@@ -57,7 +57,7 @@ import {
 } from '@/components/ui/table';
 import { getInitials } from '@/composables/useInitials';
 import { usePermissions } from '@/composables/usePermissions';
-import { badgeTones } from '@/lib/badge-tones';
+import { badgeTones, iconTones } from '@/lib/badge-tones';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate, formatMonthYear } from '@/lib/formatters';
 import {
@@ -172,13 +172,13 @@ const summaryCards = computed(() => [
         label: 'Em aberto',
         value: props.summary.open,
         icon: Clock,
-        class: 'bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300',
+        class: iconTones.info,
     },
     {
         label: 'Em atraso',
         value: props.summary.overdue,
         icon: TriangleAlert,
-        class: 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300',
+        class: iconTones.danger,
     },
 ]);
 

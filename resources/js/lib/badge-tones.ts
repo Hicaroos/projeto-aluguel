@@ -26,3 +26,16 @@ export const badgeDotTones: Record<BadgeTone, string> = {
     accent: 'bg-violet-500',
     neutral: 'bg-gray-400',
 };
+
+/** The tile behind an icon, such as on a summary card or an agenda item, in the tags' tones. */
+export const iconTones: Record<BadgeTone, string> = {
+    success:
+        'bg-emerald-500/15 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300',
+    info: 'bg-sky-500/15 text-sky-800 dark:bg-sky-400/10 dark:text-sky-300',
+    warning:
+        'bg-amber-400/25 text-amber-800 dark:bg-amber-400/10 dark:text-amber-300',
+    danger: 'bg-rose-500/15 text-rose-700 dark:bg-rose-400/10 dark:text-rose-300',
+    accent: 'bg-violet-500/15 text-violet-700 dark:bg-violet-400/10 dark:text-violet-300',
+    neutral:
+        'bg-gray-500/10 text-gray-600 dark:bg-gray-400/10 dark:text-gray-300',
+};
