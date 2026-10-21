@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Money the agency paid an owner out of their running account (repasse).
@@ -22,16 +23,40 @@ use Illuminate\Support\Carbon;
  * @property Carbon $paid_on
  * @property PaymentMethod|null $payment_method
  * @property string|null $notes
+ * @property string|null $receipt_name The proof of transfer's file name, as uploaded.
+ * @property string|null $receipt_path
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Owner $owner
  * @property-read User|null $user
  */
-#[Fillable(['account_id', 'owner_id', 'user_id', 'amount', 'paid_on', 'payment_method', 'notes'])]
+#[Fillable(['account_id', 'owner_id', 'user_id', 'amount', 'paid_on', 'payment_method', 'notes', 'receipt_name', 'receipt_path'])]
 class OwnerPayout extends Model
 {
     /** @use HasFactory<OwnerPayoutFactory> */
     use BelongsToAccount, HasFactory;
+
+    /**
+     * Proofs of transfer are private files, served only to their own account.
+     */
+    public const string DISK = 'local';
+
+    /**
+     * @var list<string>
+     */
+    protected $hidden = ['receipt_path'];
+
+    /**
+     * Remove the stored proof of transfer together with the payout.
+     */
+    protected static function booted(): void
+    {
+        static::deleted(function (OwnerPayout $payout): void {
+            if ($payout->receipt_path !== null) {
+                Storage::disk(self::DISK)->delete($payout->receipt_path);
+            }
+        });
+    }
 
     /**
      * @return BelongsTo<Owner, $this>

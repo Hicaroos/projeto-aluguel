@@ -72,6 +72,8 @@ export type StatementEntry = {
     is_guaranteed: boolean;
     share_percent: string | null;
     owner_payout_id: number | null;
+    /** The proof of transfer attached to the payout, by its file name. */
+    payout_receipt_name: string | null;
     is_adjustment: boolean;
     property: {
         id: number;

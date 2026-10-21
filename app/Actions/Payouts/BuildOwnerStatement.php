@@ -23,6 +23,7 @@ use Carbon\CarbonInterface;
  *     is_guaranteed: bool,
  *     share_percent: string|null,
  *     owner_payout_id: int|null,
+ *     payout_receipt_name: string|null,
  *     is_adjustment: bool,
  *     property: array{id: int, street: string, number: string, complement: string|null}|null,
  * }
@@ -57,7 +58,7 @@ class BuildOwnerStatement
 
         $entries = OwnerLedgerEntry::where('owner_id', $owner->id)
             ->whereBetween('occurred_on', [$from, $to])
-            ->with('property:id,street,number,complement')
+            ->with(['property:id,street,number,complement', 'ownerPayout:id,receipt_name'])
             ->orderBy('occurred_on')
             ->orderBy('id')
             ->get();
@@ -79,6 +80,7 @@ class BuildOwnerStatement
                 'is_guaranteed' => $entry->is_guaranteed,
                 'share_percent' => $entry->share_percent,
                 'owner_payout_id' => $entry->owner_payout_id,
+                'payout_receipt_name' => $entry->ownerPayout?->receipt_name,
                 'is_adjustment' => $entry->isAdjustment(),
                 'property' => $entry->property?->only(['id', 'street', 'number', 'complement']),
             ];

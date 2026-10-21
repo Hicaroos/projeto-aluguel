@@ -2,20 +2,25 @@
 import { Head, router, setLayoutProps } from '@inertiajs/vue3';
 import {
     Clock,
+    FileCheck,
     FileDown,
     HandCoins,
     Landmark,
+    Paperclip,
     Scale,
     ShieldCheck,
     Trash2,
     Wallet,
+    X,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import { toast } from 'vue-sonner';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue';
 import MonthNavigator from '@/components/MonthNavigator.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
     TableBody,
@@ -31,6 +36,11 @@ import AdjustmentDialog from '@/pages/payouts/AdjustmentDialog.vue';
 import RegisterPayoutDialog from '@/pages/payouts/RegisterPayoutDialog.vue';
 import { destroy as destroyEntry } from '@/routes/ledger-entries';
 import { destroy as destroyPayout } from '@/routes/owner-payouts';
+import {
+    destroy as destroyReceipt,
+    show as showReceipt,
+    store as storeReceipt,
+} from '@/routes/owner-payouts/receipt';
 import { index, pdf, show } from '@/routes/payouts';
 import type {
     OwnerStatement,
@@ -84,6 +94,62 @@ function confirmDelete() {
             },
         },
     );
+}
+
+const receiptInput = ref<HTMLInputElement | null>(null);
+const payoutChoosingReceipt = ref<number | null>(null);
+const payoutUploadingReceipt = ref<number | null>(null);
+
+function chooseReceipt(payoutId: number) {
+    payoutChoosingReceipt.value = payoutId;
+    receiptInput.value?.click();
+}
+
+function uploadReceipt(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    const payoutId = payoutChoosingReceipt.value;
+    input.value = '';
+
+    if (!file || payoutId === null) {
+        return;
+    }
+
+    payoutUploadingReceipt.value = payoutId;
+
+    router.post(
+        storeReceipt(payoutId).url,
+        { receipt: file },
+        {
+            preserveScroll: true,
+            onError: (errors) =>
+                toast.error(
+                    errors.receipt ?? 'Não foi possível enviar o comprovante.',
+                ),
+            onFinish: () => (payoutUploadingReceipt.value = null),
+        },
+    );
+}
+
+const receiptToRemove = ref<StatementEntry | null>(null);
+const isRemovingReceipt = ref(false);
+
+function confirmRemoveReceipt() {
+    const payoutId = receiptToRemove.value?.owner_payout_id;
+
+    if (!payoutId) {
+        return;
+    }
+
+    isRemovingReceipt.value = true;
+
+    router.delete(destroyReceipt(payoutId).url, {
+        preserveScroll: true,
+        onFinish: () => {
+            isRemovingReceipt.value = false;
+            receiptToRemove.value = null;
+        },
+    });
 }
 
 const summaryCards = computed(() => [
@@ -300,6 +366,53 @@ const headClass =
                                         .join(' · ')
                                 }}
                             </p>
+                            <div
+                                v-if="entry.owner_payout_id"
+                                class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm"
+                            >
+                                <template v-if="entry.payout_receipt_name">
+                                    <a
+                                        :href="
+                                            showReceipt(entry.owner_payout_id)
+                                                .url
+                                        "
+                                        target="_blank"
+                                        class="inline-flex max-w-full min-w-0 items-center gap-1.5 text-primary hover:underline"
+                                    >
+                                        <FileCheck class="size-3.5 shrink-0" />
+                                        <span class="truncate">{{
+                                            entry.payout_receipt_name
+                                        }}</span>
+                                    </a>
+                                    <button
+                                        type="button"
+                                        class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                                        @click="receiptToRemove = entry"
+                                    >
+                                        <X class="size-3.5" />
+                                        Remover
+                                    </button>
+                                </template>
+                                <button
+                                    v-else
+                                    type="button"
+                                    class="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground disabled:opacity-50"
+                                    :disabled="payoutUploadingReceipt !== null"
+                                    @click="
+                                        chooseReceipt(entry.owner_payout_id)
+                                    "
+                                >
+                                    <Spinner
+                                        v-if="
+                                            payoutUploadingReceipt ===
+                                            entry.owner_payout_id
+                                        "
+                                        class="size-3.5"
+                                    />
+                                    <Paperclip v-else class="size-3.5" />
+                                    Anexar comprovante
+                                </button>
+                            </div>
                         </TableCell>
                         <TableCell
                             class="px-4 py-3 text-right align-top font-medium whitespace-nowrap tabular-nums"
@@ -334,6 +447,28 @@ const headClass =
             </Table>
         </div>
     </div>
+
+    <input
+        ref="receiptInput"
+        type="file"
+        accept="application/pdf,image/jpeg,image/png,image/webp"
+        class="hidden"
+        @change="uploadReceipt"
+    />
+
+    <ConfirmDeleteDialog
+        :open="!!receiptToRemove"
+        title="Remover comprovante?"
+        :processing="isRemovingReceipt"
+        @close="receiptToRemove = null"
+        @confirm="confirmRemoveReceipt"
+    >
+        O arquivo
+        <span class="font-medium text-foreground">{{
+            receiptToRemove?.payout_receipt_name
+        }}</span>
+        será apagado. O repasse continua registrado.
+    </ConfirmDeleteDialog>
 
     <RegisterPayoutDialog
         v-if="isPayoutDialogOpen"

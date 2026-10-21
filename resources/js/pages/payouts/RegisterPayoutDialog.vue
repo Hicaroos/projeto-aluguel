@@ -147,9 +147,29 @@ const amount = ref(props.available > 0 ? props.available.toFixed(2) : '');
                     <Input
                         id="payout_notes"
                         name="notes"
-                        placeholder="Ex.: comprovante enviado pelo WhatsApp"
+                        placeholder="Ex.: Pix agendado pelo app do banco"
                     />
                     <InputError :message="errors.notes" />
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="payout_receipt">
+                        Comprovante
+                        <span class="font-normal text-muted-foreground"
+                            >(opcional)</span
+                        >
+                    </Label>
+                    <Input
+                        id="payout_receipt"
+                        name="receipt"
+                        type="file"
+                        accept="application/pdf,image/jpeg,image/png,image/webp"
+                    />
+                    <p class="text-xs text-muted-foreground">
+                        PDF ou imagem de até 10 MB. Dá para anexar depois, no
+                        extrato.
+                    </p>
+                    <InputError :message="errors.receipt" />
                 </div>
 
                 <DialogFooter>

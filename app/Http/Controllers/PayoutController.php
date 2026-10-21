@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Payouts\AttachPayoutReceipt;
 use App\Actions\Payouts\BuildOwnerStatement;
 use App\Actions\Payouts\CreditGuaranteedRent;
 use App\Actions\Payouts\RegisterOwnerPayout;
@@ -17,6 +18,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -116,16 +118,23 @@ class PayoutController extends Controller
     }
 
     /**
-     * Record money paid to the owner.
+     * Record money paid to the owner, with the proof of the transfer when it is at hand.
      */
-    public function store(OwnerPayoutRequest $request, Owner $owner, RegisterOwnerPayout $registerOwnerPayout): RedirectResponse
+    public function store(OwnerPayoutRequest $request, Owner $owner, RegisterOwnerPayout $registerOwnerPayout, AttachPayoutReceipt $attachPayoutReceipt): RedirectResponse
     {
         $this->agency($request);
 
         /** @var array{amount: string, paid_on: string, payment_method?: string|null, notes?: string|null} $attributes */
-        $attributes = $request->validated();
+        $attributes = $request->safe()->except('receipt');
 
         $payout = $registerOwnerPayout->handle($owner, $attributes, $request->user());
+
+        if ($request->hasFile('receipt')) {
+            /** @var UploadedFile $file */
+            $file = $request->file('receipt');
+
+            $attachPayoutReceipt->handle($payout, $file);
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Repasse registrado.')]);
 

@@ -24,6 +24,7 @@ class OwnerPayoutRequest extends FormRequest
             'paid_on' => ['required', 'date', 'before_or_equal:today'],
             'payment_method' => ['nullable', Rule::enum(PaymentMethod::class)->except([PaymentMethod::Deposit])],
             'notes' => ['nullable', 'string', 'max:255'],
+            'receipt' => ['nullable', ...OwnerPayoutReceiptRequest::RECEIPT_RULES],
         ];
     }
 
@@ -49,6 +50,7 @@ class OwnerPayoutRequest extends FormRequest
             'amount' => __('valor'),
             'paid_on' => __('data do repasse'),
             'payment_method' => __('forma de pagamento'),
+            ...OwnerPayoutReceiptRequest::receiptAttributes(),
         ];
     }
 
@@ -62,6 +64,7 @@ class OwnerPayoutRequest extends FormRequest
         return [
             'amount.max' => __('O repasse não pode passar do saldo disponível de :max.', ['max' => 'R$ '.number_format(max(0, $this->availableBalance()), 2, ',', '.')]),
             'paid_on.before_or_equal' => __('A data do repasse não pode estar no futuro.'),
+            ...OwnerPayoutReceiptRequest::receiptMessages(),
         ];
     }
 }

@@ -40,6 +40,7 @@ use Illuminate\Support\Carbon;
  * @property-read Owner $owner
  * @property-read Property|null $property
  * @property-read Payment|null $payment
+ * @property-read OwnerPayout|null $ownerPayout
  * @property-read User|null $user
  */
 #[Fillable([
@@ -90,6 +91,14 @@ class OwnerLedgerEntry extends Model
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
+    }
+
+    /**
+     * @return BelongsTo<OwnerPayout, $this>
+     */
+    public function ownerPayout(): BelongsTo
+    {
+        return $this->belongsTo(OwnerPayout::class);
     }
 
     /**

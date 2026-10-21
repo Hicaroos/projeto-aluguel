@@ -14,6 +14,8 @@ use App\Models\OwnerPayout;
 use App\Models\Payment;
 use App\Models\Property;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -219,4 +221,86 @@ test('only agency members who handle the money reach the payouts', function () {
     $this->actingAs($finance)->get(route('payouts.show', $owner))->assertOk();
     $this->actingAs($stranger)->get(route('payouts.show', $owner))->assertNotFound();
     $this->actingAs($singleOwner)->get(route('payouts.index'))->assertNotFound();
+});
+
+test('the proof of transfer goes along with the payout and leaves with it', function () {
+    Storage::fake(OwnerPayout::DISK);
+    ['user' => $user, 'owner' => $owner] = payoutScenario();
+
+    $this->actingAs($user)
+        ->post(route('payouts.store', $owner), [
+            'amount' => '900',
+            'paid_on' => '2026-03-20',
+            'payment_method' => 'pix',
+            'receipt' => UploadedFile::fake()->create('comprovante-pix.pdf', 120, 'application/pdf'),
+        ])
+        ->assertSessionHasNoErrors();
+
+    $payout = OwnerPayout::sole();
+
+    expect($payout->receipt_name)->toBe('comprovante-pix.pdf');
+    Storage::disk(OwnerPayout::DISK)->assertExists($payout->receipt_path);
+
+    $this->actingAs($user)
+        ->get(route('payouts.show', ['owner' => $owner->id, 'month' => '2026-03']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('statement.entries.2.owner_payout_id', $payout->id)
+            ->where('statement.entries.2.payout_receipt_name', 'comprovante-pix.pdf')
+            ->where('statement.entries.0.payout_receipt_name', null)
+        );
+
+    $this->actingAs($user)->get(route('owner-payouts.receipt.show', $payout))->assertOk();
+
+    $this->actingAs($user)->delete(route('owner-payouts.destroy', $payout));
+
+    Storage::disk(OwnerPayout::DISK)->assertMissing($payout->receipt_path);
+});
+
+test('the proof of transfer can be attached later, replaced and removed', function () {
+    Storage::fake(OwnerPayout::DISK);
+    ['user' => $user, 'owner' => $owner] = payoutScenario();
+    $this->actingAs($user)->post(route('payouts.store', $owner), ['amount' => '500', 'paid_on' => '2026-03-20']);
+    $payout = OwnerPayout::sole();
+
+    $this->actingAs($user)->get(route('owner-payouts.receipt.show', $payout))->assertNotFound();
+
+    $this->actingAs($user)
+        ->post(route('owner-payouts.receipt.store', $payout), ['receipt' => UploadedFile::fake()->create('planilha.xlsx', 50, 'application/vnd.ms-excel')])
+        ->assertSessionHasErrors(['receipt' => 'Envie um PDF ou uma imagem (JPG, PNG ou WebP).']);
+
+    $this->actingAs($user)
+        ->post(route('owner-payouts.receipt.store', $payout), ['receipt' => UploadedFile::fake()->create('print.png', 90, 'image/png')])
+        ->assertSessionHasNoErrors();
+
+    $firstPath = $payout->fresh()->receipt_path;
+
+    $this->actingAs($user)
+        ->post(route('owner-payouts.receipt.store', $payout), ['receipt' => UploadedFile::fake()->create('ted.pdf', 80, 'application/pdf')])
+        ->assertSessionHasNoErrors();
+
+    expect($payout->fresh()->receipt_name)->toBe('ted.pdf');
+    Storage::disk(OwnerPayout::DISK)->assertMissing($firstPath);
+    Storage::disk(OwnerPayout::DISK)->assertExists($payout->fresh()->receipt_path);
+
+    $this->actingAs($user)->delete(route('owner-payouts.receipt.destroy', $payout))->assertSessionHasNoErrors();
+
+    expect($payout->fresh()->receipt_path)->toBeNull()
+        ->and(OwnerPayout::count())->toBe(1);
+});
+
+test('proofs of transfer of other accounts are out of reach', function () {
+    Storage::fake(OwnerPayout::DISK);
+    ['user' => $user, 'owner' => $owner] = payoutScenario();
+    $this->actingAs($user)->post(route('payouts.store', $owner), [
+        'amount' => '500',
+        'paid_on' => '2026-03-20',
+        'receipt' => UploadedFile::fake()->create('comprovante.pdf', 50, 'application/pdf'),
+    ]);
+    $payout = OwnerPayout::sole();
+    $stranger = User::factory()->for(Account::factory()->agency(), 'account')->create();
+
+    $this->actingAs($stranger)->get(route('owner-payouts.receipt.show', $payout))->assertNotFound();
+    $this->actingAs($stranger)->delete(route('owner-payouts.receipt.destroy', $payout))->assertNotFound();
+
+    expect($payout->fresh()->receipt_path)->not->toBeNull();
 });
