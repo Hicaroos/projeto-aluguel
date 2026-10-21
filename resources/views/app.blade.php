@@ -1,28 +1,31 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"  @class(['dark' => ! ($isShowcase ?? false) && ($appearance ?? 'system') == 'dark']) @if ($isShowcase ?? false) data-showcase @endif>
+{{-- The public pages, the showcase and the welcome page, keep their own light look, whatever the visitor's theme --}}
+@php($keepsLightLook = ($isShowcase ?? false) || ($isWelcome ?? false))
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"  @class(['dark' => ! $keepsLightLook && ($appearance ?? 'system') == 'dark']) @if ($isShowcase ?? false) data-showcase @endif @if ($keepsLightLook) data-light-look @endif>
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         @if ($isShowcase ?? false)
-            {{-- The public showcase keeps its own light look, whatever the visitor's theme --}}
             <link rel="preconnect" href="https://fonts.bunny.net">
             <link rel="stylesheet" href="https://fonts.bunny.net/css?family=sora:500,600,700|figtree:400,500,600,700&display=swap">
+        @endif
 
-            @isset($meta)
-                <meta name="description" content="{{ $meta['description'] }}">
-                <meta property="og:type" content="website">
-                <meta property="og:locale" content="pt_BR">
-                <meta property="og:title" content="{{ $meta['title'] }}">
-                <meta property="og:description" content="{{ $meta['description'] }}">
-                <meta property="og:url" content="{{ $meta['url'] }}">
-                <link rel="canonical" href="{{ $meta['url'] }}">
-                @if ($meta['image'])
-                    <meta property="og:image" content="{{ $meta['image'] }}">
-                    <meta name="twitter:card" content="summary_large_image">
-                @endif
-            @endisset
-        @else
+        @isset($meta)
+            <meta name="description" content="{{ $meta['description'] }}">
+            <meta property="og:type" content="website">
+            <meta property="og:locale" content="pt_BR">
+            <meta property="og:title" content="{{ $meta['title'] }}">
+            <meta property="og:description" content="{{ $meta['description'] }}">
+            <meta property="og:url" content="{{ $meta['url'] }}">
+            <link rel="canonical" href="{{ $meta['url'] }}">
+            @if ($meta['image'])
+                <meta property="og:image" content="{{ $meta['image'] }}">
+                <meta name="twitter:card" content="summary_large_image">
+            @endif
+        @endisset
+
+        @unless ($keepsLightLook)
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script nonce="{{ Vite::cspNonce() }}">
             (function() {
@@ -48,7 +51,7 @@
                 background-color: oklch(0.145 0 0);
             }
         </style>
-        @endif
+        @endunless
 
         <link rel="icon" href="/favicon.ico" sizes="any">
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">

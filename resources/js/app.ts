@@ -1,5 +1,5 @@
 import { createInertiaApp, router } from '@inertiajs/vue3';
-import { initializeTheme } from '@/composables/useAppearance';
+import { initializeTheme, syncLightLook } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthSplitLayout from '@/layouts/auth/AuthSplitLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
@@ -21,7 +21,7 @@ createInertiaApp({
               : appName,
     layout: (name) => {
         switch (true) {
-            case name === 'receipts/Show':
+            case name === 'receipts/Show' || name === 'Welcome':
                 return null;
             case name === 'auth/Login':
                 return AuthSplitLayout;
@@ -42,6 +42,9 @@ createInertiaApp({
 
 // This will set light / dark mode on page load...
 initializeTheme();
+
+// This keeps the public pages light and the app in the chosen theme when moving between them...
+router.on('navigate', (event) => syncLightLook(event.detail.page.component));
 
 // This will listen for flash toast data from the server...
 initializeFlashToast();

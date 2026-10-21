@@ -15,8 +15,8 @@ export function updateTheme(value: Appearance): void {
         return;
     }
 
-    // The public showcase keeps its own light look, whatever the visitor's theme.
-    if (document.documentElement.hasAttribute('data-showcase')) {
+    // The public pages, the showcase and the welcome page, keep their own light look, whatever the visitor's theme.
+    if (document.documentElement.hasAttribute('data-light-look')) {
         document.documentElement.classList.remove('dark');
 
         return;
@@ -76,6 +76,28 @@ const handleSystemThemeChange = () => {
 
     updateTheme(currentAppearance || 'system');
 };
+
+/** The public pages, the showcase and the welcome page, keep their own light look (as in app.blade.php). */
+const keepsLightLook = (component: string): boolean =>
+    component === 'Welcome' || component.startsWith('showcase/');
+
+/**
+ * Mark whether the page keeps the light look and apply the theme again. The server marks it on a
+ * full page load, but signing in from the welcome page or out of the app moves between the public
+ * pages and the app without one.
+ */
+export function syncLightLook(component: string): void {
+    if (typeof document === 'undefined') {
+        return;
+    }
+
+    document.documentElement.toggleAttribute(
+        'data-light-look',
+        keepsLightLook(component),
+    );
+
+    updateTheme(getStoredAppearance() || 'system');
+}
 
 export function initializeTheme(): void {
     if (typeof window === 'undefined') {

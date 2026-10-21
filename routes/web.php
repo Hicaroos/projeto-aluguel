@@ -31,12 +31,12 @@ use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SaleDocumentController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TenantController;
+use App\Http\Controllers\WelcomeController;
 use App\Http\Middleware\IgnoreOwnerSelection;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn (Request $request) => to_route($request->user() ? 'dashboard' : 'login'))->name('home');
+Route::get('/', WelcomeController::class)->name('home');
 
 // Browsers post here what the content policy blocks; they send no CSRF token.
 Route::post('csp-report', ContentSecurityReportController::class)
