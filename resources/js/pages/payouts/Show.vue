@@ -396,7 +396,7 @@ const headClass =
                                 <button
                                     v-else
                                     type="button"
-                                    class="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground disabled:opacity-50"
+                                    class="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                                     :disabled="payoutUploadingReceipt !== null"
                                     @click="
                                         chooseReceipt(entry.owner_payout_id)

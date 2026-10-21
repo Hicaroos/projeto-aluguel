@@ -118,7 +118,7 @@ function selectOwner(value: unknown) {
                         <ComboboxItem
                             :value="ALL_OWNERS"
                             text-value="Todos os proprietários"
-                            class="relative flex cursor-default items-center rounded-sm py-1.5 pr-8 pl-2 text-sm font-medium outline-hidden select-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
+                            class="relative flex cursor-pointer items-center rounded-sm py-1.5 pr-8 pl-2 text-sm font-medium outline-hidden select-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
                         >
                             Todos os proprietários
                             <ComboboxItemIndicator
@@ -132,7 +132,7 @@ function selectOwner(value: unknown) {
                             :key="owner.id"
                             :value="String(owner.id)"
                             :text-value="`${owner.name} ${owner.cpf_cnpj ?? ''} ${formatDocument(owner.cpf_cnpj)}`"
-                            class="relative flex cursor-default items-center rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
+                            class="relative flex cursor-pointer items-center rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
                         >
                             <div class="min-w-0">
                                 <p class="truncate">{{ owner.name }}</p>

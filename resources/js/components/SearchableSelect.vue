@@ -84,7 +84,7 @@ function displayValue(value: unknown): string {
                         :key="option.value"
                         :value="option.value"
                         :text-value="`${option.label} ${option.description ?? ''}`"
-                        class="relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
+                        class="relative flex cursor-pointer items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
                     >
                         <div class="min-w-0">
                             <p class="truncate">{{ option.label }}</p>
