@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\Dashboard\BuildDayAgenda;
 use App\Actions\Dashboard\GetMonthlyRevenue;
 use App\Actions\Dashboard\SummarizeAgencyFinances;
+use App\Actions\Dashboard\SummarizeCommercial;
 use App\Actions\Expenses\SummarizeExpenses;
 use App\Actions\Leases\SyncLeasePayments;
 use App\Actions\Payments\SummarizePayments;
@@ -12,16 +13,12 @@ use App\Enums\ContractTemplateKind;
 use App\Enums\LeaseStatus;
 use App\Enums\Permission;
 use App\Enums\PropertyStatus;
-use App\Enums\VisitStatus;
 use App\Models\ContractTemplate;
-use App\Models\Deal;
-use App\Models\DealVisit;
 use App\Models\Expense;
 use App\Models\Lease;
 use App\Models\Owner;
 use App\Models\Payment;
 use App\Models\Property;
-use App\Models\Sale;
 use App\Models\Tenant;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -43,6 +40,7 @@ class DashboardController extends Controller
         GetMonthlyRevenue $getMonthlyRevenue,
         SummarizeAgencyFinances $summarizeAgencyFinances,
         BuildDayAgenda $buildDayAgenda,
+        SummarizeCommercial $summarizeCommercial,
     ): Response {
         $accountId = $request->user()->account_id;
 
@@ -69,6 +67,8 @@ class DashboardController extends Controller
                 'properties' => $properties()->count(),
                 'rentedProperties' => $properties()->where('status', PropertyStatus::Rented)->count(),
                 'activeLeases' => Lease::where('account_id', $accountId)->active()->count(),
+                'leasesStarted' => Lease::where('account_id', $accountId)->whereBetween('start_date', [$month->toDateString(), $month->endOfMonth()->toDateString()])->count(),
+                'leasesFinished' => Lease::where('account_id', $accountId)->whereBetween('finished_on', [$month->toDateString(), $month->endOfMonth()->toDateString()])->count(),
                 'owners' => Owner::where('account_id', $accountId)->count(),
                 'tenants' => Tenant::where('account_id', $accountId)
                     ->when(Owner::selectedId(), fn (Builder $query, int $ownerId) => Tenant::restrictToOwner($query, $ownerId))
@@ -111,19 +111,14 @@ class DashboardController extends Controller
                 ->take(5)
                 ->each->withAdjustmentInfo()
                 ->values(),
-            'vacantProperties' => $properties()
-                ->where('status', PropertyStatus::Available)
-                ->withDetails()
-                ->orderBy('street')
-                ->limit(5)
-                ->get(),
+            'vacantProperties' => $this->longestVacant($properties()),
             'vacantPropertiesCount' => $properties()->where('status', PropertyStatus::Available)->count(),
             'contractTemplates' => ContractTemplate::where('account_id', $accountId)
                 ->where('kind', ContractTemplateKind::Lease)
                 ->orderByDesc('is_default')
                 ->orderBy('name')
                 ->get(['id', 'name', 'is_default']),
-            'sales' => Owner::ignoringSelection(fn (): ?array => $this->salesOverview($month)),
+            'commercial' => $summarizeCommercial->handle($request->user(), $month),
             'agenda' => ($request->user()->account?->isAgency() ?? false) ? $buildDayAgenda->handle($request->user()) : null,
             'agencyFinances' => ($request->user()->account?->isAgency() ?? false) && $request->user()->can(Permission::ManageFinance->value)
                 ? $summarizeAgencyFinances->handle($month)
@@ -158,36 +153,31 @@ class DashboardController extends Controller
     }
 
     /**
-     * Summarize the sales of the month, the open deals and the visits of the coming week, once
-     * the account uses the funnel.
+     * Get the vacant properties that have waited longest for a tenant, with the day they became
+     * vacant: when their last lease finished or, for those never rented, when they were registered.
      *
-     * @return array{count: int, total: float, commission: float, openDeals: int, upcomingVisits: Collection<int, DealVisit>}|null
+     * @param  Builder<Property>  $properties
+     * @return Collection<int, Property>
      */
-    private function salesOverview(CarbonImmutable $month): ?array
+    private function longestVacant(Builder $properties): Collection
     {
-        if (! Deal::query()->exists() && ! Sale::query()->exists()) {
-            return null;
-        }
+        $vacant = $properties
+            ->where('status', PropertyStatus::Available)
+            ->withDetails()
+            ->addSelect(['last_lease_finished_on' => Lease::withoutGlobalScopes()
+                ->selectRaw('max(finished_on)')
+                ->whereColumn('leases.property_id', 'properties.id'),
+            ])
+            ->orderByRaw('coalesce(last_lease_finished_on, properties.created_at)')
+            ->orderBy('street')
+            ->limit(5)
+            ->get();
 
-        $sales = Sale::query()->soldInMonth($month)->get(['id', 'price', 'commission_amount']);
+        return $vacant->each(function (Property $property): void {
+            $vacantSince = $property->getAttribute('last_lease_finished_on') ?? $property->created_at?->toDateString();
 
-        return [
-            'count' => $sales->count(),
-            'total' => round($sales->sum(fn (Sale $sale): float => (float) $sale->price), 2),
-            'commission' => round($sales->sum(fn (Sale $sale): float => (float) $sale->commission_amount), 2),
-            'openDeals' => Deal::query()->whereNull('closed_at')->count(),
-            'upcomingVisits' => DealVisit::query()
-                ->where('status', VisitStatus::Scheduled)
-                ->whereBetween('scheduled_at', [now()->startOfDay(), now()->addDays(7)->endOfDay()])
-                ->with([
-                    'deal:id,lead_id,property_id',
-                    'deal.lead:id,name',
-                    'deal.property:id,street,number,neighborhood,deleted_at',
-                    'user:id,name',
-                ])
-                ->orderBy('scheduled_at')
-                ->limit(6)
-                ->get(),
-        ];
+            $property->setAttribute('vacant_since', $vacantSince === null ? null : CarbonImmutable::parse($vacantSince)->toDateString());
+            $property->offsetUnset('last_lease_finished_on');
+        });
     }
 }

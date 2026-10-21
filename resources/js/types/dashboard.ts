@@ -1,27 +1,44 @@
 import type { Lease } from './lease';
 import type { Property } from './property';
 
-export type DashboardSalesOverview = {
-    count: number;
-    total: number;
-    commission: number;
-    openDeals: number;
-    upcomingVisits: {
+export type DashboardVisit = {
+    id: number;
+    deal_id: number;
+    scheduled_at: string;
+    deal: {
         id: number;
-        deal_id: number;
-        scheduled_at: string;
-        deal: {
+        lead: { id: number; name: string };
+        property: {
             id: number;
-            lead: { id: number; name: string };
-            property: {
-                id: number;
-                street: string;
-                number: string;
-                neighborhood: string;
-            } | null;
-        };
-        user: { id: number; name: string } | null;
-    }[];
+            street: string;
+            number: string;
+            neighborhood: string;
+        } | null;
+    };
+    user: { id: number; name: string } | null;
+};
+
+/** A team member's month in the funnel. */
+export type DashboardTeamMember = {
+    id: number;
+    name: string;
+    leads: number;
+    visits: number;
+    proposals: number;
+    won: number;
+};
+
+/** The month of the funnel: the agent's own, or the whole team's for admins and general staff. */
+export type DashboardCommercial = {
+    newLeads: number;
+    visitsDone: number;
+    pendingProposals: number;
+    wonDeals: number;
+    openDeals: number;
+    sales: { count: number; total: number; commission: number };
+    upcomingVisits: DashboardVisit[];
+    /** Only for those who see the whole team. */
+    team: DashboardTeamMember[] | null;
 };
 
 export type DashboardStats = {
@@ -38,6 +55,9 @@ export type DashboardStats = {
     properties: number;
     rentedProperties: number;
     activeLeases: number;
+    /** Leases that started and leases ended or terminated in the month. */
+    leasesStarted: number;
+    leasesFinished: number;
     tenants: number;
     /** Agencies register the owners before their properties. */
     owners: number;
@@ -55,7 +75,10 @@ export type DashboardEndingLease = Lease;
 export type DashboardAdjustmentLease = Lease;
 
 /** Dashboard properties carry everything their details show, so they open right on the dashboard. */
-export type DashboardVacantProperty = Property;
+export type DashboardVacantProperty = Property & {
+    /** When its last lease finished, or when it was registered if it was never rented. */
+    vacant_since: string | null;
+};
 
 /** What the agency earned itself in the month and the owners' money it holds. */
 export type DashboardAgencyFinances = {
@@ -97,5 +120,5 @@ export type DashboardAgendaKey =
 
 export type DashboardAgenda = {
     items: { key: DashboardAgendaKey; count: number; amount: number | null }[];
-    visits: DashboardSalesOverview['upcomingVisits'];
+    visits: DashboardVisit[];
 };

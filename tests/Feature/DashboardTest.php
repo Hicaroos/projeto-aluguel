@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Payments\CreateExtraCharge;
+use App\Enums\LeaseStatus;
 use App\Enums\PropertyStatus;
 use App\Models\Account;
 use App\Models\ContractTemplate;
@@ -130,5 +131,42 @@ test('the dashboard lists overdue debts left by former tenants separately', func
             ->where('formerTenantDebts.0.id', $formerDebt->id)
             ->where('attentionPayments', fn ($payments) => collect($payments)->pluck('id')->contains($activeDebt->id)
                 && ! collect($payments)->pluck('id')->contains($formerDebt->id))
+        );
+});
+
+test('the vacant properties that waited longest for a tenant come first, with the month movement', function () {
+    $this->travelTo('2026-10-15 09:00:00');
+
+    $account = Account::factory()->create();
+    $user = User::factory()->for($account, 'account')->create();
+    $vacant = fn (string $registeredAt) => Property::factory()->for($account, 'account')->create(['status' => PropertyStatus::Available, 'created_at' => $registeredAt]);
+    $finishedLease = fn (Property $property, string $finishedOn) => Lease::factory()->for($account, 'account')->for($property)->create([
+        'start_date' => '2025-01-01',
+        'end_date' => '2026-12-31',
+        'status' => LeaseStatus::Terminated,
+        'finished_on' => $finishedOn,
+    ]);
+
+    $neverRented = $vacant('2026-01-05 10:00:00');
+    $vacantSinceOctober = $vacant('2024-03-01 10:00:00');
+    $finishedLease($vacantSinceOctober, '2026-10-03');
+    $vacantSinceAugust = $vacant('2024-03-01 10:00:00');
+    $finishedLease($vacantSinceAugust, '2026-07-31');
+    $finishedLease($vacantSinceAugust, '2026-08-01');
+
+    Lease::factory()->for($account, 'account')->create(['start_date' => '2026-10-01', 'end_date' => '2027-09-30']);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('vacantProperties.0.id', $neverRented->id)
+            ->where('vacantProperties.0.vacant_since', '2026-01-05')
+            ->where('vacantProperties.1.id', $vacantSinceAugust->id)
+            ->where('vacantProperties.1.vacant_since', '2026-08-01')
+            ->where('vacantProperties.2.id', $vacantSinceOctober->id)
+            ->where('vacantProperties.2.vacant_since', '2026-10-03')
+            ->missing('vacantProperties.0.last_lease_finished_on')
+            ->where('stats.leasesStarted', 1)
+            ->where('stats.leasesFinished', 1)
         );
 });

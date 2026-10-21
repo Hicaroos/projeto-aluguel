@@ -215,6 +215,7 @@ test('finishing a lease frees its property', function (string $status) {
         ->assertRedirect(route('leases.index'));
 
     expect($lease->fresh()->status->value)->toBe($status)
+        ->and($lease->fresh()->finished_on->toDateString())->toBe(today()->toDateString())
         ->and($property->fresh()->status)->toBe(PropertyStatus::Available);
 })->with(['ended', 'terminated']);
 

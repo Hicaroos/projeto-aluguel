@@ -222,7 +222,7 @@ test('the dashboard shows the sales once the account uses the funnel', function 
 
     $this->actingAs($newcomer)
         ->get(route('dashboard'))
-        ->assertInertia(fn (Assert $page) => $page->where('sales', null));
+        ->assertInertia(fn (Assert $page) => $page->where('commercial', null));
 
     ['user' => $user, 'deal' => $deal] = saleScenario();
     $deal->visits()->create(['account_id' => $deal->account_id, 'scheduled_at' => '2026-10-16 10:00:00']);
@@ -230,9 +230,9 @@ test('the dashboard shows the sales once the account uses the funnel', function 
     $this->actingAs($user)
         ->get(route('dashboard'))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('sales.openDeals', 1)
-            ->has('sales.upcomingVisits', 1)
-            ->where('sales.upcomingVisits.0.deal.lead.name', 'Carlos Comprador')
+            ->where('commercial.openDeals', 1)
+            ->has('commercial.upcomingVisits', 1)
+            ->where('commercial.upcomingVisits.0.deal.lead.name', 'Carlos Comprador')
         );
 });
 

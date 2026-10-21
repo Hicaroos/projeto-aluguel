@@ -33,7 +33,7 @@ import { Button } from '@/components/ui/button';
 import { getInitials } from '@/composables/useInitials';
 import { usePermissions } from '@/composables/usePermissions';
 import { formatCurrency } from '@/lib/currency';
-import { formatDate, formatMonthYear } from '@/lib/formatters';
+import { daysUntil, formatDate, formatMonthYear } from '@/lib/formatters';
 import {
     adjustmentIndexLabels,
     adjustmentStatusBadgeClasses,
@@ -69,7 +69,7 @@ import type {
     DashboardEndingLease,
     DashboardStats,
     DashboardVacantProperty,
-    DashboardSalesOverview,
+    DashboardCommercial,
     Lease,
     MonthlyRevenue,
     Payment,
@@ -87,7 +87,8 @@ const props = defineProps<{
     vacantProperties: DashboardVacantProperty[];
     vacantPropertiesCount: number;
     contractTemplates: ContractTemplateOption[];
-    sales: DashboardSalesOverview | null;
+    /** Only for those who handle sales, once the account uses the funnel. */
+    commercial: DashboardCommercial | null;
     /** Only for agencies: what needs attention today, as far as the user's permissions go. */
     agenda: DashboardAgenda | null;
     /** Only for agency members who handle the money. */
@@ -116,6 +117,95 @@ const isRevenueOpen = ref(false);
 function percentage(part: number, total: number): number {
     return total > 0 ? Math.min(100, Math.round((part / total) * 100)) : 0;
 }
+
+function plural(count: number, one: string, many: string): string {
+    return `${count} ${count === 1 ? one : many}`;
+}
+
+const leaseMovement = computed(() => {
+    const { leasesStarted, leasesFinished } = props.stats;
+
+    if (leasesStarted === 0 && leasesFinished === 0) {
+        return 'Nenhum contrato novo ou encerrado no mês';
+    }
+
+    return [
+        leasesStarted > 0
+            ? plural(leasesStarted, 'contrato novo', 'contratos novos')
+            : null,
+        leasesFinished > 0
+            ? plural(leasesFinished, 'encerrado', 'encerrados')
+            : null,
+    ]
+        .filter(Boolean)
+        .join(' · ')
+        .concat(' no mês');
+});
+
+/** How long the property has been waiting for a tenant; two months or more stands out. */
+function vacancy(
+    property: DashboardVacantProperty,
+): { label: string; isLong: boolean } | null {
+    if (!property.vacant_since) {
+        return null;
+    }
+
+    const days = Math.max(0, -daysUntil(property.vacant_since));
+
+    return {
+        label:
+            days === 0
+                ? 'Vago desde hoje'
+                : `Vago há ${plural(days, 'dia', 'dias')}`,
+        isLong: days >= 60,
+    };
+}
+
+const commercialFigures = computed(() => {
+    const commercial = props.commercial;
+
+    if (!commercial) {
+        return [];
+    }
+
+    return [
+        { label: 'Leads novos', value: commercial.newLeads, hint: null },
+        { label: 'Visitas feitas', value: commercial.visitsDone, hint: null },
+        {
+            label: 'Propostas pendentes',
+            value: commercial.pendingProposals,
+            hint: null,
+        },
+        {
+            label: 'Negócios ganhos',
+            value: commercial.wonDeals,
+            hint: plural(commercial.openDeals, 'em aberto', 'em aberto'),
+        },
+        {
+            label: 'Vendas',
+            value: commercial.sales.count,
+            hint:
+                commercial.sales.count > 0
+                    ? formatCurrency(commercial.sales.total)
+                    : null,
+        },
+        {
+            label: 'Comissões',
+            value: formatCurrency(commercial.sales.commission),
+            hint: null,
+        },
+    ];
+});
+
+const teamColumns: {
+    key: 'leads' | 'visits' | 'proposals' | 'won';
+    label: string;
+}[] = [
+    { key: 'leads', label: 'Leads' },
+    { key: 'visits', label: 'Visitas' },
+    { key: 'proposals', label: 'Propostas' },
+    { key: 'won', label: 'Ganhos' },
+];
 
 const isAgency = computed(
     () => page.props.auth.user.account?.type === 'agency',
@@ -414,6 +504,9 @@ const clickableRow =
                         }"
                     />
                 </div>
+                <p class="mt-2 text-xs text-muted-foreground">
+                    {{ leaseMovement }}
+                </p>
             </div>
 
             <button
@@ -780,7 +873,7 @@ const clickableRow =
                 :description="
                     vacantPropertiesCount === 1
                         ? '1 imóvel disponível para locação.'
-                        : `${vacantPropertiesCount} imóveis disponíveis para locação.`
+                        : `${vacantPropertiesCount} imóveis disponíveis, os vagos há mais tempo primeiro.`
                 "
             >
                 <template #action>
@@ -831,8 +924,17 @@ const clickableRow =
                                 {{ property.street }}, {{ property.number }}
                             </p>
                             <p class="truncate text-xs text-muted-foreground">
-                                {{ property.neighborhood }} ·
-                                {{ property.city }}/{{ property.state }}
+                                {{ property.neighborhood }}
+                                <template v-if="vacancy(property)">
+                                    ·
+                                    <span
+                                        :class="{
+                                            'font-medium text-amber-700 dark:text-amber-400':
+                                                vacancy(property)?.isLong,
+                                        }"
+                                        >{{ vacancy(property)?.label }}</span
+                                    >
+                                </template>
                             </p>
                         </div>
                         <p
@@ -847,9 +949,9 @@ const clickableRow =
         </div>
 
         <DashboardPanel
-            v-if="sales"
-            title="Vendas"
-            :description="`Negociações e visitas · ${formatMonthYear(month).toLowerCase()}`"
+            v-if="commercial"
+            title="Comercial"
+            :description="`${commercial.team ? 'Equipe' : 'Seus números'} · ${formatMonthYear(month).toLowerCase()}`"
         >
             <template #action>
                 <Button variant="ghost" size="sm" as-child>
@@ -860,46 +962,48 @@ const clickableRow =
                 </Button>
             </template>
 
-            <div class="grid gap-0 lg:grid-cols-5">
-                <dl
-                    class="grid grid-cols-2 border-b lg:col-span-2 lg:border-r lg:border-b-0"
+            <dl
+                class="grid grid-cols-2 gap-px border-b bg-border sm:grid-cols-3 xl:grid-cols-6"
+            >
+                <div
+                    v-for="figure in commercialFigures"
+                    :key="figure.label"
+                    class="bg-card p-5"
                 >
-                    <div class="border-r p-5">
-                        <dt class="text-xs text-muted-foreground">
-                            Vendas no mês
-                        </dt>
-                        <dd class="text-xl font-semibold tabular-nums">
-                            {{ sales.count }}
-                        </dd>
-                        <dd class="text-xs text-muted-foreground tabular-nums">
-                            {{ formatCurrency(sales.total) }}
-                        </dd>
-                    </div>
-                    <div class="p-5">
-                        <dt class="text-xs text-muted-foreground">
-                            Negociações abertas
-                        </dt>
-                        <dd class="text-xl font-semibold tabular-nums">
-                            {{ sales.openDeals }}
-                        </dd>
-                        <dd
-                            v-if="sales.commission > 0"
-                            class="text-xs text-muted-foreground tabular-nums"
-                        >
-                            {{ formatCurrency(sales.commission) }} em comissões
-                        </dd>
-                    </div>
-                </dl>
-                <div class="lg:col-span-3">
+                    <dt class="text-xs text-muted-foreground">
+                        {{ figure.label }}
+                    </dt>
+                    <dd class="text-xl font-semibold tabular-nums">
+                        {{ figure.value }}
+                    </dd>
+                    <dd
+                        v-if="figure.hint"
+                        class="truncate text-xs text-muted-foreground tabular-nums"
+                    >
+                        {{ figure.hint }}
+                    </dd>
+                </div>
+            </dl>
+
+            <div
+                class="grid"
+                :class="{ 'lg:grid-cols-2 lg:divide-x': commercial.team }"
+            >
+                <div>
                     <p
-                        v-if="sales.upcomingVisits.length === 0"
-                        class="p-5 text-sm text-muted-foreground"
+                        class="px-5 pt-4 text-xs font-medium text-muted-foreground"
+                    >
+                        Próximas visitas
+                    </p>
+                    <p
+                        v-if="commercial.upcomingVisits.length === 0"
+                        class="px-5 pt-2 pb-5 text-sm text-muted-foreground"
                     >
                         Nenhuma visita agendada para os próximos 7 dias.
                     </p>
                     <ul v-else class="divide-y">
                         <li
-                            v-for="visit in sales.upcomingVisits"
+                            v-for="visit in commercial.upcomingVisits"
                             :key="visit.id"
                         >
                             <Link
@@ -936,6 +1040,64 @@ const clickableRow =
                             </Link>
                         </li>
                     </ul>
+                </div>
+
+                <div v-if="commercial.team" class="border-t lg:border-t-0">
+                    <p
+                        class="px-5 pt-4 text-xs font-medium text-muted-foreground"
+                    >
+                        Equipe no mês
+                    </p>
+                    <p
+                        v-if="commercial.team.length === 0"
+                        class="px-5 pt-2 pb-5 text-sm text-muted-foreground"
+                    >
+                        Nenhum corretor na equipe ainda.
+                    </p>
+                    <div v-else class="overflow-x-auto px-2 pb-2">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-xs text-muted-foreground">
+                                    <th class="px-3 py-2 text-left font-normal">
+                                        Corretor
+                                    </th>
+                                    <th
+                                        v-for="column in teamColumns"
+                                        :key="column.key"
+                                        class="px-3 py-2 text-right font-normal"
+                                    >
+                                        {{ column.label }}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                <tr
+                                    v-for="member in commercial.team"
+                                    :key="member.id"
+                                >
+                                    <td
+                                        class="max-w-40 truncate px-3 py-2.5 font-medium"
+                                    >
+                                        {{ member.name }}
+                                    </td>
+                                    <td
+                                        v-for="column in teamColumns"
+                                        :key="column.key"
+                                        class="px-3 py-2.5 text-right tabular-nums"
+                                        :class="
+                                            member[column.key] === 0
+                                                ? 'text-muted-foreground'
+                                                : column.key === 'won'
+                                                  ? 'font-semibold text-primary'
+                                                  : ''
+                                        "
+                                    >
+                                        {{ member[column.key] }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </DashboardPanel>

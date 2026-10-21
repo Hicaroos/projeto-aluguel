@@ -17,7 +17,7 @@ class FinishLease
     public function handle(Lease $lease, LeaseStatus $status): void
     {
         DB::transaction(function () use ($lease, $status): void {
-            $lease->update(['status' => $status]);
+            $lease->update(['status' => $status, 'finished_on' => today()]);
             $lease->property->update(['status' => PropertyStatus::Available]);
 
             $this->syncLeasePayments->cancelUpcoming($lease);

@@ -48,6 +48,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $surety_insurer
  * @property string|null $surety_policy_number
  * @property LeaseStatus $status
+ * @property Carbon|null $finished_on When the lease was ended or terminated.
  * @property string|null $notes
  * @property string|null $admin_fee_percent Payout rules set otherwise for the lease, see PayoutRule.
  * @property string|null $intermediation_fee_percent
@@ -96,6 +97,7 @@ use Illuminate\Support\Carbon;
     'surety_insurer',
     'surety_policy_number',
     'status',
+    'finished_on',
     'notes',
     'admin_fee_percent',
     'intermediation_fee_percent',
@@ -415,6 +417,7 @@ class Lease extends Model
             'amount' => 'decimal:2',
             'deposit_amount' => 'decimal:2',
             'deposit_settled_on' => 'date:Y-m-d',
+            'finished_on' => 'date:Y-m-d',
             'deposit_refunded_amount' => 'decimal:2',
             'guarantee_type' => GuaranteeType::class,
             'purpose' => LeasePurpose::class,
