@@ -7,17 +7,21 @@ use App\Enums\ContractVariable;
 use DOMDocument;
 use DOMDocumentFragment;
 use DOMElement;
+use DOMNode;
 use DOMXPath;
 
 class RenderContractTemplate
 {
     /**
      * Fill the variables of a template body with the given values, returning the document as HTML.
-     * Details that were not filled in become a blank line to complete by hand.
+     * Details that were not filled in become a blank line to complete by hand. A block marked to
+     * repeat, such as <div data-repeat="owners">, comes out once for each set of values given
+     * under its name, each copy filled with that set; without them it comes out once.
      *
      * @param  array<string, string|null>  $values
+     * @param  array<string, list<array<string, string|null>>>  $repeats
      */
-    public function handle(string $body, array $values): string
+    public function handle(string $body, array $values, array $repeats = []): string
     {
         $document = new DOMDocument('1.0', 'UTF-8');
         $document->loadHTML(
@@ -25,20 +29,24 @@ class RenderContractTemplate
             LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NOERROR | LIBXML_NOWARNING,
         );
 
-        $placeholders = (new DOMXPath($document))->query('//span[@data-variable]');
+        $blocks = (new DOMXPath($document))->query('//div[@data-repeat]');
 
-        foreach ($placeholders === false ? [] : iterator_to_array($placeholders) as $placeholder) {
-            if (! $placeholder instanceof DOMElement) {
+        foreach ($blocks === false ? [] : array_reverse(iterator_to_array($blocks)) as $block) {
+            if (! $block instanceof DOMElement || $block->parentNode === null) {
                 continue;
             }
 
-            $value = $values[$placeholder->getAttribute('data-variable')] ?? null;
+            foreach ($repeats[$block->getAttribute('data-repeat')] ?? [[]] as $repeatValues) {
+                $copy = $block->cloneNode(true);
+                $block->parentNode->insertBefore($copy, $block);
+                $this->fill($document, $copy, [...$values, ...$repeatValues]);
+                $this->unwrap($copy);
+            }
 
-            $placeholder->parentNode?->replaceChild(
-                $this->textWithLineBreaks($document, $value ?? ResolveContractVariables::BLANK),
-                $placeholder,
-            );
+            $block->parentNode->removeChild($block);
         }
+
+        $this->fill($document, $document, $values);
 
         $container = $document->getElementById('contract');
         $html = '';
@@ -61,6 +69,41 @@ class RenderContractTemplate
         return collect(ContractVariable::forKind($kind))
             ->mapWithKeys(fn (ContractVariable $variable): array => [$variable->value => "[{$variable->label()}]"])
             ->all();
+    }
+
+    /**
+     * Swap the variable tags within the given node for their values.
+     *
+     * @param  array<string, string|null>  $values
+     */
+    private function fill(DOMDocument $document, DOMNode $within, array $values): void
+    {
+        $placeholders = (new DOMXPath($document))->query('.//span[@data-variable]', $within);
+
+        foreach ($placeholders === false ? [] : iterator_to_array($placeholders) as $placeholder) {
+            if (! $placeholder instanceof DOMElement) {
+                continue;
+            }
+
+            $value = $values[$placeholder->getAttribute('data-variable')] ?? null;
+
+            $placeholder->parentNode?->replaceChild(
+                $this->textWithLineBreaks($document, $value ?? ResolveContractVariables::BLANK),
+                $placeholder,
+            );
+        }
+    }
+
+    /**
+     * Put the node's children in its place.
+     */
+    private function unwrap(DOMNode $node): void
+    {
+        while ($node->firstChild !== null) {
+            $node->parentNode?->insertBefore($node->firstChild, $node);
+        }
+
+        $node->parentNode?->removeChild($node);
     }
 
     /**

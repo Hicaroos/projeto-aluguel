@@ -171,6 +171,20 @@ test('a page break is kept when the template is saved', function () {
     expect($account->contractTemplates()->sole()->body)->toContain('<hr data-page-break="true" />');
 });
 
+test('a block repeated for each landlord is kept when the template is saved', function () {
+    ['account' => $account, 'user' => $user] = contractTemplateScenario();
+
+    $this->actingAs($user)
+        ->post(route('contract-templates.store'), [
+            'name' => 'Com locadores',
+            'body' => '<div data-repeat="owners" onclick="x()"><p>Locador: <span data-variable="owner.name"></span></p></div>',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($account->contractTemplates()->sole()->body)
+        ->toBe('<div data-repeat="owners"><p>Locador: <span data-variable="owner.name"></span></p></div>');
+});
+
 test('an unsaved template can be previewed as PDF, with variable labels when there is no lease', function () {
     ['user' => $user] = contractTemplateScenario();
 

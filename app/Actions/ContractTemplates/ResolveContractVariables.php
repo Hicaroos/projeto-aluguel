@@ -8,6 +8,8 @@ use App\Enums\ContractVariable;
 use App\Enums\GuaranteeType;
 use App\Models\Guarantor;
 use App\Models\Lease;
+use App\Models\Owner;
+use Illuminate\Support\Collection;
 
 class ResolveContractVariables
 {
@@ -20,30 +22,21 @@ class ResolveContractVariables
 
     /**
      * Resolve the value of every contract variable for the given lease. Missing details are null.
+     * The owner variables describe the main owner; a block repeated for each landlord gets every
+     * owner's own through landlords().
      *
      * @return array<string, string|null>
      */
     public function handle(Lease $lease): array
     {
-        $lease->loadMissing(['tenant', 'property.owner', 'guarantor']);
+        $lease->loadMissing(['tenant', 'property.owner', 'property.owners', 'guarantor']);
 
-        $owner = $lease->property->owner;
         $tenant = $lease->tenant;
         $property = $lease->property;
         $guarantor = $lease->guarantor;
 
         $values = [
-            ContractVariable::OwnerQualification->value => $this->qualification($owner),
-            ContractVariable::OwnerName->value => $owner->name,
-            ContractVariable::OwnerDocument->value => $this->formatDocument($owner->cpf_cnpj),
-            ContractVariable::OwnerRg->value => $owner->rg,
-            ContractVariable::OwnerNationality->value => $owner->nationality,
-            ContractVariable::OwnerMaritalStatus->value => $owner->marital_status?->label(),
-            ContractVariable::OwnerProfession->value => $owner->profession,
-            ContractVariable::OwnerAddress->value => $this->address($owner),
-            ContractVariable::OwnerEmail->value => $owner->email,
-            ContractVariable::OwnerPhone->value => $this->formatPhone($owner->phone),
-            ContractVariable::OwnerPixKey->value => $owner->pix_key,
+            ...$this->ownerValues($property->owner),
 
             ContractVariable::TenantQualification->value => $this->qualification($tenant),
             ContractVariable::TenantName->value => $tenant->name,
@@ -86,6 +79,59 @@ class ResolveContractVariables
         ];
 
         return array_map(fn (?string $value): ?string => blank($value) ? null : $value, $values);
+    }
+
+    /**
+     * Resolve the owner variables for each landlord, in the order a block repeated for each of them
+     * follows: the main owner, then the co-owners by their share.
+     *
+     * @return list<array<string, string|null>>
+     */
+    public function landlords(Lease $lease): array
+    {
+        $lease->loadMissing(['property.owner', 'property.owners']);
+
+        return array_values($this->owners($lease)
+            ->map(fn (Owner $owner): array => array_map(fn (?string $value): ?string => blank($value) ? null : $value, $this->ownerValues($owner)))
+            ->all());
+    }
+
+    /**
+     * @return array<string, string|null>
+     */
+    private function ownerValues(Owner $owner): array
+    {
+        return [
+            ContractVariable::OwnerQualification->value => $this->qualification($owner),
+            ContractVariable::OwnerName->value => $owner->name,
+            ContractVariable::OwnerDocument->value => $this->formatDocument($owner->cpf_cnpj),
+            ContractVariable::OwnerRg->value => $owner->rg,
+            ContractVariable::OwnerNationality->value => $owner->nationality,
+            ContractVariable::OwnerMaritalStatus->value => $owner->marital_status?->label(),
+            ContractVariable::OwnerProfession->value => $owner->profession,
+            ContractVariable::OwnerAddress->value => $this->address($owner),
+            ContractVariable::OwnerEmail->value => $owner->email,
+            ContractVariable::OwnerPhone->value => $this->formatPhone($owner->phone),
+            ContractVariable::OwnerPixKey->value => $owner->pix_key,
+        ];
+    }
+
+    /**
+     * Get the landlords: the main owner, then the co-owners by their share.
+     *
+     * @return Collection<int, Owner>
+     */
+    private function owners(Lease $lease): Collection
+    {
+        $property = $lease->property;
+        $shares = $property->ownerShares();
+
+        return $property->owners
+            ->reject(fn (Owner $owner): bool => $owner->is($property->owner))
+            ->sortByDesc(fn (Owner $owner): float => $shares[$owner->id] ?? 0.0)
+            ->prepend($property->owner)
+            ->values()
+            ->toBase();
     }
 
     /**
@@ -132,14 +178,14 @@ class ResolveContractVariables
     }
 
     /**
-     * Build the signature lines, one block per line break: the parties, the guarantor and spouse when there is one,
-     * and two witnesses.
+     * Build the signature lines, one block per line break: every landlord, the tenant, the guarantor and spouse
+     * when there is one, and two witnesses.
      */
     private function signatures(Lease $lease): string
     {
         $line = '______________________________________________';
         $signers = [
-            "LOCADOR: {$lease->property->owner->name}",
+            ...$this->owners($lease)->map(fn (Owner $owner): string => "LOCADOR: {$owner->name}"),
             "LOCATÁRIO: {$lease->tenant->name}",
         ];
 

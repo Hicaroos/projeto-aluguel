@@ -34,6 +34,7 @@ class SanitizeContractTemplate
             ->allowElement('hr', ['data-page-break'])
             ->allowElement('blockquote')
             ->allowElement('span', ['data-variable'])
+            ->allowElement('div', ['data-repeat'])
             ->withMaxInputLength(self::MAX_LENGTH);
 
         return trim((new HtmlSanitizer($config))->sanitize($html));

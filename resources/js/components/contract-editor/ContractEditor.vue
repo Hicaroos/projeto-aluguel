@@ -11,11 +11,13 @@ import {
     SeparatorHorizontal,
     Underline,
     Undo2,
+    Users,
 } from '@lucide/vue';
 import StarterKit from '@tiptap/starter-kit';
 import { EditorContent, useEditor } from '@tiptap/vue-3';
 import type { Component } from 'vue';
 import { onBeforeUnmount } from 'vue';
+import { OwnersRepeatNode } from '@/components/contract-editor/OwnersRepeatNode';
 import { PageBreakNode } from '@/components/contract-editor/PageBreakNode';
 import { VariableNode } from '@/components/contract-editor/VariableNode';
 import { Button } from '@/components/ui/button';
@@ -24,6 +26,8 @@ import { Separator } from '@/components/ui/separator';
 const props = defineProps<{
     /** Labels shown on each variable tag, keyed by variable. */
     labels: Record<string, string>;
+    /** Whether the template may repeat text for each landlord, as lease contracts do. */
+    repeatsOwners?: boolean;
 }>();
 
 const html = defineModel<string>({ required: true });
@@ -39,6 +43,7 @@ const editor = useEditor({
         }),
         VariableNode.configure({ labels: props.labels }),
         PageBreakNode,
+        OwnersRepeatNode,
     ],
     editorProps: {
         attributes: {
@@ -120,6 +125,21 @@ const toolbarGroups: ToolbarAction[][] = [
             icon: SeparatorHorizontal,
             run: () => editor.value?.chain().focus().setPageBreak().run(),
         },
+        ...(props.repeatsOwners
+            ? [
+                  {
+                      label: 'Repetir para cada locador',
+                      icon: Users,
+                      isActive: () => !!editor.value?.isActive('ownersRepeat'),
+                      run: () =>
+                          editor.value
+                              ?.chain()
+                              .focus()
+                              .toggleOwnersRepeat()
+                              .run(),
+                  },
+              ]
+            : []),
     ],
     [
         {
@@ -348,6 +368,29 @@ defineExpose({ insertVariable });
     border-radius: 0.375rem;
     outline: 2px solid var(--ring);
     outline-offset: 4px;
+}
+
+.contract-editor-content .contract-owners-repeat {
+    position: relative;
+    margin: 14pt 0 8pt;
+    padding: 12pt 10pt 2pt;
+    border: 1px dashed color-mix(in oklab, var(--primary) 45%, transparent);
+    border-radius: 0.5rem;
+}
+
+.contract-editor-content .contract-owners-repeat::before {
+    content: attr(data-label);
+    position: absolute;
+    top: -0.6rem;
+    left: 0.6rem;
+    padding: 0 0.35rem;
+    background: var(--card);
+    color: var(--primary);
+    font-family: var(--font-sans, sans-serif);
+    font-size: 0.7rem;
+    font-weight: 500;
+    line-height: 1.2rem;
+    user-select: none;
 }
 
 .contract-editor-content .contract-variable {

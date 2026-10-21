@@ -145,3 +145,49 @@ test('a contract cannot be generated for another account lease or template', fun
         ->get(route('leases.contract', ['lease' => $lease, 'template' => $otherTemplate->id]))
         ->assertNotFound();
 });
+
+test('a block repeats for each landlord, main owner first, while the owner variables outside it are the main owner', function () {
+    ['account' => $account, 'lease' => $lease] = leaseContractScenario();
+    $property = $lease->property;
+    $carlos = $property->owner;
+    $carlos->update(['nationality' => 'brasileiro', 'pix_key' => 'carlos@pix.com']);
+    $bia = Owner::factory()->for($account, 'account')->create(['name' => 'Bia Dona', 'cpf_cnpj' => '55566677788', 'nationality' => 'brasileiro']);
+    $davi = Owner::factory()->for($account, 'account')->create(['name' => 'Davi Dono', 'cpf_cnpj' => null, 'nationality' => 'brasileiro']);
+    $property->owners()->sync([
+        $davi->id => ['share_percent' => 10],
+        $carlos->id => ['share_percent' => 60],
+        $bia->id => ['share_percent' => 30],
+    ]);
+
+    $html = renderContract($lease, '<div data-repeat="owners"><p>Locador: <span data-variable="owner.name"></span>, CPF <span data-variable="owner.document"></span>, de <span data-variable="tenant.name"></span>.</p></div><p>Pix: <span data-variable="owner.pix_key"></span> de <span data-variable="owner.name"></span>.</p><p><span data-variable="general.signatures"></span></p>');
+
+    expect($html)
+        ->toContain('<p>Locador: Carlos Dono, CPF 111.222.333-44, de Maria Souza.</p><p>Locador: Bia Dona, CPF 555.666.777-88, de Maria Souza.</p><p>Locador: Davi Dono, CPF '.ResolveContractVariables::BLANK.', de Maria Souza.</p>')
+        ->toContain('<p>Pix: carlos@pix.com de Carlos Dono.</p>')
+        ->toContain('LOCADOR: Carlos Dono')
+        ->toContain('LOCADOR: Bia Dona')
+        ->toContain('LOCADOR: Davi Dono')
+        ->not->toContain('data-repeat');
+
+    expect(strpos($html, 'LOCADOR: Bia Dona'))->toBeLessThan(strpos($html, 'LOCADOR: Davi Dono'));
+});
+
+test('the landlord block comes out once for a property with a single owner, and once with labels in the preview', function () {
+    ['lease' => $lease] = leaseContractScenario();
+    $body = '<div data-repeat="owners"><p>Locador: <span data-variable="owner.name"></span>.</p></div>';
+
+    expect(renderContract($lease, $body))->toBe('<p>Locador: Carlos Dono.</p>')
+        ->and(app(RenderLeaseContract::class)->render($body, null))->toBe('<p>Locador: [Nome do locador].</p>');
+});
+
+test('the standard template names every landlord', function () {
+    ['account' => $account, 'lease' => $lease] = leaseContractScenario();
+    $bia = Owner::factory()->for($account, 'account')->create(['name' => 'Bia Dona']);
+    $lease->property->owners()->sync([$lease->property->owner_id => ['share_percent' => 70], $bia->id => ['share_percent' => 30]]);
+
+    $html = renderContract($lease, file_get_contents(resource_path('views/contracts/default-template.html')));
+
+    expect($html)
+        ->toContain('<strong>LOCADOR:</strong> Carlos Dono')
+        ->toContain('<strong>LOCADOR:</strong> Bia Dona');
+});

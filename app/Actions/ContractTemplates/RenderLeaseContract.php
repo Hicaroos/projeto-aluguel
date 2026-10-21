@@ -23,16 +23,20 @@ class RenderLeaseContract
     }
 
     /**
-     * Fill the variables of a template body. Without a lease, each variable shows its label in brackets,
-     * e.g. "[Nome do locatário]", so a template can be previewed before any lease exists.
+     * Fill the variables of a template body, repeating the landlord blocks for each owner of the property.
+     * Without a lease, each variable shows its label in brackets, e.g. "[Nome do locatário]", so a template
+     * can be previewed before any lease exists.
      */
     public function render(string $body, ?Lease $lease): string
     {
+        if ($lease === null) {
+            return $this->renderContractTemplate->handle($body, $this->renderContractTemplate->placeholders(ContractTemplateKind::Lease));
+        }
+
         return $this->renderContractTemplate->handle(
             $body,
-            $lease !== null
-                ? $this->resolveContractVariables->handle($lease)
-                : $this->renderContractTemplate->placeholders(ContractTemplateKind::Lease),
+            $this->resolveContractVariables->handle($lease),
+            ['owners' => $this->resolveContractVariables->landlords($lease)],
         );
     }
 }

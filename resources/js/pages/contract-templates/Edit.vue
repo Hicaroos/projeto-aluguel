@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, Braces, FileSearch, Info, Search } from '@lucide/vue';
+import {
+    ArrowLeft,
+    Braces,
+    FileSearch,
+    Info,
+    Search,
+    Users,
+} from '@lucide/vue';
 import { computed, ref, useTemplateRef } from 'vue';
 import ContractTemplateController from '@/actions/App/Http/Controllers/ContractTemplateController';
 import ContractEditor from '@/components/contract-editor/ContractEditor.vue';
@@ -184,6 +191,7 @@ async function previewPdf() {
                     ref="editor"
                     v-model="body"
                     :labels="variableLabels"
+                    :repeats-owners="kind.value === 'lease'"
                 />
                 <InputError
                     :message="errors.body ?? previewError ?? undefined"
@@ -252,6 +260,20 @@ async function previewPdf() {
                     class="text-sm text-muted-foreground"
                 >
                     Nenhuma variável encontrada.
+                </p>
+
+                <p
+                    v-if="kind.value === 'lease'"
+                    class="flex gap-2 rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground"
+                >
+                    <Users class="mt-0.5 size-3.5 shrink-0" />
+                    <span>
+                        Imóvel com mais de um dono: selecione o trecho do
+                        locador e use "Repetir para cada locador" na barra. Ele
+                        sai uma vez para cada dono, com os dados de cada um.
+                        Fora do bloco, as variáveis do locador trazem o
+                        proprietário principal.
+                    </span>
                 </p>
 
                 <p
