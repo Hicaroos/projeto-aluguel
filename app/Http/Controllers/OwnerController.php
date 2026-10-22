@@ -47,7 +47,6 @@ class OwnerController extends Controller
 
         $sorting = $this->applySort($list, $request, [
             'name' => fn (Builder $query, SortDirection $direction) => $query->orderBy('name', $direction),
-            'cpf_cnpj' => fn (Builder $query, SortDirection $direction) => $query->orderBy('cpf_cnpj', $direction),
             'properties_count' => fn (Builder $query, SortDirection $direction) => $query->orderBy('properties_count', $direction),
         ], default: 'name');
 

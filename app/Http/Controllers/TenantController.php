@@ -42,7 +42,6 @@ class TenantController extends Controller
 
         $sorting = $this->applySort($list, $request, [
             'name' => fn (Builder $query, SortDirection $direction) => $query->orderBy('name', $direction),
-            'cpf_cnpj' => fn (Builder $query, SortDirection $direction) => $query->orderBy('cpf_cnpj', $direction),
             'created_at' => fn (Builder $query, SortDirection $direction) => $query->orderBy('created_at', $direction),
         ], default: 'name');
 

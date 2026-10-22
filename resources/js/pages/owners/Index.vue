@@ -180,13 +180,10 @@ function confirmDelete() {
                             :current="filters"
                             @sort="sortBy"
                         />
-                        <SortableTableHead
-                            column="cpf_cnpj"
-                            label="CPF/CNPJ"
-                            :current="filters"
-                            class="hidden md:table-cell"
-                            @sort="sortBy"
-                        />
+                        <TableHead
+                            class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase md:table-cell"
+                            >CPF/CNPJ</TableHead
+                        >
                         <TableHead
                             class="hidden h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase sm:table-cell"
                             >Celular</TableHead
