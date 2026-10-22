@@ -81,6 +81,10 @@ export type Property = {
     is_featured: boolean;
     /** The registration at the land registry office (matrícula). */
     registration_number: string | null;
+    /** The number of the water bill (matrícula or client code), to look it up. */
+    water_account: string | null;
+    /** The number of the energy bill (installation or client code), to look it up. */
+    energy_account: string | null;
     status: PropertyStatus;
     created_at: string;
     updated_at: string;

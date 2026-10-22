@@ -231,6 +231,18 @@ const emit = defineEmits<{
                             {{ property.registration_number }}
                         </dd>
                     </div>
+                    <div v-if="property.water_account">
+                        <dt class="text-muted-foreground">Conta de água</dt>
+                        <dd class="font-medium tabular-nums">
+                            {{ property.water_account }}
+                        </dd>
+                    </div>
+                    <div v-if="property.energy_account">
+                        <dt class="text-muted-foreground">Conta de energia</dt>
+                        <dd class="font-medium tabular-nums">
+                            {{ property.energy_account }}
+                        </dd>
+                    </div>
                     <div v-if="property.branch">
                         <dt class="text-muted-foreground">Unidade</dt>
                         <dd class="font-medium">{{ property.branch.name }}</dd>

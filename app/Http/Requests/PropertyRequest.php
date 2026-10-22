@@ -90,6 +90,8 @@ class PropertyRequest extends FormRequest
             'is_published' => ['boolean'],
             'is_featured' => ['boolean'],
             'registration_number' => ['nullable', 'string', 'max:100'],
+            'water_account' => ['nullable', 'string', 'max:50'],
+            'energy_account' => ['nullable', 'string', 'max:50'],
             'status' => $isStatusLocked
                 ? ['exclude']
                 : ['required', Rule::enum(PropertyStatus::class)->except([PropertyStatus::Rented, PropertyStatus::Sold])],

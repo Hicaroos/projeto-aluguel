@@ -679,6 +679,47 @@ watch(zipCode, async (value) => {
                 <InputError :message="errors.registration_number" />
             </div>
 
+            <div class="grid items-start gap-4 sm:grid-cols-2">
+                <div class="grid gap-2">
+                    <Label for="water_account">
+                        Conta de água
+                        <span class="font-normal text-muted-foreground"
+                            >(opcional)</span
+                        >
+                    </Label>
+                    <Input
+                        id="water_account"
+                        name="water_account"
+                        maxlength="50"
+                        placeholder="Matrícula ou código do cliente"
+                        :default-value="property?.water_account ?? ''"
+                    />
+                    <InputError :message="errors.water_account" />
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="energy_account">
+                        Conta de energia
+                        <span class="font-normal text-muted-foreground"
+                            >(opcional)</span
+                        >
+                    </Label>
+                    <Input
+                        id="energy_account"
+                        name="energy_account"
+                        maxlength="50"
+                        placeholder="Nº da instalação ou código do cliente"
+                        :default-value="property?.energy_account ?? ''"
+                    />
+                    <InputError :message="errors.energy_account" />
+                </div>
+
+                <p class="text-xs text-muted-foreground sm:col-span-2">
+                    Para consultar débitos ou pedir a segunda via das contas
+                    quando precisar.
+                </p>
+            </div>
+
             <div class="grid gap-2">
                 <Label for="description">Descrição</Label>
                 <textarea

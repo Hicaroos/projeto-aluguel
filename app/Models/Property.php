@@ -54,6 +54,8 @@ use Illuminate\Support\Facades\DB;
  * @property Carbon|null $published_at When the property went on the account's showcase; null while it is off it.
  * @property bool $is_featured Whether the showcase highlights the property on its home page.
  * @property string|null $registration_number The registration at the land registry office (matrícula).
+ * @property string|null $water_account The number of the water bill (matrícula or client code), to look it up.
+ * @property string|null $energy_account The number of the energy bill (installation or client code), to look it up.
  * @property PropertyStatus $status
  * @property Carbon|null $deleted_at
  * @property Carbon|null $created_at
@@ -96,6 +98,8 @@ use Illuminate\Support\Facades\DB;
     'published_at',
     'is_featured',
     'registration_number',
+    'water_account',
+    'energy_account',
     'status',
 ])]
 class Property extends Model

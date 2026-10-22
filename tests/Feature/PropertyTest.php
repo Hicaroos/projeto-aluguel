@@ -130,6 +130,35 @@ test('a user cannot update or delete a property from another account', function 
     expect($otherProperty->fresh())->not->toBeNull();
 });
 
+test('properties keep the numbers of their water and energy bills', function () {
+    $account = Account::factory()->create();
+    $owner = Owner::factory()->for($account, 'account')->create();
+    $user = User::factory()->for($account, 'account')->create();
+    $property = Property::factory()->for($account, 'account')->for($owner, 'owner')->create();
+
+    $this->actingAs($user)
+        ->put(route('properties.update', $property), validPropertyPayload([
+            'water_account' => '1234567-8',
+            'energy_account' => '7001234567',
+        ]))
+        ->assertSessionHasNoErrors();
+
+    expect($property->fresh())
+        ->water_account->toBe('1234567-8')
+        ->energy_account->toBe('7001234567');
+
+    $this->actingAs($user)
+        ->get(route('properties.index', ['show' => $property->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('selected.water_account', '1234567-8')
+            ->where('selected.energy_account', '7001234567')
+        );
+
+    $this->actingAs($user)
+        ->put(route('properties.update', $property), validPropertyPayload(['water_account' => str_repeat('1', 51)]))
+        ->assertSessionHasErrors('water_account');
+});
+
 test('index filters properties by address search term', function () {
     $account = Account::factory()->create();
     $owner = Owner::factory()->for($account, 'account')->create();
