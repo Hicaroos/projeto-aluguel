@@ -66,7 +66,7 @@ function handleError(errors: Record<string, string>) {
             <div class="grid gap-2">
                 <Label for="account_type">Tipo de conta</Label>
                 <Select v-model="accountType" name="account_type">
-                    <SelectTrigger id="account_type" class="w-full" :tabindex="1">
+                    <SelectTrigger id="account_type" class="w-full">
                         <SelectValue placeholder="Selecione o tipo de conta" />
                     </SelectTrigger>
                     <SelectContent>
@@ -79,21 +79,21 @@ function handleError(errors: Record<string, string>) {
 
             <div v-if="accountType === 'agency'" class="grid gap-2">
                 <Label for="account_name">Nome da imobiliária</Label>
-                <Input id="account_name" type="text" required :tabindex="2" name="account_name"
+                <Input id="account_name" type="text" required name="account_name"
                     placeholder="Ex.: Imobiliária Silva" />
                 <InputError :message="errors.account_name" />
             </div>
 
             <div class="grid gap-2">
                 <Label for="name">{{ accountType === 'agency' ? 'Seu nome (responsável)' : 'Nome' }}</Label>
-                <Input id="name" type="text" required autofocus :tabindex="3" autocomplete="name" name="name"
+                <Input id="name" type="text" required autofocus autocomplete="name" name="name"
                     placeholder="Nome completo" />
                 <InputError :message="errors.name" />
             </div>
 
             <div class="grid gap-2">
                 <Label for="email">E-mail</Label>
-                <Input id="email" type="email" required :tabindex="4" autocomplete="email" name="email"
+                <Input id="email" type="email" required autocomplete="email" name="email"
                     placeholder="seuemail@exemplo.com" />
                 <InputError :message="errors.email" />
             </div>
@@ -101,19 +101,19 @@ function handleError(errors: Record<string, string>) {
 
             <div class="grid gap-2">
                 <Label for="password">Senha</Label>
-                <PasswordInput id="password" required :tabindex="5" autocomplete="new-password" name="password"
+                <PasswordInput id="password" required autocomplete="new-password" name="password"
                     placeholder="Senha" :passwordrules="passwordRules" />
                 <InputError :message="errors.password" />
             </div>
 
             <div class="grid gap-2">
                 <Label for="password_confirmation">Confirmar senha</Label>
-                <PasswordInput id="password_confirmation" required :tabindex="6" autocomplete="new-password"
+                <PasswordInput id="password_confirmation" required autocomplete="new-password"
                     name="password_confirmation" placeholder="Confirmar senha" :passwordrules="passwordRules" />
                 <InputError :message="errors.password_confirmation" />
             </div>
 
-            <Button type="button" class="mt-2 w-full" :tabindex="7" @click="goToStep2">
+            <Button type="button" class="mt-2 w-full" @click="goToStep2">
                 Próximo
             </Button>
         </div>
@@ -122,14 +122,14 @@ function handleError(errors: Record<string, string>) {
             <template v-if="accountType === 'single_owner'">
                 <div class="grid gap-2">
                     <Label for="owner_cpf_cnpj">CPF ou CNPJ</Label>
-                    <MaskedInput id="owner_cpf_cnpj" mask="document" type="text" required :tabindex="8" name="owner_cpf_cnpj"
+                    <MaskedInput id="owner_cpf_cnpj" mask="document" type="text" required name="owner_cpf_cnpj"
                         placeholder="000.000.000-00 ou 00.000.000/0000-00" />
                     <InputError :message="errors.owner_cpf_cnpj" />
                 </div>
 
                 <div class="grid gap-2">
                     <Label for="owner_phone">Celular</Label>
-                    <MaskedInput id="owner_phone" mask="phone" type="tel" required :tabindex="9" name="owner_phone"
+                    <MaskedInput id="owner_phone" mask="phone" type="tel" required name="owner_phone"
                         placeholder="(00) 00000-0000" />
                     <InputError :message="errors.owner_phone" />
                 </div>
@@ -138,21 +138,21 @@ function handleError(errors: Record<string, string>) {
             <template v-else>
                 <div class="grid gap-2">
                     <Label for="agency_document">CNPJ</Label>
-                    <MaskedInput id="agency_document" mask="document" type="text" required :tabindex="8"
+                    <MaskedInput id="agency_document" mask="document" type="text" required
                         name="agency_document" placeholder="00.000.000/0000-00" />
                     <InputError :message="errors.agency_document" />
                 </div>
 
                 <div class="grid gap-2">
                     <Label for="agency_creci">CRECI (opcional)</Label>
-                    <Input id="agency_creci" type="text" :tabindex="9" name="agency_creci" maxlength="20"
+                    <Input id="agency_creci" type="text" name="agency_creci" maxlength="20"
                         placeholder="Ex.: 1234-J" />
                     <InputError :message="errors.agency_creci" />
                 </div>
 
                 <div class="grid gap-2">
                     <Label for="agency_phone">Telefone</Label>
-                    <MaskedInput id="agency_phone" mask="phone" type="tel" required :tabindex="9"
+                    <MaskedInput id="agency_phone" mask="phone" type="tel" required
                         name="agency_phone" placeholder="(00) 0000-0000" />
                     <InputError :message="errors.agency_phone" />
                 </div>
@@ -160,13 +160,13 @@ function handleError(errors: Record<string, string>) {
 
             <div class="flex flex-col gap-3">
 
-                <Button type="submit" class="w-full" :tabindex="11" :disabled="processing"
+                <Button type="submit" class="w-full" :disabled="processing"
                     data-test="register-user-button">
                     <Spinner v-if="processing" />
                     Criar conta
                 </Button>
                 
-                <Button type="button" variant="outline" class="w-full" :tabindex="10" @click="step = 1">
+                <Button type="button" variant="outline" class="w-full" @click="step = 1">
                     Voltar
                 </Button>
             </div>
@@ -174,7 +174,7 @@ function handleError(errors: Record<string, string>) {
 
         <div class="text-center text-sm text-muted-foreground">
             Já tem uma conta?
-            <TextLink :href="login()" class="underline underline-offset-4" :tabindex="12">Entrar</TextLink>
+            <TextLink :href="login()" class="underline underline-offset-4">Entrar</TextLink>
         </div>
     </Form>
 </template>

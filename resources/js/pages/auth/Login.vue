@@ -8,14 +8,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { badgeTones } from '@/lib/badge-tones';
 import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 
 defineOptions({
     layout: {
-        title: 'Entrar na sua conta',
-        description: 'Digite seu e-mail e senha abaixo para entrar',
+        title: 'Entrar',
+        description: 'Use o e-mail e a senha da sua conta.',
     },
 });
 
@@ -28,81 +29,74 @@ defineProps<{
 <template>
     <Head title="Entrar" />
 
-    <div
+    <p
         v-if="status"
-        class="mb-4 text-center text-sm font-medium text-green-600"
+        role="status"
+        :class="[
+            'rounded-xl border px-4 py-3 text-sm font-medium',
+            badgeTones.success,
+        ]"
     >
         {{ status }}
-    </div>
+    </p>
 
     <Form
         v-bind="store.form()"
         :options="{ replace: true }"
         :reset-on-success="['password']"
         v-slot="{ errors, processing }"
-        class="flex flex-col gap-6"
+        class="grid gap-4"
     >
-        <div class="grid gap-6">
-            <div class="grid gap-2">
-                <Label for="email">E-mail</Label>
-                <Input
-                    id="email"
-                    type="email"
-                    name="email"
-                    required
-                    autofocus
-                    :tabindex="1"
-                    autocomplete="email"
-                    placeholder="seuemail@exemplo.com"
-                />
-                <InputError :message="errors.email" />
-            </div>
-
-            <div class="grid gap-2">
-                <div class="flex items-center justify-between">
-                    <Label for="password">Senha</Label>
-                    <TextLink
-                        v-if="canResetPassword"
-                        :href="request()"
-                        class="text-sm"
-                        :tabindex="5"
-                    >
-                        Esqueceu sua senha?
-                    </TextLink>
-                </div>
-                <PasswordInput
-                    id="password"
-                    name="password"
-                    required
-                    :tabindex="2"
-                    autocomplete="current-password"
-                    placeholder="Senha"
-                />
-                <InputError :message="errors.password" />
-            </div>
-
-            <div class="flex items-center justify-between">
-                <Label for="remember" class="flex items-center space-x-3">
-                    <Checkbox id="remember" name="remember" :tabindex="3" />
-                    <span>Lembrar de mim</span>
-                </Label>
-            </div>
-
-            <Button
-                type="submit"
-                class="mt-4 w-full"
-                :tabindex="4"
-                :disabled="processing"
-                data-test="login-button"
-            >
-                <Spinner v-if="processing" />
-                Entrar
-            </Button>
+        <div class="grid gap-2">
+            <Label for="email">E-mail</Label>
+            <Input
+                id="email"
+                type="email"
+                name="email"
+                required
+                autofocus
+                autocomplete="email"
+                placeholder="seuemail@exemplo.com"
+            />
+            <InputError :message="errors.email" />
         </div>
 
-        <div class="text-center text-sm text-muted-foreground">
+        <div class="grid gap-2">
+            <Label for="password">Senha</Label>
+            <PasswordInput
+                id="password"
+                name="password"
+                required
+                autocomplete="current-password"
+            />
+            <InputError :message="errors.password" />
+        </div>
+
+        <div
+            class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
+        >
+            <Label for="remember" class="flex items-center gap-2.5 font-normal">
+                <Checkbox id="remember" name="remember" />
+                Lembrar de mim
+            </Label>
+            <TextLink v-if="canResetPassword" :href="request()" class="text-sm">
+                Esqueceu a senha?
+            </TextLink>
+        </div>
+
+        <Button
+            type="submit"
+            class="mt-2 w-full"
+            :disabled="processing"
+            data-test="login-button"
+        >
+            <Spinner v-if="processing" />
+            {{ processing ? 'Entrando…' : 'Entrar' }}
+        </Button>
+
+        <p class="text-center text-sm text-muted-foreground">
             Não tem uma conta?
-            <TextLink :href="register()" :tabindex="5">Cadastre-se</TextLink>
-        </div>
+            <TextLink :href="register()">Cadastre-se</TextLink>
+        </p>
     </Form>
 </template>

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { badgeTones } from '@/lib/badge-tones';
 import { login } from '@/routes';
 import { email } from '@/routes/password';
 
@@ -26,7 +27,11 @@ defineProps<{
 
     <div
         v-if="status"
-        class="mb-4 text-center text-sm font-medium text-green-600"
+        role="status"
+        :class="[
+            'mb-4 rounded-xl border px-4 py-3 text-center text-sm font-medium',
+            badgeTones.success,
+        ]"
     >
         {{ status }}
     </div>

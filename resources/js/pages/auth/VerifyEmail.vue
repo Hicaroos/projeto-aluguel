@@ -3,6 +3,7 @@ import { Form, Head } from '@inertiajs/vue3';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { badgeTones } from '@/lib/badge-tones';
 import { logout } from '@/routes';
 import { send } from '@/routes/verification';
 
@@ -24,7 +25,11 @@ defineProps<{
 
     <div
         v-if="status === 'verification-link-sent'"
-        class="mb-4 text-center text-sm font-medium text-green-600"
+        role="status"
+        :class="[
+            'mb-4 rounded-xl border px-4 py-3 text-center text-sm font-medium',
+            badgeTones.success,
+        ]"
     >
         Um novo link de verificação foi enviado para o endereço de e-mail
         informado no cadastro.

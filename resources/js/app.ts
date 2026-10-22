@@ -1,7 +1,6 @@
 import { createInertiaApp, router } from '@inertiajs/vue3';
 import { initializeTheme, syncLightLook } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';
-import AuthSplitLayout from '@/layouts/auth/AuthSplitLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import ShowcaseLayout from '@/layouts/ShowcaseLayout.vue';
@@ -23,8 +22,6 @@ createInertiaApp({
         switch (true) {
             case name === 'receipts/Show' || name === 'Welcome':
                 return null;
-            case name === 'auth/Login':
-                return AuthSplitLayout;
             case name.startsWith('auth/'):
                 return AuthLayout;
             case name.startsWith('settings/'):
