@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\AccountStatus;
 use App\Enums\AccountType;
+use App\Enums\MessageTemplate;
 use App\Enums\PayoutMode;
 use App\Enums\PayoutRule;
 use App\Enums\PayoutSchedule;
@@ -27,6 +28,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $creci The agency CRECI registration.
  * @property string|null $phone The agency phone, as digits.
  * @property string|null $email
+ * @property string|null $pix_key The key tenants pay the agency's charges to.
  * @property string|null $zip_code
  * @property string|null $street
  * @property string|null $number
@@ -45,6 +47,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $showcase_facebook
  * @property string|null $showcase_youtube
  * @property array<string, string>|null $showcase_texts The showcase texts the account rewrote, by ShowcaseText.
+ * @property array<string, string>|null $message_templates The WhatsApp messages the account rewrote, by MessageTemplate.
  * @property string $sale_commission_percent The commission the agency usually charges on sales.
  * @property string $admin_fee_percent Payout rule defaults, see PayoutRule.
  * @property string $intermediation_fee_percent
@@ -74,6 +77,7 @@ use Illuminate\Support\Carbon;
     'creci',
     'phone',
     'email',
+    'pix_key',
     'zip_code',
     'street',
     'number',
@@ -92,6 +96,7 @@ use Illuminate\Support\Carbon;
     'showcase_facebook',
     'showcase_youtube',
     'showcase_texts',
+    'message_templates',
     'sale_commission_percent',
     'admin_fee_percent',
     'intermediation_fee_percent',
@@ -286,6 +291,42 @@ class Account extends Model
     }
 
     /**
+     * Get the text of a WhatsApp message, the account's own where it rewrote it and the default elsewhere.
+     */
+    public function messageTemplate(MessageTemplate $template): string
+    {
+        return $this->message_templates[$template->value] ?? $template->defaultText();
+    }
+
+    /**
+     * Keep only the WhatsApp messages that differ from the defaults, so a blank field brings its default back.
+     *
+     * @param  array<array-key, mixed>  $texts
+     * @return array<string, string>|null
+     */
+    public function messageTemplateOverrides(array $texts): ?array
+    {
+        $overrides = collect(MessageTemplate::cases())
+            ->mapWithKeys(fn (MessageTemplate $template): array => [
+                $template->value => is_string($texts[$template->value] ?? null)
+                    ? trim(str_replace("\r\n", "\n", $texts[$template->value]))
+                    : '',
+            ])
+            ->filter(fn (string $text, string $key): bool => $text !== '' && $text !== MessageTemplate::from($key)->defaultText())
+            ->all();
+
+        return $overrides === [] ? null : $overrides;
+    }
+
+    /**
+     * Get the Pix key tenants pay to: the agency's own, or the single owner's.
+     */
+    public function paymentPixKey(): ?string
+    {
+        return $this->isAgency() ? $this->pix_key : $this->primaryOwner()?->pix_key;
+    }
+
+    /**
      * Get the address of the agency logo, changing whenever the account is saved so browsers fetch a new logo.
      *
      * @return Attribute<string|null, never>
@@ -311,6 +352,7 @@ class Account extends Model
             'showcase_color' => ShowcaseColor::class,
             'showcase_shows_address' => 'boolean',
             'showcase_texts' => 'array',
+            'message_templates' => 'array',
             'sale_commission_percent' => 'decimal:2',
             ...PayoutRule::casts(),
         ];

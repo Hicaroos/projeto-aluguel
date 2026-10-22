@@ -18,6 +18,7 @@ function agencyPayload(array $overrides = []): array
         'creci' => '1234-J',
         'phone' => '(87) 3874-1234',
         'email' => 'contato@silva.com.br',
+        'pix_key' => '12.345.678/0001-95',
         'zip_code' => '56200-000',
         'street' => 'Rua Central',
         'number' => '10',
@@ -50,6 +51,7 @@ test('agency admins can see and update the agency details', function () {
         'legal_name' => 'Silva Negócios Imobiliários Ltda.',
         'document' => '12345678000195',
         'phone' => '8738741234',
+        'pix_key' => '12.345.678/0001-95',
         'city' => 'Ouricuri',
     ]);
 });

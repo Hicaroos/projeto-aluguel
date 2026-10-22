@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Settings\AgencyController;
+use App\Http\Controllers\Settings\MessageTemplateController;
 use App\Http\Controllers\Settings\OwnerController;
 use App\Http\Controllers\Settings\PayoutSettingsController;
 use App\Http\Controllers\Settings\ProfileController;
@@ -38,6 +39,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('settings/showcase', [ShowcaseController::class, 'update'])->name('showcase-settings.update');
         Route::get('settings/showcase/texts', [ShowcaseTextController::class, 'edit'])->name('showcase-settings.texts.edit');
         Route::put('settings/showcase/texts', [ShowcaseTextController::class, 'update'])->name('showcase-settings.texts.update');
+    });
+
+    Route::middleware('can:manage-messages')->group(function () {
+        Route::get('settings/messages', [MessageTemplateController::class, 'edit'])->name('message-settings.edit');
+        Route::put('settings/messages', [MessageTemplateController::class, 'update'])->name('message-settings.update');
     });
 
     Route::middleware('can:manage-agency')->group(function () {

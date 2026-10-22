@@ -17,3 +17,4 @@ export * from './showcase';
 export * from './team';
 export * from './tenant';
 export * from './ui';
+export * from './whatsapp';

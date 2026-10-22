@@ -31,7 +31,7 @@ enum Role: string
     {
         return match ($this) {
             self::Admin => Permission::cases(),
-            self::General => [Permission::ManageRentals, Permission::RegisterReceipts, Permission::ManageFinance, Permission::ManageSales],
+            self::General => [Permission::ManageRentals, Permission::RegisterReceipts, Permission::ManageFinance, Permission::ManageSales, Permission::ManageMessages],
             self::Agent => [Permission::ManageRentals, Permission::RegisterReceipts, Permission::ManageSales],
             self::Finance => [Permission::RegisterReceipts, Permission::ManageFinance],
         };

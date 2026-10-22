@@ -24,4 +24,7 @@ enum Permission: string
 
     /** Set up the public showcase of the account's properties: its address, contact and look. */
     case ManageShowcase = 'manage-showcase';
+
+    /** Rewrite the WhatsApp messages the team sends to tenants and owners. */
+    case ManageMessages = 'manage-messages';
 }

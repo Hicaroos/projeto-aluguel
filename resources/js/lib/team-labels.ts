@@ -5,7 +5,7 @@ import type { Role, TeamMemberStatus } from '@/types';
 export const roleDescriptions: Record<Role, string> = {
     admin: 'Tudo, inclusive equipe, unidades e dados da imobiliária. Vê todas as unidades.',
     general:
-        'Imóveis, inquilinos, contratos e todo o financeiro. Não mexe na equipe nem nas unidades.',
+        'Imóveis, inquilinos, contratos, todo o financeiro e as mensagens do WhatsApp. Não mexe na equipe nem nas unidades.',
     agent: 'Imóveis, inquilinos e contratos. Registra recebimentos, mas não vê despesas nem resultados.',
     finance:
         'Cobranças, recibos, despesas e resultados. Consulta imóveis e contratos sem alterá-los.',

@@ -7,6 +7,7 @@ export type Account = {
     creci: string | null;
     phone: string | null;
     email: string | null;
+    pix_key: string | null;
     zip_code: string | null;
     street: string | null;
     number: string | null;
@@ -48,6 +49,7 @@ export type Auth = {
         manageSales: boolean;
         /** Set up the public showcase: its address, contact and look. */
         manageShowcase: boolean;
+        manageMessages: boolean;
     };
     /** Whether the user created the account, and so may delete it. */
     isAccountOwner: boolean;

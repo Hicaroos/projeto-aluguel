@@ -71,10 +71,10 @@ test('each role shares what it may do with the pages', function (Role $role, arr
         ->get(route('dashboard'))
         ->assertInertia(fn (Assert $page) => $page->where('auth.can', $can));
 })->with([
-    'admin' => [Role::Admin, ['manageAgency' => true, 'manageRentals' => true, 'registerReceipts' => true, 'manageFinance' => true, 'manageSales' => true, 'manageShowcase' => true]],
-    'general' => [Role::General, ['manageAgency' => false, 'manageRentals' => true, 'registerReceipts' => true, 'manageFinance' => true, 'manageSales' => true, 'manageShowcase' => false]],
-    'agent' => [Role::Agent, ['manageAgency' => false, 'manageRentals' => true, 'registerReceipts' => true, 'manageFinance' => false, 'manageSales' => true, 'manageShowcase' => false]],
-    'finance' => [Role::Finance, ['manageAgency' => false, 'manageRentals' => false, 'registerReceipts' => true, 'manageFinance' => true, 'manageSales' => false, 'manageShowcase' => false]],
+    'admin' => [Role::Admin, ['manageAgency' => true, 'manageRentals' => true, 'registerReceipts' => true, 'manageFinance' => true, 'manageSales' => true, 'manageShowcase' => true, 'manageMessages' => true]],
+    'general' => [Role::General, ['manageAgency' => false, 'manageRentals' => true, 'registerReceipts' => true, 'manageFinance' => true, 'manageSales' => true, 'manageShowcase' => false, 'manageMessages' => true]],
+    'agent' => [Role::Agent, ['manageAgency' => false, 'manageRentals' => true, 'registerReceipts' => true, 'manageFinance' => false, 'manageSales' => true, 'manageShowcase' => false, 'manageMessages' => false]],
+    'finance' => [Role::Finance, ['manageAgency' => false, 'manageRentals' => false, 'registerReceipts' => true, 'manageFinance' => true, 'manageSales' => false, 'manageShowcase' => false, 'manageMessages' => false]],
 ]);
 
 test('agents handle rentals and receive payments, but not the rest of the finances', function () {

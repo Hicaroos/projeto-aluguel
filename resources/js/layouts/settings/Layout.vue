@@ -8,6 +8,7 @@ import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
 import { edit as editAgency } from '@/routes/agency';
 import { edit as editAppearance } from '@/routes/appearance';
+import { edit as editMessages } from '@/routes/message-settings';
 import { edit as editOwner } from '@/routes/owner';
 import { edit as editPayoutSettings } from '@/routes/payout-settings';
 import { edit as editProfile } from '@/routes/profile';
@@ -33,6 +34,9 @@ const sidebarNavItems = computed<NavItem[]>(() => [
         : []),
     ...(page.props.auth.can.manageShowcase
         ? [{ title: 'Vitrine', href: editShowcase() }]
+        : []),
+    ...(page.props.auth.can.manageMessages
+        ? [{ title: 'Mensagens do WhatsApp', href: editMessages() }]
         : []),
     {
         title: 'Segurança',

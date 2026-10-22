@@ -35,6 +35,7 @@ class AgencyUpdateRequest extends FormRequest
             'creci' => ['nullable', 'string', 'max:20'],
             'phone' => ['required', 'string', self::PHONE_RULE],
             'email' => ['nullable', 'string', 'email', 'max:255'],
+            'pix_key' => ['nullable', 'string', 'max:255'],
             'zip_code' => ['nullable', 'string', 'max:9'],
             'street' => ['nullable', 'string', 'max:255'],
             'number' => ['nullable', 'string', 'max:20'],
@@ -59,6 +60,7 @@ class AgencyUpdateRequest extends FormRequest
             'document' => __('CNPJ'),
             'creci' => __('CRECI'),
             'phone' => __('telefone'),
+            'pix_key' => __('chave Pix'),
             'sale_commission_percent' => __('comissão de venda'),
         ];
     }

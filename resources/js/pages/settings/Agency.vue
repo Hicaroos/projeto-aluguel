@@ -262,6 +262,25 @@ function removeLogo() {
                         <InputError :message="errors.email" />
                     </div>
                 </div>
+
+                <div class="grid gap-2">
+                    <Label for="pix_key">
+                        Chave Pix para receber aluguéis
+                        <span class="font-normal text-muted-foreground"
+                            >(opcional)</span
+                        >
+                    </Label>
+                    <Input
+                        id="pix_key"
+                        name="pix_key"
+                        placeholder="CNPJ, e-mail, celular ou chave aleatória"
+                        :default-value="agency.pix_key ?? ''"
+                    />
+                    <p class="text-xs text-muted-foreground">
+                        Vai nas mensagens de cobrança enviadas pelo WhatsApp.
+                    </p>
+                    <InputError :message="errors.pix_key" />
+                </div>
             </section>
 
             <section class="grid gap-4">
