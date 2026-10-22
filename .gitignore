@@ -31,6 +31,8 @@ yarn-error.log
 
 /.claude/skills
 /.agents
+/.taste-skill
+/database/seeders/photos
 
 
 .claude/settings.local.json
