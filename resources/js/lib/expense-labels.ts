@@ -16,7 +16,7 @@ export const expensePayerLabels: Record<ExpensePayer, string> = {
 };
 
 export const expensePayerDescriptions: Record<ExpensePayer, string> = {
-    owner: 'Quando for paga, o valor é descontado do repasse do proprietário.',
+    owner: 'O valor é descontado do repasse do proprietário a partir do vencimento, mesmo antes de a despesa ser paga.',
     agency: 'Custo da própria imobiliária, sem afetar o repasse.',
 };
 

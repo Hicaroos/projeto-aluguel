@@ -55,7 +55,7 @@ class Expense extends Model
     ];
 
     /**
-     * Keep the owners' running accounts in line with the expense when it is paid, changed or removed,
+     * Keep the owners' running accounts in line with the expense when it is registered, changed or removed,
      * and remove its attached files with it.
      */
     protected static function booted(): void

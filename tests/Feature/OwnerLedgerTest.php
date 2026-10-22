@@ -208,12 +208,13 @@ test('extra charges go to the owner unless they stay with the agency', function 
         ->and(OwnerLedgerEntry::where('type', LedgerEntryType::ExtraCharge)->sole()->description)->toBe('Conserto da pia');
 });
 
-test('expenses the owner bears are taken from them once paid', function () {
+test('expenses the owner bears are taken from them on the due date, even before they are paid', function () {
     ['account' => $account, 'user' => $user, 'owner' => $owner, 'property' => $property] = ledgerScenario();
     $expense = Expense::factory()->for($account, 'account')->for($property, 'property')->create([
         'type' => ExpenseType::PropertyTax,
         'description' => 'Parcela 3',
         'amount' => 150,
+        'due_date' => '2026-03-10',
         'status' => ExpenseStatus::Pending,
         'payment_date' => null,
     ]);
@@ -224,14 +225,36 @@ test('expenses the owner bears are taken from them once paid', function () {
         'payment_date' => '2026-03-01',
     ]);
 
-    expect(ledgerOf($owner))->toBe([]);
+    expect(ledgerOf($owner))->toBe([['expense', '-150.00']])
+        ->and(OwnerLedgerEntry::sole()->description)->toBe('IPTU: Parcela 3')
+        ->and(OwnerLedgerEntry::sole()->available_on->toDateString())->toBe('2026-03-10');
 
     $this->actingAs($user)->patch(route('expenses.pay', $expense), ['payment_date' => '2026-03-05'])->assertSessionHasNoErrors();
 
     expect(ledgerOf($owner))->toBe([['expense', '-150.00']])
-        ->and(OwnerLedgerEntry::sole()->description)->toBe('IPTU: Parcela 3');
+        ->and(OwnerLedgerEntry::sole()->available_on->toDateString())->toBe('2026-03-05');
 
     $this->actingAs($user)->delete(route('expenses.destroy', $expense));
+
+    expect(ledgerOf($owner))->toBe([]);
+});
+
+test('an expense paid after its due date stays charged on the due date', function () {
+    ['account' => $account, 'user' => $user, 'property' => $property] = ledgerScenario();
+    $expense = Expense::factory()->for($account, 'account')->for($property, 'property')->create(['due_date' => '2026-03-10']);
+
+    $this->actingAs($user)->patch(route('expenses.pay', $expense), ['payment_date' => '2026-03-20'])->assertSessionHasNoErrors();
+
+    expect(OwnerLedgerEntry::sole()->available_on->toDateString())->toBe('2026-03-10');
+});
+
+test('a cancelled expense is no longer taken from the owner', function () {
+    ['account' => $account, 'owner' => $owner, 'property' => $property] = ledgerScenario();
+    $expense = Expense::factory()->for($account, 'account')->for($property, 'property')->create(['amount' => 200]);
+
+    expect(ledgerOf($owner))->toBe([['expense', '-200.00']]);
+
+    $expense->update(['status' => ExpenseStatus::Canceled]);
 
     expect(ledgerOf($owner))->toBe([]);
 });
