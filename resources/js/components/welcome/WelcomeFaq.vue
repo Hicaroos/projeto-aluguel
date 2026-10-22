@@ -20,7 +20,7 @@ const questions = [
     },
     {
         question: 'Toda a equipe vê tudo?',
-        answer: 'Não. Administrador, Geral, Corretor e Financeiro fazem só o que o papel permite, e cada pessoa pode ficar restrita à própria unidade.',
+        answer: 'Não. Só o Administrador mexe na equipe, nas unidades e nos dados da imobiliária, e cada pessoa pode ficar restrita à própria unidade.',
     },
     {
         question: 'Como os interessados da vitrine chegam?',

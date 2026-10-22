@@ -65,8 +65,8 @@ const stages: { name: string; deals: { lead: string; detail: string }[] }[] = [
 
 const team = [
     { initials: 'AS', name: 'Ana Silva', role: 'Administrador' },
-    { initials: 'BR', name: 'Bruno Rocha', role: 'Corretor' },
-    { initials: 'CF', name: 'Clara Freitas', role: 'Financeiro' },
+    { initials: 'BR', name: 'Bruno Rocha', role: 'Geral' },
+    { initials: 'CF', name: 'Clara Freitas', role: 'Geral' },
 ];
 
 const agenda = [

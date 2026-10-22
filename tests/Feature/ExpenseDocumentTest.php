@@ -5,9 +5,7 @@ use App\Actions\ContractTemplates\ResolveContractVariables;
 use App\Actions\Properties\SyncPropertyOwners;
 use App\Enums\ContractTemplateKind;
 use App\Enums\ExpenseType;
-use App\Enums\Role;
 use App\Models\Account;
-use App\Models\Branch;
 use App\Models\ContractTemplate;
 use App\Models\Expense;
 use App\Models\ExpenseDocument;
@@ -231,23 +229,6 @@ test('only pdfs and images are attached to expenses', function () {
             'file' => UploadedFile::fake()->create('planilha.xlsx', 100, 'application/vnd.ms-excel'),
         ])
         ->assertSessionHasErrors(['file' => 'Envie um PDF ou uma imagem (JPG, PNG ou WebP).']);
-});
-
-test('agents without access to finance neither attach documents nor generate receipts', function () {
-    Storage::fake(ExpenseDocument::DISK);
-    ['account' => $account, 'property' => $property, 'expense' => $expense] = serviceExpenseScenario(agency: true);
-    $branch = Branch::factory()->for($account, 'account')->create();
-    $property->update(['branch_id' => $branch->id]);
-    $agent = User::factory()->for($account, 'account')->withRole(Role::Agent)->create();
-    $agent->branches()->attach($branch);
-
-    $this->actingAs($agent)->get(route('expenses.service-receipt', $expense))->assertForbidden();
-    $this->actingAs($agent)
-        ->post(route('expenses.documents.store', $expense), [
-            'type' => 'signed_receipt',
-            'file' => UploadedFile::fake()->create('recibo.pdf', 100, 'application/pdf'),
-        ])
-        ->assertForbidden();
 });
 
 test('services keep their provider and other expenses drop it', function () {

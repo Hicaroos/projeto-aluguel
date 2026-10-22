@@ -35,7 +35,7 @@ const formAction = computed(() =>
         : TeamController.store.form(),
 );
 
-const role = ref<Role>(props.member?.role ?? 'agent');
+const role = ref<Role>(props.member?.role ?? 'general');
 
 const seesEveryBranch = computed(
     () =>

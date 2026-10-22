@@ -396,8 +396,8 @@ test('administrators and single owners set up the showcase; its address must be 
             ->assertSessionHasErrors('showcase_slug');
     }
 
-    $agent = User::factory()->for($account, 'account')->withRole(Role::Agent)->create();
-    $this->actingAs($agent)->get(route('showcase-settings.edit'))->assertForbidden();
+    $general = User::factory()->for($account, 'account')->withRole(Role::General)->create();
+    $this->actingAs($general)->get(route('showcase-settings.edit'))->assertForbidden();
 
     $singleOwner = User::factory()->for(Account::factory(), 'account')->create();
     $this->actingAs($singleOwner)
@@ -543,9 +543,9 @@ test('the showcase texts are edited on its home, shown as visitors see it', func
             ->where('editor.limits.hero_lead', 240)
         );
 
-    $agent = User::factory()->for($account, 'account')->withRole(Role::Agent)->create();
-    $this->actingAs($agent)->get(route('showcase-settings.texts.edit'))->assertForbidden();
-    $this->actingAs($agent)->put(route('showcase-settings.texts.update'), [])->assertForbidden();
+    $general = User::factory()->for($account, 'account')->withRole(Role::General)->create();
+    $this->actingAs($general)->get(route('showcase-settings.texts.edit'))->assertForbidden();
+    $this->actingAs($general)->put(route('showcase-settings.texts.update'), [])->assertForbidden();
 
     $account->update(['showcase_enabled' => false]);
 

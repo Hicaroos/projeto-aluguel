@@ -5,7 +5,6 @@ use App\Enums\LeaseStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\PropertyStatus;
 use App\Enums\RentalOutcome;
-use App\Enums\Role;
 use App\Models\Account;
 use App\Models\Branch;
 use App\Models\Deal;
@@ -318,14 +317,11 @@ test('deleting a sale offers the property again and brings the deals back to the
         ->and($competingDeal->deal_stage_id)->toBe($stages[0]->id);
 });
 
-test('only people who handle sales may delete them, and only their own', function () {
+test('sales of other accounts cannot be deleted', function () {
     ['account' => $account, 'property' => $property] = saleScenario(agency: true);
     $sale = Sale::factory()->for($account, 'account')->create(['property_id' => $property->id]);
-    $finance = User::factory()->for($account, 'account')->withRole(Role::Finance)->create();
-    $finance->branches()->attach($property->branch_id);
     $stranger = User::factory()->for(Account::factory(), 'account')->create();
 
-    $this->actingAs($finance)->delete(route('sales.destroy', $sale))->assertForbidden();
     $this->actingAs($stranger)->delete(route('sales.destroy', $sale))->assertNotFound();
 
     $this->assertModelExists($sale);
@@ -419,18 +415,6 @@ test('direct sales only take visible properties for sale that were not sold yet'
     $this->actingAs($user)
         ->post(route('sales.store'), salePayload(['property_id' => $property->id]))
         ->assertSessionHasErrors(['property_id' => 'Este imóvel já foi vendido.']);
-
-    expect(Sale::count())->toBe(0);
-});
-
-test('only people who handle sales may register direct sales', function () {
-    ['account' => $account, 'property' => $property] = saleScenario(agency: true);
-    $finance = User::factory()->for($account, 'account')->withRole(Role::Finance)->create();
-    $finance->branches()->attach($property->branch_id);
-
-    $this->actingAs($finance)
-        ->post(route('sales.store'), salePayload(['property_id' => $property->id]))
-        ->assertForbidden();
 
     expect(Sale::count())->toBe(0);
 });

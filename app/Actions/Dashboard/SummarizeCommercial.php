@@ -28,16 +28,15 @@ use Illuminate\Database\Eloquent\Collection;
  *     openDeals: int,
  *     sales: array{count: int, total: float, commission: float},
  *     upcomingVisits: Collection<int, DealVisit>,
- *     team: list<TeamMember>|null,
+ *     team: list<TeamMember>,
  * }
  */
 class SummarizeCommercial
 {
     /**
      * Summarize the month of the funnel: new leads, visits made, proposals waiting for an answer, deals
-     * won and sales, plus the visits of the coming week. Agents see only their own work; admins and
-     * general staff see the whole team, with each member's figures. Null for those who don't handle
-     * sales, and until the account uses the funnel.
+     * won and sales, plus the visits of the coming week and each team member's figures. Null for those
+     * who don't handle sales, and until the account uses the funnel.
      *
      * @return Commercial|null
      */
@@ -59,28 +58,23 @@ class SummarizeCommercial
             return null;
         }
 
-        $agentId = $user->role === Role::Agent ? $user->id : null;
         $period = [$month->startOfMonth()->startOfDay(), $month->endOfMonth()->endOfDay()];
         $days = [$month->startOfMonth()->toDateString(), $month->endOfMonth()->toDateString()];
 
         $leads = Lead::query()
             ->whereBetween('created_at', $period)
-            ->when($agentId, fn (Builder $query, int $agentId) => $query->where('user_id', $agentId))
             ->get(['id', 'user_id']);
         $visits = DealVisit::query()
             ->where('status', VisitStatus::Done)
             ->whereBetween('scheduled_at', $period)
-            ->when($agentId, $this->visitsOf(...))
             ->with('deal:id,user_id')
             ->get(['id', 'deal_id', 'user_id']);
         $won = Deal::query()
             ->whereBetween('closed_at', $period)
             ->whereHas('stage', fn (Builder $query) => $query->where('outcome', DealOutcome::Won))
-            ->when($agentId, fn (Builder $query, int $agentId) => $query->where('user_id', $agentId))
             ->get(['id', 'user_id']);
         $sales = Sale::query()
             ->soldInMonth($month)
-            ->when($agentId, fn (Builder $query, int $agentId) => $query->where('user_id', $agentId))
             ->get(['id', 'user_id', 'price', 'commission_amount']);
 
         return [
@@ -88,28 +82,23 @@ class SummarizeCommercial
             'visitsDone' => $visits->count(),
             'pendingProposals' => DealProposal::query()
                 ->where('status', ProposalStatus::Pending)
-                ->whereHas('deal', fn (Builder $query) => $query
-                    ->whereNull('closed_at')
-                    ->when($agentId, fn (Builder $query, int $agentId) => $query->where('user_id', $agentId)))
+                ->whereHas('deal', fn (Builder $query) => $query->whereNull('closed_at'))
                 ->count(),
             'wonDeals' => $won->count(),
-            'openDeals' => Deal::query()
-                ->whereNull('closed_at')
-                ->when($agentId, fn (Builder $query, int $agentId) => $query->where('user_id', $agentId))
-                ->count(),
+            'openDeals' => Deal::query()->whereNull('closed_at')->count(),
             'sales' => [
                 'count' => $sales->count(),
                 'total' => round($sales->sum(fn (Sale $sale): float => (float) $sale->price), 2),
                 'commission' => round($sales->sum(fn (Sale $sale): float => (float) $sale->commission_amount), 2),
             ],
-            'upcomingVisits' => $this->upcomingVisits($agentId),
-            'team' => $agentId === null ? $this->team($user, $leads, $visits, $won, $days) : null,
+            'upcomingVisits' => $this->upcomingVisits(),
+            'team' => $this->team($user, $leads, $visits, $won, $days),
         ];
     }
 
     /**
-     * Get each team member's figures for the month: the agents always, and anyone else who did
-     * something in the funnel. Those who closed the most come first.
+     * Get each team member's figures for the month: the general members always, and anyone else who
+     * did something in the funnel. Those who closed the most come first.
      *
      * @param  Collection<int, Lead>  $leads
      * @param  Collection<int, DealVisit>  $visits
@@ -136,7 +125,7 @@ class SummarizeCommercial
         $members = User::query()
             ->where('account_id', $user->account_id)
             ->whereNull('deactivated_at')
-            ->where(fn (Builder $query) => $query->where('role', Role::Agent)->orWhereIn('id', $activeIds))
+            ->where(fn (Builder $query) => $query->where('role', Role::General)->orWhereIn('id', $activeIds))
             ->get(['id', 'name'])
             ->map(fn (User $member): array => [
                 'id' => $member->id,
@@ -158,16 +147,15 @@ class SummarizeCommercial
     }
 
     /**
-     * Get the scheduled visits of the coming week, only the agent's own for agents.
+     * Get the scheduled visits of the coming week.
      *
      * @return Collection<int, DealVisit>
      */
-    private function upcomingVisits(?int $agentId): Collection
+    private function upcomingVisits(): Collection
     {
         return DealVisit::query()
             ->where('status', VisitStatus::Scheduled)
             ->whereBetween('scheduled_at', [now()->startOfDay(), now()->addDays(7)->endOfDay()])
-            ->when($agentId, $this->visitsOf(...))
             ->with([
                 'deal:id,lead_id,property_id',
                 'deal.lead:id,name',
@@ -185,19 +173,5 @@ class SummarizeCommercial
     private function visitAgent(DealVisit $visit): ?int
     {
         return $visit->user_id ?? $visit->deal->user_id;
-    }
-
-    /**
-     * Limit the visits to the agent's: those they make, and those of their deals nobody was assigned to.
-     *
-     * @param  Builder<DealVisit>  $query
-     */
-    private function visitsOf(Builder $query, int $agentId): void
-    {
-        $query->where(fn (Builder $query) => $query
-            ->where('user_id', $agentId)
-            ->orWhere(fn (Builder $query) => $query
-                ->whereNull('user_id')
-                ->whereHas('deal', fn (Builder $query) => $query->where('user_id', $agentId))));
     }
 }

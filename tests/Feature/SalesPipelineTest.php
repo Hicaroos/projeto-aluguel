@@ -131,29 +131,19 @@ test('members only see the leads of their branches', function () {
     $account = Account::factory()->agency()->create();
     $ouricuri = Branch::factory()->for($account, 'account')->create();
     $araripina = Branch::factory()->for($account, 'account')->create();
-    $agent = User::factory()->for($account, 'account')->withRole(Role::Agent)->create();
-    $agent->branches()->attach($ouricuri);
+    $member = User::factory()->for($account, 'account')->withRole(Role::General)->create();
+    $member->branches()->attach($ouricuri);
 
     $mine = Lead::factory()->for($account, 'account')->create(['branch_id' => $ouricuri->id]);
     $shared = Lead::factory()->for($account, 'account')->create(['branch_id' => null]);
     Lead::factory()->for($account, 'account')->create(['branch_id' => $araripina->id]);
 
-    $this->actingAs($agent)
+    $this->actingAs($member)
         ->get(route('leads.index'))
         ->assertInertia(fn (Assert $page) => $page
             ->has('leads.data', 2)
             ->where('leads.data', fn ($leads) => collect($leads)->pluck('id')->sort()->values()->all() === collect([$mine->id, $shared->id])->sort()->values()->all())
         );
-});
-
-test('finance members look at the funnel without changing it', function () {
-    $account = Account::factory()->agency()->create();
-    $finance = User::factory()->for($account, 'account')->withRole(Role::Finance)->create();
-
-    $this->actingAs($finance)->get(route('leads.index'))->assertOk();
-    $this->actingAs($finance)->get(route('deals.index'))->assertOk();
-    $this->actingAs($finance)->get(route('sales.index'))->assertOk();
-    $this->actingAs($finance)->post(route('leads.store'), leadPayload())->assertForbidden();
 });
 
 test('the funnel starts with the default stages', function () {

@@ -4,9 +4,7 @@ use App\Actions\ContractTemplates\RenderSaleDocument;
 use App\Actions\ContractTemplates\ResolveContractVariables;
 use App\Enums\ContractTemplateKind;
 use App\Enums\MaritalStatus;
-use App\Enums\Role;
 use App\Models\Account;
-use App\Models\Branch;
 use App\Models\ContractTemplate;
 use App\Models\Owner;
 use App\Models\Property;
@@ -231,20 +229,4 @@ test('the down payment cannot exceed the price nor the deed come before the sale
             'down_payment' => 'O sinal não pode passar do valor da venda.',
             'deed_deadline' => 'O prazo da escritura não pode ser antes da data da venda.',
         ]);
-});
-
-test('finance members generate documents but do not change sales', function () {
-    ['account' => $account, 'sale' => $sale] = saleDocumentScenario(agency: true);
-    $branch = Branch::factory()->for($account, 'account')->create();
-    $sale->property->update(['branch_id' => $branch->id]);
-    $finance = User::factory()->for($account, 'account')->withRole(Role::Finance)->create();
-    $finance->branches()->attach($branch);
-
-    $this->actingAs($finance)
-        ->get(route('sales.generate', ['sale' => $sale->id, 'kind' => 'sale_contract']))
-        ->assertOk();
-
-    $this->actingAs($finance)
-        ->put(route('sales.update', $sale), ['buyer_name' => 'X', 'price' => '1', 'sold_on' => '2026-10-14'])
-        ->assertForbidden();
 });

@@ -208,17 +208,14 @@ test('the statement can be downloaded as a PDF', function () {
         ->assertHeader('content-type', 'application/pdf');
 });
 
-test('only agency members who handle the money reach the payouts', function () {
+test('agency members reach the payouts, but not other accounts nor single owners', function () {
     ['account' => $account, 'branch' => $branch, 'owner' => $owner] = payoutScenario();
-    $agent = User::factory()->for($account, 'account')->withRole(Role::Agent)->create();
-    $agent->branches()->attach($branch);
-    $finance = User::factory()->for($account, 'account')->withRole(Role::Finance)->create();
-    $finance->branches()->attach($branch);
+    $general = User::factory()->for($account, 'account')->withRole(Role::General)->create();
+    $general->branches()->attach($branch);
     $stranger = User::factory()->for(Account::factory()->agency(), 'account')->create();
     $singleOwner = User::factory()->for(Account::factory(), 'account')->create();
 
-    $this->actingAs($agent)->get(route('payouts.index'))->assertForbidden();
-    $this->actingAs($finance)->get(route('payouts.show', $owner))->assertOk();
+    $this->actingAs($general)->get(route('payouts.show', $owner))->assertOk();
     $this->actingAs($stranger)->get(route('payouts.show', $owner))->assertNotFound();
     $this->actingAs($singleOwner)->get(route('payouts.index'))->assertNotFound();
 });

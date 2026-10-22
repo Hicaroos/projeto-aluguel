@@ -25,9 +25,9 @@ function teamScenario(): array
 
 test('agency admins see their team with roles, branches and access', function () {
     ['account' => $account, 'owner' => $owner, 'ouricuri' => $ouricuri] = teamScenario();
-    $agent = User::factory()->for($account, 'account')->withRole(Role::Agent)->create(['name' => 'Bruno Corretor']);
-    $agent->branches()->attach($ouricuri);
-    User::factory()->for($account, 'account')->withRole(Role::Finance)->invited()->create(['name' => 'Carla Financeiro']);
+    $bruno = User::factory()->for($account, 'account')->withRole(Role::General)->create(['name' => 'Bruno Corretor']);
+    $bruno->branches()->attach($ouricuri);
+    User::factory()->for($account, 'account')->withRole(Role::General)->invited()->create(['name' => 'Carla Financeiro']);
     User::factory()->for($account, 'account')->withRole(Role::General)->deactivated()->create(['name' => 'Ana Antiga']);
     User::factory()->create();
 
@@ -37,7 +37,7 @@ test('agency admins see their team with roles, branches and access', function ()
             ->component('team/Index')
             ->has('members', 4)
             ->where('members.0.name', 'Bruno Corretor')
-            ->where('members.0.role', 'agent')
+            ->where('members.0.role', 'general')
             ->where('members.0.branches.0.name', 'Ouricuri')
             ->where('members.0.status', 'active')
             ->where('members.1.name', 'Carla Financeiro')
@@ -47,7 +47,7 @@ test('agency admins see their team with roles, branches and access', function ()
             ->where('members.2.is_self', true)
             ->where('members.3.name', 'Ana Antiga')
             ->where('members.3.status', 'inactive')
-            ->has('roles', 4)
+            ->has('roles', 2)
             ->has('branches', 2)
         );
 });
@@ -58,7 +58,7 @@ test('only agency administrators manage the team', function (Role $role) {
 
     $this->actingAs($member)->get(route('team.index'))->assertForbidden();
     $this->actingAs($member)->post(route('team.store'), ['name' => 'X'])->assertForbidden();
-})->with([Role::General, Role::Agent, Role::Finance]);
+})->with([Role::General]);
 
 test('single owners have no team to manage', function () {
     $user = User::factory()->for(Account::factory(), 'account')->create();
@@ -73,7 +73,7 @@ test('admins invite people with a role and branches, receiving a link to send', 
         ->post(route('team.store'), [
             'name' => 'Bruno Corretor',
             'email' => 'bruno@example.com',
-            'role' => 'agent',
+            'role' => 'general',
             'branch_ids' => [$ouricuri->id],
         ])
         ->assertSessionHasNoErrors()
@@ -83,7 +83,7 @@ test('admins invite people with a role and branches, receiving a link to send', 
     $member = User::where('email', 'bruno@example.com')->sole();
 
     expect($member->account_id)->toBe($account->id)
-        ->and($member->role)->toBe(Role::Agent)
+        ->and($member->role)->toBe(Role::General)
         ->and($member->hasPendingInvitation())->toBeTrue()
         ->and($member->branches()->pluck('branches.id')->all())->toBe([$ouricuri->id]);
 });
@@ -93,11 +93,11 @@ test('invitations need a free e-mail and branches for everyone but administrator
     $otherBranch = Branch::factory()->create();
 
     $this->actingAs($owner)
-        ->post(route('team.store'), ['name' => 'Bruno', 'email' => $owner->email, 'role' => 'agent', 'branch_ids' => []])
+        ->post(route('team.store'), ['name' => 'Bruno', 'email' => $owner->email, 'role' => 'general', 'branch_ids' => []])
         ->assertSessionHasErrors(['email', 'branch_ids' => 'Escolha pelo menos uma unidade.']);
 
     $this->actingAs($owner)
-        ->post(route('team.store'), ['name' => 'Bruno', 'email' => 'bruno@example.com', 'role' => 'agent', 'branch_ids' => [$otherBranch->id]])
+        ->post(route('team.store'), ['name' => 'Bruno', 'email' => 'bruno@example.com', 'role' => 'general', 'branch_ids' => [$otherBranch->id]])
         ->assertSessionHasErrors('branch_ids.0');
 
     $this->actingAs($owner)
@@ -109,7 +109,7 @@ test('invitations need a free e-mail and branches for everyone but administrator
 
 test('invited people create their password through the link and are signed in', function () {
     ['owner' => $owner, 'ouricuri' => $ouricuri] = teamScenario();
-    $member = User::factory()->for($owner->account, 'account')->withRole(Role::Agent)->create(['name' => 'Bruno']);
+    $member = User::factory()->for($owner->account, 'account')->withRole(Role::General)->create(['name' => 'Bruno']);
     $token = $member->startInvitation();
 
     $this->get(route('invitation.show', $token))
@@ -117,7 +117,7 @@ test('invited people create their password through the link and are signed in', 
             ->component('auth/AcceptInvitation')
             ->where('invitation.name', 'Bruno')
             ->where('invitation.agency', 'Imobiliária Silva')
-            ->where('invitation.role', 'Corretor')
+            ->where('invitation.role', 'Geral')
         );
 
     $this->post(route('invitation.accept', $token), [
@@ -176,7 +176,7 @@ test('admins can renew or cancel invitations nobody accepted yet', function () {
 
 test('admins can change the role and branches of a member', function () {
     ['account' => $account, 'owner' => $owner, 'ouricuri' => $ouricuri, 'araripina' => $araripina] = teamScenario();
-    $member = User::factory()->for($account, 'account')->withRole(Role::Agent)->create();
+    $member = User::factory()->for($account, 'account')->withRole(Role::General)->create();
     $member->branches()->attach($ouricuri);
 
     $this->actingAs($owner)
@@ -203,7 +203,7 @@ test('nobody changes their own access nor the access of the account owner', func
     ['account' => $account, 'owner' => $owner] = teamScenario();
     $otherAdmin = User::factory()->for($account, 'account')->create();
 
-    $this->actingAs($otherAdmin)->put(route('team.update', $owner), ['name' => 'X', 'role' => 'agent'])->assertForbidden();
+    $this->actingAs($otherAdmin)->put(route('team.update', $owner), ['name' => 'X', 'role' => 'general'])->assertForbidden();
     $this->actingAs($otherAdmin)->patch(route('team.status', $owner))->assertForbidden();
     $this->actingAs($otherAdmin)->patch(route('team.status', $otherAdmin))->assertForbidden();
 
@@ -222,7 +222,7 @@ test('members of other accounts are out of reach', function () {
 
 test('deactivated members lose their access but keep their history', function () {
     ['account' => $account, 'owner' => $owner] = teamScenario();
-    $member = User::factory()->for($account, 'account')->withRole(Role::Agent)->create();
+    $member = User::factory()->for($account, 'account')->withRole(Role::General)->create();
 
     $this->actingAs($owner)->patch(route('team.status', $member))->assertRedirect(route('team.index'));
 

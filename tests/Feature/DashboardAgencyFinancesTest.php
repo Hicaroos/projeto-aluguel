@@ -4,7 +4,6 @@ use App\Enums\ExpensePayer;
 use App\Enums\LedgerEntryType;
 use App\Enums\PaymentStatus;
 use App\Enums\PaymentType;
-use App\Enums\Role;
 use App\Models\Account;
 use App\Models\Expense;
 use App\Models\Lease;
@@ -98,12 +97,9 @@ test('the dashboard shows the owners money the agency holds, the expenses they b
         );
 });
 
-test('only agency members who handle the money see the agency finances', function () {
-    ['account' => $account] = agencyFinancesScenario();
-    $agent = User::factory()->for($account, 'account')->withRole(Role::Agent)->create();
+test('single owners have no agency finances', function () {
     $owner = User::factory()->for(Account::factory(), 'account')->create();
 
-    $this->actingAs($agent)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('agencyFinances', null));
     $this->actingAs($owner)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('agencyFinances', null));
 });
 

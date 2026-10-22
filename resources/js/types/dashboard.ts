@@ -37,8 +37,8 @@ export type DashboardCommercial = {
     openDeals: number;
     sales: { count: number; total: number; commission: number };
     upcomingVisits: DashboardVisit[];
-    /** Only for those who see the whole team. */
-    team: DashboardTeamMember[] | null;
+    /** Each member's figures: the general members always, and anyone else who used the funnel. */
+    team: DashboardTeamMember[];
 };
 
 export type DashboardStats = {

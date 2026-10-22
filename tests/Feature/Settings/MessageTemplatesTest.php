@@ -50,17 +50,6 @@ test('messages may only use their own variables', function () {
     expect($account->refresh()->message_templates)->toBeNull();
 });
 
-test('agents and finance members cannot rewrite the messages', function (Role $role) {
-    $account = Account::factory()->agency()->create(['name' => 'Imobiliária Silva']);
-    $member = User::factory()->for($account, 'account')->withRole($role)->create();
-
-    $this->actingAs($member)->get(route('message-settings.edit'))->assertForbidden();
-    $this->actingAs($member)->put(route('message-settings.update'), ['message_templates' => []])->assertForbidden();
-})->with([
-    'agent' => Role::Agent,
-    'finance' => Role::Finance,
-]);
-
 test('single owners have no payout notice to rewrite', function () {
     $user = User::factory()->for(Account::factory(), 'account')->create();
 

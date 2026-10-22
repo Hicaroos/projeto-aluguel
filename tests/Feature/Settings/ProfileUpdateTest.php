@@ -139,12 +139,12 @@ test('agency members cannot rename the agency through their profile', function (
         ->assertSessionHasNoErrors();
 
     expect($account->fresh()->name)->toBe('Imobiliária Silva');
-})->with([Role::Admin, Role::General, Role::Agent, Role::Finance]);
+})->with([Role::Admin, Role::General]);
 
 test('the profile of an agency member shows none of the agency owners', function () {
     $account = Account::factory()->agency()->create();
     Owner::factory()->for($account, 'account')->create(['phone' => '11999999999']);
-    $member = User::factory()->for($account, 'account')->withRole(Role::Agent)->create();
+    $member = User::factory()->for($account, 'account')->withRole(Role::General)->create();
 
     $this->actingAs($member)
         ->get(route('profile.edit'))

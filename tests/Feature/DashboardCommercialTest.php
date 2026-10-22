@@ -30,7 +30,7 @@ function commercialScenario(): array
     $account = Account::factory()->agency()->create();
     $branch = Branch::factory()->for($account, 'account')->create();
     $agent = function (string $name, array $attributes = []) use ($account, $branch): User {
-        $agent = User::factory()->for($account, 'account')->withRole(Role::Agent)->create(['name' => $name, ...$attributes]);
+        $agent = User::factory()->for($account, 'account')->withRole(Role::General)->create(['name' => $name, ...$attributes]);
         $agent->branches()->attach($branch);
 
         return $agent;
@@ -98,38 +98,20 @@ test('admins see the month of the whole team, member by member', function () {
         );
 });
 
-test('agents see only their own month, without the team', function () {
-    ['bruno' => $bruno, 'ana' => $ana] = commercialScenario();
+test('general members see the month of the whole team too', function () {
+    ['bruno' => $bruno] = commercialScenario();
 
     $this->actingAs($bruno)
         ->get(route('dashboard'))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('commercial.newLeads', 2)
-            ->where('commercial.visitsDone', 1)
-            ->where('commercial.pendingProposals', 1)
-            ->where('commercial.wonDeals', 0)
-            ->where('commercial.openDeals', 1)
-            ->where('commercial.sales.count', 0)
-            ->has('commercial.upcomingVisits', 1)
-            ->where('commercial.team', null)
-        );
-
-    $this->actingAs($ana)
-        ->get(route('dashboard'))
-        ->assertInertia(fn (Assert $page) => $page
-            ->where('commercial.visitsDone', 1)
+            ->where('commercial.newLeads', 4)
             ->where('commercial.wonDeals', 1)
-            ->where('commercial.sales.total', 300000)
-            ->has('commercial.upcomingVisits', 0)
+            ->has('commercial.team', 3)
         );
 });
 
-test('the commercial block is left out for those who do not sell and before the funnel is used', function () {
-    ['account' => $account, 'branch' => $branch] = commercialScenario();
-    $finance = User::factory()->for($account, 'account')->withRole(Role::Finance)->create();
-    $finance->branches()->attach($branch);
+test('the commercial block is left out before the funnel is used', function () {
     $newcomer = User::factory()->for(Account::factory()->agency(), 'account')->create();
 
-    $this->actingAs($finance)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('commercial', null));
     $this->actingAs($newcomer)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('commercial', null));
 });

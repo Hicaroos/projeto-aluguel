@@ -146,9 +146,9 @@ class DemoSeeder extends Seeder
 
         $this->user($account, 'Ana Administradora', 'admin@imobizilla.test', Role::Admin);
         $this->user($account, 'Gustavo Geral', 'geral@imobizilla.test', Role::General, [$ouricuri, $araripina]);
-        $bruno = $this->user($account, 'Bruno Corretor', 'bruno@imobizilla.test', Role::Agent, [$ouricuri]);
-        $this->user($account, 'Renata Corretora', 'renata@imobizilla.test', Role::Agent, [$araripina]);
-        $this->user($account, 'Carla Financeiro', 'carla@imobizilla.test', Role::Finance, [$ouricuri, $araripina]);
+        $bruno = $this->user($account, 'Bruno Corretor', 'bruno@imobizilla.test', Role::General, [$ouricuri]);
+        $this->user($account, 'Renata Corretora', 'renata@imobizilla.test', Role::General, [$araripina]);
+        $this->user($account, 'Carla Financeiro', 'carla@imobizilla.test', Role::General, [$ouricuri, $araripina]);
 
         $antonio = $this->owner($account, 'Antônio Ferreira Lima', '41122233344', ['pix_key' => 'antonio.ferreira@email.com']);
         $maria = $this->owner($account, 'Maria das Graças Silva', '52233344455', ['pix_key' => '87999990010']);
@@ -295,7 +295,7 @@ class DemoSeeder extends Seeder
             app(RegisterOwnerPayout::class)->handle(
                 $owner,
                 ['amount' => $available, 'paid_on' => $paidOn, 'payment_method' => PaymentMethod::Pix->value],
-                User::withoutGlobalScopes()->where('account_id', $owner->account_id)->where('role', Role::Finance)->firstOrFail(),
+                User::withoutGlobalScopes()->where('email', 'carla@imobizilla.test')->firstOrFail(),
             );
         });
     }

@@ -73,50 +73,7 @@ test('each role shares what it may do with the pages', function (Role $role, arr
 })->with([
     'admin' => [Role::Admin, ['manageAgency' => true, 'manageRentals' => true, 'registerReceipts' => true, 'manageFinance' => true, 'manageSales' => true, 'manageShowcase' => true, 'manageMessages' => true]],
     'general' => [Role::General, ['manageAgency' => false, 'manageRentals' => true, 'registerReceipts' => true, 'manageFinance' => true, 'manageSales' => true, 'manageShowcase' => false, 'manageMessages' => true]],
-    'agent' => [Role::Agent, ['manageAgency' => false, 'manageRentals' => true, 'registerReceipts' => true, 'manageFinance' => false, 'manageSales' => true, 'manageShowcase' => false, 'manageMessages' => false]],
-    'finance' => [Role::Finance, ['manageAgency' => false, 'manageRentals' => false, 'registerReceipts' => true, 'manageFinance' => true, 'manageSales' => false, 'manageShowcase' => false, 'manageMessages' => false]],
 ]);
-
-test('agents handle rentals and receive payments, but not the rest of the finances', function () {
-    ['account' => $account, 'ouricuri' => $ouricuri, 'ouricuriLease' => $lease, 'payment' => $payment] = permissionScenario();
-    $agent = teamMember($account, Role::Agent, [$ouricuri]);
-
-    $this->actingAs($agent)
-        ->put(route('tenants.update', $lease->tenant), ['name' => 'Novo Nome', 'cpf_cnpj' => $lease->tenant->cpf_cnpj, 'phone' => '87999999999'])
-        ->assertSessionHasNoErrors();
-
-    $this->actingAs($agent)
-        ->post(route('payments.receipts.store', $payment), ['amount' => '1000.00', 'date' => '2026-10-12', 'payment_method' => 'cash'])
-        ->assertSessionHasNoErrors();
-
-    $this->actingAs($agent)->get(route('payments.index'))->assertOk();
-    $this->actingAs($agent)->get(route('expenses.index'))->assertForbidden();
-    $this->actingAs($agent)->delete(route('receipts.destroy', $payment->receipts()->sole()))->assertForbidden();
-    $this->actingAs($agent)->post(route('payments.store'), ['lease_id' => $lease->id])->assertForbidden();
-
-    $this->actingAs($agent)
-        ->get(route('dashboard'))
-        ->assertInertia(fn (Assert $page) => $page
-            ->missing('stats.netIncome')
-            ->missing('stats.expensesPaid')
-        );
-});
-
-test('finance only looks at rentals while handling all the money', function () {
-    ['account' => $account, 'ouricuri' => $ouricuri, 'ouricuriLease' => $lease] = permissionScenario();
-    $finance = teamMember($account, Role::Finance, [$ouricuri]);
-
-    $this->actingAs($finance)->get(route('properties.index'))->assertOk();
-    $this->actingAs($finance)->get(route('leases.index'))->assertOk();
-    $this->actingAs($finance)->get(route('expenses.index'))->assertOk();
-    $this->actingAs($finance)->put(route('tenants.update', $lease->tenant), ['name' => 'X'])->assertForbidden();
-    $this->actingAs($finance)->delete(route('leases.destroy', $lease))->assertForbidden();
-    $this->actingAs($finance)->get(route('contract-templates.index'))->assertForbidden();
-
-    $this->actingAs($finance)
-        ->get(route('dashboard'))
-        ->assertInertia(fn (Assert $page) => $page->has('stats.netIncome'));
-});
 
 test('general members do everything but manage the agency', function () {
     ['account' => $account, 'ouricuri' => $ouricuri] = permissionScenario();
@@ -160,7 +117,7 @@ test('members only see the branches they work in', function () {
 
 test('members cannot place properties in branches they do not work in', function () {
     ['account' => $account, 'ouricuri' => $ouricuri, 'araripina' => $araripina] = permissionScenario();
-    $agent = teamMember($account, Role::Agent, [$ouricuri]);
+    $general = teamMember($account, Role::General, [$ouricuri]);
     $owner = Owner::where('account_id', $account->id)->first();
 
     $payload = [
@@ -176,11 +133,11 @@ test('members cannot place properties in branches they do not work in', function
         'status' => 'available',
     ];
 
-    $this->actingAs($agent)
+    $this->actingAs($general)
         ->post(route('properties.store'), [...$payload, 'branch_id' => $araripina->id])
         ->assertSessionHasErrors('branch_id');
 
-    $this->actingAs($agent)
+    $this->actingAs($general)
         ->post(route('properties.store'), [...$payload, 'branch_id' => $ouricuri->id])
         ->assertSessionHasNoErrors();
 });

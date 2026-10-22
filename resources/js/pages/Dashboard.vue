@@ -954,7 +954,7 @@ const clickableRow =
         <DashboardPanel
             v-if="commercial"
             title="Comercial"
-            :description="`${commercial.team ? 'Equipe' : 'Seus números'} · ${formatMonthYear(month).toLowerCase()}`"
+            :description="`Equipe · ${formatMonthYear(month).toLowerCase()}`"
         >
             <template #action>
                 <Button variant="ghost" size="sm" as-child>
@@ -988,10 +988,7 @@ const clickableRow =
                 </div>
             </dl>
 
-            <div
-                class="grid"
-                :class="{ 'lg:grid-cols-2 lg:divide-x': commercial.team }"
-            >
+            <div class="grid lg:grid-cols-2 lg:divide-x">
                 <div>
                     <p
                         class="px-5 pt-4 text-xs font-medium text-muted-foreground"
@@ -1045,7 +1042,7 @@ const clickableRow =
                     </ul>
                 </div>
 
-                <div v-if="commercial.team" class="border-t lg:border-t-0">
+                <div class="border-t lg:border-t-0">
                     <p
                         class="px-5 pt-4 text-xs font-medium text-muted-foreground"
                     >
@@ -1055,7 +1052,7 @@ const clickableRow =
                         v-if="commercial.team.length === 0"
                         class="px-5 pt-2 pb-5 text-sm text-muted-foreground"
                     >
-                        Nenhum corretor na equipe ainda.
+                        Ninguém da equipe mexeu no funil este mês.
                     </p>
                     <div v-else class="overflow-x-auto px-2 pb-2">
                         <table class="w-full text-sm">

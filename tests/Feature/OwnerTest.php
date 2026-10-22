@@ -155,10 +155,10 @@ test('an owner of another branch can be brought to the selected branch instead o
 
 test('properties can only belong to owners the user sees', function () {
     ['account' => $account, 'owner' => $owner, 'araripina' => $araripina] = ownerScenario();
-    $agent = User::factory()->for($account, 'account')->withRole(Role::Agent)->create();
-    $agent->branches()->attach($araripina);
+    $member = User::factory()->for($account, 'account')->withRole(Role::General)->create();
+    $member->branches()->attach($araripina);
 
-    $this->actingAs($agent)
+    $this->actingAs($member)
         ->post(route('properties.store'), [
             'type' => 'house',
             'branch_id' => $araripina->id,
@@ -173,14 +173,4 @@ test('properties can only belong to owners the user sees', function () {
             'status' => 'available',
         ])
         ->assertSessionHasErrors('owner_id');
-});
-
-test('finance members look at owners without changing them', function () {
-    ['account' => $account, 'owner' => $owner, 'ouricuri' => $ouricuri] = ownerScenario();
-    $finance = User::factory()->for($account, 'account')->withRole(Role::Finance)->create();
-    $finance->branches()->attach($ouricuri);
-
-    $this->actingAs($finance)->get(route('owners.index'))->assertOk();
-    $this->actingAs($finance)->post(route('owners.store'), ownerPayload())->assertForbidden();
-    $this->actingAs($finance)->delete(route('owners.destroy', $owner))->assertForbidden();
 });

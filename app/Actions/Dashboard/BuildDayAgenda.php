@@ -8,7 +8,6 @@ use App\Enums\LeadInterest;
 use App\Enums\LeadSource;
 use App\Enums\Permission;
 use App\Enums\ProposalStatus;
-use App\Enums\Role;
 use App\Enums\VisitStatus;
 use App\Models\Deal;
 use App\Models\DealProposal;
@@ -34,8 +33,7 @@ class BuildDayAgenda
     /**
      * List what needs the user's attention today, as far as their permissions go: payments to
      * collect, payouts to make, expenses to pay, leases to renew or adjust, proposals to answer and
-     * the visits of the day, plus the visits and the listings asked through the showcase. Agents only see their
-     * own deals and visits.
+     * the visits of the day, plus the visits and the listings asked through the showcase.
      *
      * @return array{items: list<AgendaItem>, visits: Collection<int, DealVisit>}
      */
@@ -71,23 +69,14 @@ class BuildDayAgenda
         $visits = new Collection;
 
         if ($user->can(Permission::ManageSales->value)) {
-            $ownOnly = $user->role === Role::Agent;
-
             [$proposals, $visits] = Owner::ignoringSelection(fn (): array => [
                 DealProposal::query()
                     ->where('status', ProposalStatus::Pending)
-                    ->whereHas('deal', fn (Builder $query) => $query
-                        ->whereNull('closed_at')
-                        ->when($ownOnly, fn (Builder $query) => $query->where('user_id', $user->id)))
+                    ->whereHas('deal', fn (Builder $query) => $query->whereNull('closed_at'))
                     ->count(),
                 DealVisit::query()
                     ->where('status', VisitStatus::Scheduled)
                     ->whereBetween('scheduled_at', [today()->startOfDay(), today()->endOfDay()])
-                    ->when($ownOnly, fn (Builder $query) => $query->where(fn (Builder $query) => $query
-                        ->where('user_id', $user->id)
-                        ->orWhere(fn (Builder $query) => $query
-                            ->whereNull('user_id')
-                            ->whereHas('deal', fn (Builder $query) => $query->where('user_id', $user->id)))))
                     ->with([
                         'deal:id,lead_id,property_id',
                         'deal.lead:id,name',
@@ -99,8 +88,8 @@ class BuildDayAgenda
             ]);
 
             $items[] = $this->item('proposals_pending', $proposals);
-            $items[] = $this->item('showcase_requests', Owner::ignoringSelection(fn (): int => $this->showcaseRequests($user, $ownOnly)));
-            $items[] = $this->item('listing_requests', $this->listingRequests($user, $ownOnly));
+            $items[] = $this->item('showcase_requests', Owner::ignoringSelection(fn (): int => $this->showcaseRequests()));
+            $items[] = $this->item('listing_requests', $this->listingRequests());
         }
 
         return [
@@ -111,9 +100,9 @@ class BuildDayAgenda
 
     /**
      * Count the visits asked through the showcase that nobody has followed up yet: their deals are still
-     * in the first stage of the funnel, with no visit scheduled. Agents count theirs and the unassigned ones.
+     * in the first stage of the funnel, with no visit scheduled.
      */
-    private function showcaseRequests(User $user, bool $ownOnly): int
+    private function showcaseRequests(): int
     {
         $firstStageId = DealStage::query()
             ->whereNull('outcome')
@@ -130,24 +119,17 @@ class BuildDayAgenda
             ->whereNull('closed_at')
             ->whereDoesntHave('visits')
             ->whereHas('lead', fn (Builder $query) => $query->where('source', LeadSource::Website))
-            ->when($ownOnly, fn (Builder $query) => $query->where(fn (Builder $query) => $query
-                ->where('user_id', $user->id)
-                ->orWhereNull('user_id')))
             ->count();
     }
 
     /**
      * Count the people who asked to list a property and are not owners of the account yet: once the
-     * agency registers them as owners, with the same phone, they leave the agenda. Agents count
-     * theirs and the unassigned ones.
+     * agency registers them as owners, with the same phone, they leave the agenda.
      */
-    private function listingRequests(User $user, bool $ownOnly): int
+    private function listingRequests(): int
     {
         return Lead::query()
             ->where('interest', LeadInterest::List)
-            ->when($ownOnly, fn (Builder $query) => $query->where(fn (Builder $query) => $query
-                ->where('user_id', $user->id)
-                ->orWhereNull('user_id')))
             ->whereNotExists(fn (QueryBuilder $query) => $query
                 ->selectRaw('1')
                 ->from('owners')

@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'general' | 'agent' | 'finance';
+export type Role = 'admin' | 'general';
 
 export type TeamMemberStatus = 'active' | 'pending' | 'expired' | 'inactive';
 

@@ -55,8 +55,8 @@ function agendaScenario(): array
     Expense::factory()->for($account, 'account')->for($rented->property)->create(['amount' => 250, 'due_date' => '2026-10-14']);
     Expense::factory()->for($account, 'account')->for($rented->property)->create(['amount' => 90, 'due_date' => '2026-10-30']);
 
-    $bruno = User::factory()->for($account, 'account')->withRole(Role::Agent)->create(['name' => 'Bruno']);
-    $ana = User::factory()->for($account, 'account')->withRole(Role::Agent)->create(['name' => 'Ana']);
+    $bruno = User::factory()->for($account, 'account')->withRole(Role::General)->create(['name' => 'Bruno']);
+    $ana = User::factory()->for($account, 'account')->withRole(Role::General)->create(['name' => 'Ana']);
 
     foreach ([$bruno, $ana] as $agent) {
         $agent->branches()->attach($branch);
@@ -105,27 +105,14 @@ test('administrators see everything that needs attention today', function () {
     expect(app(BuildDayAgenda::class)->handle($admin)['visits'])->toHaveCount(2);
 });
 
-test('agents see only their own proposals and visits, and nothing about the money', function () {
+test('general members see the money and the proposals and visits of the whole team', function () {
     ['bruno' => $bruno] = agendaScenario();
 
     $items = agendaItemsFor($bruno);
 
-    expect($items)->not->toHaveKeys(['payouts_available', 'expenses_due'])
-        ->and($items['overdue_payments']['count'])->toBe(1)
-        ->and($items['proposals_pending']['count'])->toBe(1);
-
-    $visits = app(BuildDayAgenda::class)->handle($bruno)['visits'];
-
-    expect($visits)->toHaveCount(1)
-        ->and($visits->first()->user->name)->toBe('Bruno');
-});
-
-test('finance members see the money, but neither leases nor deals', function () {
-    ['account' => $account, 'branch' => $branch] = agendaScenario();
-    $finance = User::factory()->for($account, 'account')->withRole(Role::Finance)->create();
-    $finance->branches()->attach($branch);
-
-    expect(array_keys(agendaItemsFor($finance)))->toBe(['overdue_payments', 'payments_due_today', 'payouts_available', 'expenses_due']);
+    expect($items)->toHaveKeys(['payouts_available', 'expenses_due'])
+        ->and($items['proposals_pending']['count'])->toBe(2)
+        ->and(app(BuildDayAgenda::class)->handle($bruno)['visits'])->toHaveCount(2);
 });
 
 test('the agenda is on the agency dashboard only', function () {

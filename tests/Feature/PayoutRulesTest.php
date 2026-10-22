@@ -117,11 +117,11 @@ test('every default needs a valid value', function () {
 
 test('only agency admins reach the payout settings', function () {
     ['account' => $account] = payoutRulesScenario();
-    $finance = User::factory()->for($account, 'account')->withRole(Role::Finance)->create();
+    $general = User::factory()->for($account, 'account')->withRole(Role::General)->create();
     $singleOwner = User::factory()->for(Account::factory(), 'account')->create();
 
-    $this->actingAs($finance)->get(route('payout-settings.edit'))->assertForbidden();
-    $this->actingAs($finance)->patch(route('payout-settings.update'), payoutDefaultsPayload())->assertForbidden();
+    $this->actingAs($general)->get(route('payout-settings.edit'))->assertForbidden();
+    $this->actingAs($general)->patch(route('payout-settings.update'), payoutDefaultsPayload())->assertForbidden();
     $this->actingAs($singleOwner)->get(route('payout-settings.edit'))->assertForbidden();
 });
 
@@ -189,27 +189,6 @@ test('the lease rules come first, then the owner rules, then the agency defaults
         ->and($rules['intermediation_fee_percent'])->toBe(0.0)
         ->and($rules['admin_fee_with_intermediation'])->toBeTrue()
         ->and($rules['payout_days'])->toBe(5);
-});
-
-test('members who do not handle the money leave the rules as they are', function () {
-    ['account' => $account, 'branch' => $branch, 'owner' => $owner] = payoutRulesScenario();
-    $owner->update(['admin_fee_percent' => 6]);
-    $agent = User::factory()->for($account, 'account')->withRole(Role::Agent)->create();
-    $agent->branches()->attach($branch);
-
-    $this->actingAs($agent)
-        ->put(route('owners.update', $owner), [
-            'name' => 'Novo Nome',
-            'cpf_cnpj' => $owner->cpf_cnpj,
-            'phone' => '(87) 99999-0000',
-            'admin_fee_percent' => '1',
-        ])
-        ->assertSessionHasNoErrors();
-
-    $owner->refresh();
-
-    expect($owner->name)->toBe('Novo Nome')
-        ->and($owner->admin_fee_percent)->toBe('6.00');
 });
 
 test('payouts are due some days later or on the next fixed day of the month', function () {

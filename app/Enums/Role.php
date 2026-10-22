@@ -2,12 +2,14 @@
 
 namespace App\Enums;
 
+/**
+ * What a team member is: an administrator, who also runs the agency itself, or a general member, who does
+ * the daily work. Finer roles wait until real agencies show how they split the work.
+ */
 enum Role: string
 {
     case Admin = 'admin';
     case General = 'general';
-    case Agent = 'agent';
-    case Finance = 'finance';
 
     /**
      * Get the name shown to people.
@@ -17,8 +19,6 @@ enum Role: string
         return match ($this) {
             self::Admin => 'Administrador',
             self::General => 'Geral',
-            self::Agent => 'Corretor',
-            self::Finance => 'Financeiro',
         };
     }
 
@@ -32,8 +32,6 @@ enum Role: string
         return match ($this) {
             self::Admin => Permission::cases(),
             self::General => [Permission::ManageRentals, Permission::RegisterReceipts, Permission::ManageFinance, Permission::ManageSales, Permission::ManageMessages],
-            self::Agent => [Permission::ManageRentals, Permission::RegisterReceipts, Permission::ManageSales],
-            self::Finance => [Permission::RegisterReceipts, Permission::ManageFinance],
         };
     }
 

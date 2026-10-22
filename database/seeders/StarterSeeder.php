@@ -65,8 +65,8 @@ class StarterSeeder extends Seeder
 
         $this->user($account, 'Ana Administradora', 'admin@imobizilla.test', Role::Admin);
         $this->user($account, 'Gustavo Geral', 'geral@imobizilla.test', Role::General, $branch);
-        $this->user($account, 'Bruno Corretor', 'bruno@imobizilla.test', Role::Agent, $branch);
-        $this->user($account, 'Carla Financeiro', 'carla@imobizilla.test', Role::Finance, $branch);
+        $this->user($account, 'Bruno Corretor', 'bruno@imobizilla.test', Role::General, $branch);
+        $this->user($account, 'Carla Financeiro', 'carla@imobizilla.test', Role::General, $branch);
 
         $owners = [
             [

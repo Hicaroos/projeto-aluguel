@@ -5,7 +5,6 @@ use App\Enums\ExpenseType;
 use App\Enums\LedgerEntryType;
 use App\Enums\PaymentStatus;
 use App\Enums\PaymentType;
-use App\Enums\Role;
 use App\Models\Account;
 use App\Models\Branch;
 use App\Models\Expense;
@@ -321,15 +320,4 @@ test('a down payment received by the agency goes to the seller less the commissi
         ->assertSessionHasNoErrors();
 
     expect(ledgerOf($owner))->toBe([]);
-});
-
-test('agency members only choose who keeps the late charges when they handle the money', function () {
-    ['account' => $account, 'owner' => $owner, 'lease' => $lease] = ledgerScenario(['admin_fee_percent' => 0]);
-    $agent = User::factory()->for($account, 'account')->withRole(Role::Agent)->create();
-    $agent->branches()->attach(Property::find($lease->property_id)->branch_id);
-
-    receive($agent, ledgerRent($lease, '2026-02'), ['date' => '2026-02-20', 'late_fee_amount' => '100', 'late_charges_owner_percent' => '0']);
-
-    expect(ledgerOf($owner))->toBe([['rent', '1000.00'], ['late_charges', '100.00']])
-        ->and(Receipt::sole()->late_charges_owner_percent)->toBeNull();
 });
