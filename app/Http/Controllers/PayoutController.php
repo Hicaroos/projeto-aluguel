@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Messages\ComposeWhatsAppMessage;
 use App\Actions\Payouts\AttachPayoutReceipt;
 use App\Actions\Payouts\BuildOwnerStatement;
 use App\Actions\Payouts\CreditGuaranteedRent;
@@ -69,9 +70,10 @@ class PayoutController extends Controller
     }
 
     /**
-     * Display the owner's statement for the month, sticking to the owner picked in the owner selector.
+     * Display the owner's statement for the month, sticking to the owner picked in the owner selector, with the
+     * WhatsApp notice of each payout in it.
      */
-    public function show(Request $request, Owner $owner, BuildOwnerStatement $buildOwnerStatement, CreditGuaranteedRent $creditGuaranteedRent): Response|RedirectResponse
+    public function show(Request $request, Owner $owner, BuildOwnerStatement $buildOwnerStatement, CreditGuaranteedRent $creditGuaranteedRent, ComposeWhatsAppMessage $composeWhatsAppMessage): Response|RedirectResponse
     {
         $account = $this->agency($request);
         $selectedId = Owner::selectedId();
@@ -83,11 +85,17 @@ class PayoutController extends Controller
         $creditGuaranteedRent->handleDue($account->id);
 
         $month = $this->resolveMonth($request->string('month')->toString());
+        $statement = $buildOwnerStatement->handle($owner, $month);
 
         return Inertia::render('payouts/Show', [
             'owner' => $owner->only(['id', 'name', 'cpf_cnpj', 'pix_key']),
             'month' => $month->format('Y-m'),
-            'statement' => $buildOwnerStatement->handle($owner, $month),
+            'statement' => $statement,
+            'payoutMessages' => OwnerPayout::query()
+                ->whereIn('id', array_filter(array_column($statement['entries'], 'owner_payout_id')))
+                ->with(['owner:id,name,phone,deleted_at', 'latestSentMessage.user:id,name'])
+                ->get()
+                ->mapWithKeys(fn (OwnerPayout $payout): array => [$payout->id => $composeWhatsAppMessage->forPayout($payout)]),
             'properties' => $owner->properties()
                 ->orderBy('properties.street')
                 ->get(['properties.id', 'properties.street', 'properties.number', 'properties.complement'])

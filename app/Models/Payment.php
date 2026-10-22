@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Concerns\BelongsToAccount;
 use App\Concerns\BelongsToVisibleBranches;
 use App\Concerns\FollowsSelectedOwner;
+use App\Concerns\HasSentMessages;
 use App\Enums\PaymentStatus;
 use App\Enums\PaymentType;
 use Carbon\CarbonInterface;
@@ -35,6 +36,7 @@ use Illuminate\Support\Carbon;
  * @property-read Account $account
  * @property-read Lease $lease
  * @property-read Collection<int, Receipt> $receipts
+ * @property-read SentMessage|null $latestSentMessage
  */
 #[Fillable([
     'account_id',
@@ -50,7 +52,7 @@ use Illuminate\Support\Carbon;
 class Payment extends Model
 {
     /** @use HasFactory<PaymentFactory> */
-    use BelongsToAccount, BelongsToVisibleBranches, FollowsSelectedOwner, HasFactory;
+    use BelongsToAccount, BelongsToVisibleBranches, FollowsSelectedOwner, HasFactory, HasSentMessages;
 
     /**
      * @var array<string, string>
@@ -138,7 +140,7 @@ class Payment extends Model
     }
 
     /**
-     * Eager load what payment lists display: tenant, property, receipts and the received total.
+     * Eager load what payment lists display: tenant, property, receipts, the received total and the last WhatsApp message.
      *
      * @param  Builder<Payment>  $query
      */
@@ -147,9 +149,10 @@ class Payment extends Model
         $query
             ->with([
                 'lease:id,property_id,tenant_id,due_day,status,late_fee_percent,monthly_interest_percent',
-                'lease.tenant:id,name,deleted_at',
+                'lease.tenant:id,name,phone,deleted_at',
                 'lease.property:id,type,street,number,complement,neighborhood,city,state,deleted_at',
                 'receipts' => fn ($query) => $query->orderBy('date')->orderBy('id'),
+                'latestSentMessage.user:id,name',
             ])
             ->withSum('receipts as received_amount', 'amount');
     }

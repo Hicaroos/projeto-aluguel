@@ -20,6 +20,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import WhatsAppMessageButton from '@/components/WhatsAppMessageButton.vue';
 import { usePermissions } from '@/composables/usePermissions';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate } from '@/lib/formatters';
@@ -40,6 +41,7 @@ import {
 } from '@/lib/payment-labels';
 import ReceiptShareButton from '@/pages/payments/ReceiptShareButton.vue';
 import { index as leasesIndex } from '@/routes/leases';
+import { whatsapp } from '@/routes/payments';
 import { destroy, show } from '@/routes/receipts';
 import type { Payment, Receipt } from '@/types';
 
@@ -269,7 +271,7 @@ function confirmDelete() {
                 </ul>
             </div>
 
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap items-start gap-2">
                 <Button variant="outline" size="sm" as-child>
                     <Link
                         :href="
@@ -280,6 +282,11 @@ function confirmDelete() {
                         Ver contrato
                     </Link>
                 </Button>
+                <WhatsAppMessageButton
+                    v-if="can.registerReceipts && payment.whatsapp"
+                    :message="payment.whatsapp"
+                    :record-url="whatsapp(payment).url"
+                />
             </div>
 
             <DialogFooter class="border-t pt-6">

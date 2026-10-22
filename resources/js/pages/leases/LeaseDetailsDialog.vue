@@ -37,6 +37,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import WhatsAppMessageButton from '@/components/WhatsAppMessageButton.vue';
 import { usePermissions } from '@/composables/usePermissions';
 import { badgeTones } from '@/lib/badge-tones';
 import { formatCurrency } from '@/lib/currency';
@@ -64,6 +65,7 @@ import {
     formatPersonQualification,
 } from '@/lib/person-labels';
 import LeaseDocuments from '@/pages/leases/LeaseDocuments.vue';
+import { whatsapp as adjustmentWhatsApp } from '@/routes/lease-adjustments';
 import { contract } from '@/routes/leases';
 import { amendment as renewalAmendment } from '@/routes/leases/renewals';
 import { index as paymentsIndex } from '@/routes/payments';
@@ -487,6 +489,12 @@ const formatPercent = (value: string): string =>
                                 formatCurrency(adjustment.new_amount)
                             }}</span>
                         </p>
+                        <WhatsAppMessageButton
+                            v-if="can.manageRentals && adjustment.whatsapp"
+                            class="w-full"
+                            :message="adjustment.whatsapp"
+                            :record-url="adjustmentWhatsApp(adjustment).url"
+                        />
                     </li>
                 </ul>
             </div>

@@ -6,6 +6,7 @@ import {
     FileDown,
     HandCoins,
     Landmark,
+    MessageCircle,
     Paperclip,
     Scale,
     ShieldCheck,
@@ -32,10 +33,14 @@ import {
 import { badgeTones, iconTones } from '@/lib/badge-tones';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate, formatDocument, formatMonthYear } from '@/lib/formatters';
+import { recordWhatsAppMessage } from '@/lib/whatsapp';
 import AdjustmentDialog from '@/pages/payouts/AdjustmentDialog.vue';
 import RegisterPayoutDialog from '@/pages/payouts/RegisterPayoutDialog.vue';
 import { destroy as destroyEntry } from '@/routes/ledger-entries';
-import { destroy as destroyPayout } from '@/routes/owner-payouts';
+import {
+    destroy as destroyPayout,
+    whatsapp as payoutWhatsApp,
+} from '@/routes/owner-payouts';
 import {
     destroy as destroyReceipt,
     show as showReceipt,
@@ -47,6 +52,7 @@ import type {
     StatementEntry,
     StatementOwner,
     StatementPropertyOption,
+    WhatsAppMessage,
 } from '@/types';
 
 const props = defineProps<{
@@ -54,6 +60,8 @@ const props = defineProps<{
     month: string;
     statement: OwnerStatement;
     properties: StatementPropertyOption[];
+    /** The WhatsApp notice of each payout in the statement, by payout. */
+    payoutMessages: Record<number, WhatsAppMessage>;
 }>();
 
 setLayoutProps({
@@ -412,6 +420,53 @@ const headClass =
                                     <Paperclip v-else class="size-3.5" />
                                     Anexar comprovante
                                 </button>
+                                <a
+                                    v-if="
+                                        payoutMessages[entry.owner_payout_id]
+                                            ?.url
+                                    "
+                                    :href="
+                                        payoutMessages[entry.owner_payout_id]
+                                            .url ?? undefined
+                                    "
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+                                    @click="
+                                        recordWhatsAppMessage(
+                                            payoutWhatsApp(
+                                                entry.owner_payout_id,
+                                            ).url,
+                                        )
+                                    "
+                                >
+                                    <MessageCircle class="size-3.5" />
+                                    Avisar no WhatsApp
+                                </a>
+                                <span
+                                    v-else
+                                    class="inline-flex items-center gap-1.5 text-muted-foreground opacity-50"
+                                    title="Cadastre o celular do proprietário para avisar pelo WhatsApp."
+                                >
+                                    <MessageCircle class="size-3.5" />
+                                    Avisar no WhatsApp
+                                </span>
+                                <span
+                                    v-if="
+                                        payoutMessages[entry.owner_payout_id]
+                                            ?.last_sent
+                                    "
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    Avisado em
+                                    {{
+                                        formatDate(
+                                            payoutMessages[
+                                                entry.owner_payout_id
+                                            ].last_sent!.sent_at,
+                                        )
+                                    }}
+                                </span>
                             </div>
                         </TableCell>
                         <TableCell

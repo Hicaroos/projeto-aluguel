@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Leases\SyncLeasePayments;
+use App\Actions\Messages\ComposeWhatsAppMessage;
 use App\Actions\Payments\CalculateLateCharges;
 use App\Actions\Payments\CreateExtraCharge;
 use App\Actions\Payments\SummarizePayments;
@@ -35,6 +36,7 @@ class PaymentController extends Controller
         SyncLeasePayments $syncLeasePayments,
         SummarizePayments $summarizePayments,
         CalculateLateCharges $calculateLateCharges,
+        ComposeWhatsAppMessage $composeWhatsAppMessage,
     ): Response {
         $accountId = $request->user()->account_id;
 
@@ -82,18 +84,22 @@ class PaymentController extends Controller
             },
         ], default: 'due_date');
 
+        $payments = $list
+            ->paginate(15)
+            ->withQueryString()
+            ->through(fn (Payment $payment): Payment => $payment->setAttribute(
+                'late_charges_today',
+                $calculateLateCharges->handle(
+                    $payment,
+                    max(0, (float) $payment->amount - (float) $payment->received_amount),
+                    today(),
+                ),
+            ));
+
+        $composeWhatsAppMessage->attachToPayments($payments->items());
+
         return Inertia::render('payments/Index', [
-            'payments' => $list
-                ->paginate(15)
-                ->withQueryString()
-                ->through(fn (Payment $payment): Payment => $payment->setAttribute(
-                    'late_charges_today',
-                    $calculateLateCharges->handle(
-                        $payment,
-                        max(0, (float) $payment->amount - (float) $payment->received_amount),
-                        today(),
-                    ),
-                )),
+            'payments' => $payments,
             'summary' => $summarizePayments->handle($scopedQuery()),
             'filters' => [
                 'month' => $month->format('Y-m'),

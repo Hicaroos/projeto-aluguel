@@ -6,6 +6,7 @@ use App\Actions\Leases\CreateLease;
 use App\Actions\Leases\DeleteLease;
 use App\Actions\Leases\FinishLease;
 use App\Actions\Leases\UpdateLease;
+use App\Actions\Messages\ComposeWhatsAppMessage;
 use App\Enums\ContractTemplateKind;
 use App\Enums\LeaseStatus;
 use App\Enums\PayoutRule;
@@ -36,13 +37,19 @@ class LeaseController extends Controller
     /**
      * Display the authenticated account's leases, sorted by tenant name by default.
      */
-    public function index(Request $request): Response
+    public function index(Request $request, ComposeWhatsAppMessage $composeWhatsAppMessage): Response
     {
         $accountId = $request->user()->account_id;
         $search = $request->string('search')->trim()->toString();
         $status = $request->enum('status', LeaseStatus::class);
         $leases = fn (): Builder => Lease::where('account_id', $accountId)->withDetails();
-        $withAdjustmentInfo = fn (?Lease $lease): ?Lease => $lease?->withAdjustmentInfo();
+        $withAdjustmentInfo = function (?Lease $lease) use ($composeWhatsAppMessage): ?Lease {
+            if ($lease !== null) {
+                $composeWhatsAppMessage->attachToLatestAdjustment($lease);
+            }
+
+            return $lease?->withAdjustmentInfo();
+        };
         $showsPayoutRules = ($request->user()->account?->isAgency() ?? false) && $request->user()->can(Permission::ManageFinance->value);
 
         $list = $leases()

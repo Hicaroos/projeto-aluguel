@@ -8,6 +8,7 @@ use App\Actions\Dashboard\SummarizeAgencyFinances;
 use App\Actions\Dashboard\SummarizeCommercial;
 use App\Actions\Expenses\SummarizeExpenses;
 use App\Actions\Leases\SyncLeasePayments;
+use App\Actions\Messages\ComposeWhatsAppMessage;
 use App\Actions\Payments\SummarizePayments;
 use App\Enums\ContractTemplateKind;
 use App\Enums\LeaseStatus;
@@ -41,6 +42,7 @@ class DashboardController extends Controller
         SummarizeAgencyFinances $summarizeAgencyFinances,
         BuildDayAgenda $buildDayAgenda,
         SummarizeCommercial $summarizeCommercial,
+        ComposeWhatsAppMessage $composeWhatsAppMessage,
     ): Response {
         $accountId = $request->user()->account_id;
 
@@ -87,21 +89,25 @@ class DashboardController extends Controller
                 ->withListDetails()
                 ->orderBy('due_date')
                 ->limit(6)
-                ->get(),
+                ->get()
+                ->tap(fn (Collection $payments) => $composeWhatsAppMessage->attachToPayments($payments)),
             'formerTenantDebts' => $accountPayments()
                 ->overdue()
                 ->whereHas('lease', fn (Builder $query) => $query->where('status', '!=', LeaseStatus::Active))
                 ->withListDetails()
                 ->orderBy('due_date')
                 ->limit(5)
-                ->get(),
+                ->get()
+                ->tap(fn (Collection $payments) => $composeWhatsAppMessage->attachToPayments($payments)),
             'endingLeases' => Lease::where('account_id', $accountId)
                 ->endingWithin(60)
                 ->withDetails()
                 ->orderBy('end_date')
                 ->limit(5)
                 ->get()
-                ->each->withAdjustmentInfo(),
+                ->each(function (Lease $lease) use ($composeWhatsAppMessage): void {
+                    $composeWhatsAppMessage->attachToLatestAdjustment($lease->withAdjustmentInfo());
+                }),
             'adjustmentLeases' => Lease::where('account_id', $accountId)
                 ->active()
                 ->withDetails()
@@ -109,7 +115,9 @@ class DashboardController extends Controller
                 ->filter(fn (Lease $lease): bool => $lease->canBeAdjusted())
                 ->sortBy(fn (Lease $lease): string => (string) $lease->next_adjustment_date)
                 ->take(5)
-                ->each->withAdjustmentInfo()
+                ->each(function (Lease $lease) use ($composeWhatsAppMessage): void {
+                    $composeWhatsAppMessage->attachToLatestAdjustment($lease->withAdjustmentInfo());
+                })
                 ->values(),
             'vacantProperties' => $this->longestVacant($properties()),
             'vacantPropertiesCount' => $properties()->where('status', PropertyStatus::Available)->count(),

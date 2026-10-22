@@ -6,6 +6,7 @@ import {
     Clock,
     Eye,
     HandCoins,
+    MessageCircle,
     MoreHorizontal,
     Plus,
     ReceiptText,
@@ -74,10 +75,11 @@ import {
 } from '@/lib/payment-labels';
 import { nextSort } from '@/lib/table-sort';
 import type { TableSort } from '@/lib/table-sort';
+import { lastSentLabel, recordWhatsAppMessage } from '@/lib/whatsapp';
 import ExtraChargeForm from '@/pages/payments/ExtraChargeForm.vue';
 import PaymentDetailsDialog from '@/pages/payments/PaymentDetailsDialog.vue';
 import ReceiptFormDialog from '@/pages/payments/ReceiptFormDialog.vue';
-import { destroy, index } from '@/routes/payments';
+import { destroy, index, whatsapp } from '@/routes/payments';
 import type {
     Payment,
     PaymentDisplayStatus,
@@ -456,6 +458,18 @@ function openRegisterDialog(paymentId: number) {
                             >
                                 {{ paymentDueHint(payment)?.label }}
                             </p>
+                            <p
+                                v-if="payment.whatsapp?.last_sent"
+                                class="flex items-center gap-1 text-xs text-muted-foreground"
+                                :title="`Último envio: ${lastSentLabel(payment.whatsapp)}`"
+                            >
+                                <MessageCircle class="size-3" />
+                                {{
+                                    formatDate(
+                                        payment.whatsapp.last_sent.sent_at,
+                                    )
+                                }}
+                            </p>
                         </TableCell>
                         <TableCell class="px-4 py-3 text-right">
                             <p class="font-medium tabular-nums">
@@ -561,6 +575,27 @@ function openRegisterDialog(paymentId: number) {
                                         >
                                             <HandCoins class="size-4" />
                                             Registrar pagamento
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            v-if="payment.whatsapp?.url"
+                                            as-child
+                                        >
+                                            <a
+                                                :href="payment.whatsapp.url"
+                                                target="_blank"
+                                                rel="noopener"
+                                                @click="
+                                                    recordWhatsAppMessage(
+                                                        whatsapp(payment).url,
+                                                    )
+                                                "
+                                            >
+                                                <MessageCircle class="size-4" />
+                                                {{
+                                                    payment.whatsapp
+                                                        .action_label
+                                                }}
+                                            </a>
                                         </DropdownMenuItem>
                                         <template
                                             v-if="

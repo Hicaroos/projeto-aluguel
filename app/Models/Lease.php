@@ -318,7 +318,7 @@ class Lease extends Model
             'property:id,type,street,number,complement,neighborhood,city,state,rent_amount,status,deleted_at',
             'tenant:id,name,email,phone,deleted_at',
             'guarantor',
-            'adjustments',
+            'adjustments.latestSentMessage.user:id,name',
             'documents',
             'renewals',
             'openPayments' => fn ($query) => $query

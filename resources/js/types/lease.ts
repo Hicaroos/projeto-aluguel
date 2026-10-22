@@ -4,6 +4,7 @@ import type { PayoutRuleOverrides } from './payout';
 import type { PersonQualification } from './person';
 import type { Property } from './property';
 import type { Tenant } from './tenant';
+import type { WhatsAppMessage } from './whatsapp';
 
 export type LeaseStatus = 'active' | 'ended' | 'terminated';
 
@@ -139,4 +140,6 @@ export type LeaseAdjustment = {
     new_amount: string;
     notes: string | null;
     created_at: string;
+    /** The notice to send the tenant, on the last adjustment of the lease. */
+    whatsapp?: WhatsAppMessage;
 };

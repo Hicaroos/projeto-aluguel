@@ -2,6 +2,7 @@ import type { LeaseStatus } from './lease';
 import type { Paginator } from './pagination';
 import type { Property } from './property';
 import type { Tenant } from './tenant';
+import type { WhatsAppMessage } from './whatsapp';
 
 export type PaymentStatus = 'pending' | 'partial' | 'paid' | 'canceled';
 
@@ -40,13 +41,15 @@ export type Payment = {
     receipts: Receipt[];
     /** Late fee and interest on the open rent if it were paid today. Sent on the payments list. */
     late_charges_today?: LateCharges;
+    /** The reminder or collection to send the tenant, on open payments. Sent on payment lists. */
+    whatsapp?: WhatsAppMessage | null;
     lease: {
         id: number;
         due_day: number;
         status: LeaseStatus;
         late_fee_percent: string;
         monthly_interest_percent: string;
-        tenant: Pick<Tenant, 'id' | 'name'>;
+        tenant: Pick<Tenant, 'id' | 'name' | 'phone'>;
         property: Pick<
             Property,
             | 'id'

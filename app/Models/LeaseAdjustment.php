@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\HasSentMessages;
 use App\Enums\AdjustmentIndex;
 use Database\Factories\LeaseAdjustmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -24,12 +25,13 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Lease $lease
+ * @property-read SentMessage|null $latestSentMessage
  */
 #[Fillable(['lease_id', 'effective_on', 'adjustment_index', 'percent', 'previous_amount', 'new_amount', 'notes'])]
 class LeaseAdjustment extends Model
 {
     /** @use HasFactory<LeaseAdjustmentFactory> */
-    use HasFactory;
+    use HasFactory, HasSentMessages;
 
     /**
      * @return BelongsTo<Lease, $this>

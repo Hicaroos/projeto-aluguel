@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\BelongsToAccount;
+use App\Concerns\HasSentMessages;
 use App\Enums\PaymentMethod;
 use Database\Factories\OwnerPayoutFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -29,12 +30,13 @@ use Illuminate\Support\Facades\Storage;
  * @property Carbon|null $updated_at
  * @property-read Owner $owner
  * @property-read User|null $user
+ * @property-read SentMessage|null $latestSentMessage
  */
 #[Fillable(['account_id', 'owner_id', 'user_id', 'amount', 'paid_on', 'payment_method', 'notes', 'receipt_name', 'receipt_path'])]
 class OwnerPayout extends Model
 {
     /** @use HasFactory<OwnerPayoutFactory> */
-    use BelongsToAccount, HasFactory;
+    use BelongsToAccount, HasFactory, HasSentMessages;
 
     /**
      * Proofs of transfer are private files, served only to their own account.

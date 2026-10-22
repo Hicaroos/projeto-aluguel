@@ -33,6 +33,7 @@ use App\Http\Controllers\SaleDocumentController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\WelcomeController;
+use App\Http\Controllers\WhatsAppMessageController;
 use App\Http\Middleware\IgnoreOwnerSelection;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Route;
@@ -107,6 +108,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('leases', LeaseController::class)->only(['store', 'update', 'destroy']);
         Route::patch('leases/{lease}/finish', [LeaseController::class, 'finish'])->name('leases.finish');
         Route::post('leases/{lease}/adjustments', [LeaseAdjustmentController::class, 'store'])->name('leases.adjustments.store');
+        Route::post('lease-adjustments/{adjustment}/whatsapp', [WhatsAppMessageController::class, 'adjustment'])->name('lease-adjustments.whatsapp');
         Route::post('leases/{lease}/renewals', [LeaseRenewalController::class, 'store'])->name('leases.renewals.store');
         Route::post('leases/{lease}/documents', [LeaseDocumentController::class, 'store'])->name('leases.documents.store');
         Route::delete('lease-documents/{document}', [LeaseDocumentController::class, 'destroy'])->name('lease-documents.destroy');
@@ -119,6 +121,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('can:register-receipts')->group(function () {
         Route::get('payments', [PaymentController::class, 'index'])->name('payments.index');
         Route::post('payments/{payment}/receipts', [ReceiptController::class, 'store'])->name('payments.receipts.store');
+        Route::post('payments/{payment}/whatsapp', [WhatsAppMessageController::class, 'payment'])->name('payments.whatsapp');
         Route::get('receipts/{receipt}', [ReceiptController::class, 'show'])->name('receipts.show');
         Route::get('receipts/{receipt}/pdf', [ReceiptController::class, 'pdf'])->name('receipts.pdf');
     });
@@ -144,6 +147,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('owner-payouts/{payout}', [PayoutController::class, 'destroy'])->name('owner-payouts.destroy');
         Route::get('owner-payouts/{payout}/receipt', [OwnerPayoutReceiptController::class, 'show'])->name('owner-payouts.receipt.show');
         Route::post('owner-payouts/{payout}/receipt', [OwnerPayoutReceiptController::class, 'store'])->name('owner-payouts.receipt.store');
+        Route::post('owner-payouts/{payout}/whatsapp', [WhatsAppMessageController::class, 'payout'])->name('owner-payouts.whatsapp');
         Route::delete('owner-payouts/{payout}/receipt', [OwnerPayoutReceiptController::class, 'destroy'])->name('owner-payouts.receipt.destroy');
         Route::post('payouts/{owner}/adjustments', [LedgerAdjustmentController::class, 'store'])->name('payouts.adjustments.store');
         Route::delete('ledger-entries/{entry}', [LedgerAdjustmentController::class, 'destroy'])->name('ledger-entries.destroy');
